@@ -1,0 +1,7 @@
+name: bar_app
+
+channels:
+  - conda-forge
+
+dependencies:
+  - nodejs=24
