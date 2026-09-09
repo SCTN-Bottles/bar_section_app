@@ -1,3 +1,5 @@
+"use client";
+
 import { Section } from "@/types/venue";
 
 type SectionMapProps = {
@@ -11,13 +13,16 @@ export default function SectionMap({
   selectedSectionId,
   onSelectSection,
 }: SectionMapProps) {
-     return (
+  return (
     <div className="rounded-xl border border-neutral-200 bg-white p-6">
+
       <svg
-        viewBox="0 0 600 450"
+        viewBox="0 0 600 470"
         className="h-auto w-full"
-        aria-label="Venue floor map"
+        aria-label="My House section map"
       >
+
+        {/* Main Bar */}
         <rect
           x="200"
           y="30"
@@ -36,11 +41,13 @@ export default function SectionMap({
           BAR
         </text>
 
+
+        {/* Dance Floor */}
         <rect
-          x="210"
-          y="130"
-          width="180"
-          height="180"
+          x="205"
+          y="125"
+          width="190"
+          height="220"
           rx="12"
           className="fill-neutral-50 stroke-neutral-300"
           strokeDasharray="6"
@@ -48,18 +55,21 @@ export default function SectionMap({
 
         <text
           x="300"
-          y="220"
+          y="235"
           textAnchor="middle"
           className="fill-neutral-400 text-sm"
         >
           DANCE FLOOR
         </text>
 
+
+        {/* Sections */}
         {sections.map((section) => {
           const selected =
             selectedSectionId === section.id;
 
-          const sold = section.status === "sold";
+          const sold =
+            section.status === "sold";
 
           let sectionClasses =
             "fill-white stroke-neutral-400";
@@ -79,6 +89,7 @@ export default function SectionMap({
               key={section.id}
               role="button"
               tabIndex={sold ? -1 : 0}
+              aria-label={`Section ${section.name}`}
               className={
                 sold
                   ? "cursor-not-allowed"
@@ -86,7 +97,9 @@ export default function SectionMap({
               }
               onClick={() => {
                 if (!sold) {
-                  onSelectSection(section.id);
+                  onSelectSection(
+                    section.id
+                  );
                 }
               }}
               onKeyDown={(event) => {
@@ -95,28 +108,38 @@ export default function SectionMap({
                   (event.key === "Enter" ||
                     event.key === " ")
                 ) {
-                  onSelectSection(section.id);
+                  onSelectSection(
+                    section.id
+                  );
                 }
               }}
             >
               <rect
                 x={section.mapPosition.x}
                 y={section.mapPosition.y}
-                width={section.mapPosition.width}
-                height={section.mapPosition.height}
+                width={
+                  section.mapPosition.width
+                }
+                height={
+                  section.mapPosition.height
+                }
                 rx="8"
                 className={sectionClasses}
-                strokeWidth={selected ? 3 : 2}
+                strokeWidth={
+                  selected ? 3 : 2
+                }
               />
 
               <text
                 x={
                   section.mapPosition.x +
-                  section.mapPosition.width / 2
+                  section.mapPosition.width /
+                    2
                 }
                 y={
                   section.mapPosition.y +
-                  section.mapPosition.height / 2
+                  section.mapPosition.height /
+                    2
                 }
                 dominantBaseline="middle"
                 textAnchor="middle"
@@ -128,21 +151,34 @@ export default function SectionMap({
           );
         })}
 
+
+        {/* Entrance */}
         <text
           x="300"
-          y="415"
+          y="435"
           textAnchor="middle"
           className="fill-neutral-400 text-sm"
         >
           ENTRANCE
         </text>
+
       </svg>
 
-      <div className="mt-4 flex gap-6 text-sm text-neutral-500">
-        <span>Available</span>
-        <span>Selected</span>
-        <span>Sold</span>
+
+      <div className="mt-5 flex flex-wrap gap-5 text-sm text-neutral-500">
+        <span>
+          White = Available
+        </span>
+
+        <span>
+          Gold = Selected
+        </span>
+
+        <span>
+          Gray = Sold
+        </span>
       </div>
+
     </div>
   );
 }

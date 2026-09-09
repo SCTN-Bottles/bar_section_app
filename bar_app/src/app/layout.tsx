@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import "./globals.css";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SECTN",
-  description: "Find and reserve sections at college bars.",
+  description:
+    "Venue section reservations powered by SECTN.",
 };
 
 export default function RootLayout({
@@ -16,13 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <Navbar />
-
-        <main>{children}</main>
-
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
