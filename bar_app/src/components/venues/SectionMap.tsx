@@ -14,7 +14,7 @@ export default function SectionMap({
   onSelectSection,
 }: SectionMapProps) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6">
+    <div className="section-map rounded-xl border p-6">
 
       <svg
         viewBox="0 0 600 470"
@@ -49,7 +49,7 @@ export default function SectionMap({
           width="190"
           height="220"
           rx="12"
-          className="fill-neutral-50 stroke-neutral-300"
+          className="fill-neutral-200 stroke-neutral-400"
           strokeDasharray="6"
         />
 
@@ -72,7 +72,7 @@ export default function SectionMap({
             section.status === "sold";
 
           let sectionClasses =
-            "fill-white stroke-neutral-400";
+            "fill-neutral-50 stroke-neutral-500";
 
           if (selected) {
             sectionClasses =

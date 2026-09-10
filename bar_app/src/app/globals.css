@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
+  --background: #e6e8eb;
+  --foreground: #2f343a;
+  --surface: #f3f4f6;
+  --surface-muted: #e9ebee;
+  --border: #c7cbd0;
+  --muted: #68707a;
+  --control: #454b52;
+  --header: #d8dce1;
+  --map-surface: #dde1e5;
 }
 
 * {
@@ -14,6 +21,101 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* A cool, low-glare gray palette for Tailwind's neutral utilities. */
+.bg-neutral-50 {
+  background-color: var(--surface);
+}
+
+.bg-neutral-100,
+.bg-neutral-200 {
+  background-color: var(--surface-muted);
+}
+
+.border-neutral-300 {
+  border-color: var(--border);
+}
+
+.border-neutral-400,
+.stroke-neutral-400 {
+  border-color: #a3aab2;
+  stroke: #a3aab2;
+}
+
+.border-neutral-500,
+.stroke-neutral-500 {
+  border-color: #717983;
+  stroke: #717983;
+}
+
+.text-neutral-500,
+.text-neutral-600 {
+  color: var(--muted);
+}
+
+.fill-neutral-50 {
+  fill: var(--surface);
+}
+
+.fill-neutral-100,
+.fill-neutral-200 {
+  fill: var(--surface-muted);
+}
+
+.fill-neutral-400 {
+  fill: #a3aab2;
+}
+
+.fill-neutral-600 {
+  fill: #68707a;
+}
+
+.fill-neutral-800 {
+  fill: var(--foreground);
+}
+
+.stroke-neutral-300 {
+  stroke: var(--border);
+}
+
+.bg-black {
+  background-color: var(--control);
+}
+
+.border-black,
+.focus\:border-black:focus {
+  border-color: var(--control);
+}
+
+.hover\:bg-neutral-800:hover {
+  background-color: #353a40;
+}
+
+.hover\:text-black:hover {
+  color: var(--control);
+}
+
+.text-white {
+  color: #fafafa;
+}
+
+.bg-green-50 {
+  background-color: #e3ece5;
+}
+
+.text-green-700 {
+  color: #3f6848;
+}
+
+.venue-header {
+  background-color: var(--header);
+  border-color: #b9c0c8;
+}
+
+.section-map {
+  background-color: var(--map-surface);
+  border-color: #b9c0c8;
 }
 
 button,

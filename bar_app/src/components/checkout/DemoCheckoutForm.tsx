@@ -66,7 +66,7 @@ export default function DemoCheckoutForm({
           name="name"
           required
           placeholder="Your name"
-          className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 outline-none focus:border-black"
+          className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-black"
         />
 
       </div>
@@ -87,7 +87,7 @@ export default function DemoCheckoutForm({
           type="email"
           required
           placeholder="you@example.com"
-          className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 outline-none focus:border-black"
+          className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-black"
         />
 
       </div>
@@ -110,7 +110,7 @@ export default function DemoCheckoutForm({
           max={maxGuests}
           required
           placeholder="8"
-          className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 outline-none focus:border-black"
+          className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-black"
         />
 
       </div>

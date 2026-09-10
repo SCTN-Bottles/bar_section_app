@@ -57,7 +57,7 @@ export default function VenueExplorer({
       {/* Right side */}
       <div>
 
-        <h2 className="mb-4 text-xl font-semibold">
+        <h2 className="mb-4 text-xl font-semibold text-black">
           Sections
         </h2>
 
@@ -92,13 +92,13 @@ export default function VenueExplorer({
                     ${
                       selected
                         ? "border-black bg-neutral-50"
-                        : "border-neutral-200 bg-white"
+                        : "border-neutral-300 bg-neutral-50"
                     }
 
                     ${
                       sold
                         ? "cursor-not-allowed opacity-50"
-                        : "hover:border-neutral-400"
+                        : "hover:border-neutral-500"
                     }
                   `}
                 >

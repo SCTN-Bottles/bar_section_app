@@ -10,16 +10,16 @@ export default function VenueHeader({
   venue,
 }: VenueHeaderProps) {
   return (
-    <header className="border-b border-neutral-200 bg-white">
+    <header className="venue-header border-b">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link
           href={`/${venue.venueName}`}
-          className="text-xl font-semibold"
+          className="text-xl font-semibold text-black"
         >
           {venue.name}
         </Link>
 
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-black">
           Reservations powered by SECTN
         </p>
       </div>

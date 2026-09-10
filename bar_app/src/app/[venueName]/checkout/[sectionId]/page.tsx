@@ -81,7 +81,7 @@ export default async function CheckoutPage({
 
 
           {/* Summary */}
-          <aside className="rounded-xl border border-neutral-200 bg-white p-6">
+          <aside className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
 
             <p className="text-sm text-neutral-500">
               Reservation summary
@@ -139,7 +139,7 @@ export default async function CheckoutPage({
               </div>
 
 
-              <div className="border-t border-neutral-200 pt-4">
+              <div className="border-t border-neutral-300 pt-4">
 
                 <div className="flex justify-between text-lg font-semibold">
 

@@ -12,7 +12,7 @@ export default function SectionDetails({
   section,
 }: SectionDetailsProps) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6">
+    <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
 
       <div className="flex items-start justify-between">
 
