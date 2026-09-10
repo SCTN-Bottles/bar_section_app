@@ -91,7 +91,7 @@ export default function VenueExplorer({
 
                     ${
                       selected
-                        ? "border-black bg-neutral-50"
+                        ? "border-amber-600 bg-neutral-50"
                         : "border-neutral-300 bg-neutral-50"
                     }
 

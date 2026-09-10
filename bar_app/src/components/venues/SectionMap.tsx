@@ -29,16 +29,16 @@ export default function SectionMap({
           width="200"
           height="50"
           rx="8"
-          className="fill-neutral-100 stroke-neutral-300"
+          className="fill-neutral-100 stroke-neutral-500"
         />
 
         <text
           x="300"
           y="60"
           textAnchor="middle"
-          className="fill-neutral-600 text-sm"
+          className="map-label text-sm"
         >
-          BAR
+          DJ BOOTH
         </text>
 
 
@@ -49,7 +49,7 @@ export default function SectionMap({
           width="190"
           height="220"
           rx="12"
-          className="fill-neutral-200 stroke-neutral-400"
+          className="fill-neutral-200 stroke-neutral-500"
           strokeDasharray="6"
         />
 
@@ -57,7 +57,7 @@ export default function SectionMap({
           x="300"
           y="235"
           textAnchor="middle"
-          className="fill-neutral-400 text-sm"
+          className="map-label text-sm"
         >
           DANCE FLOOR
         </text>
@@ -143,7 +143,7 @@ export default function SectionMap({
                 }
                 dominantBaseline="middle"
                 textAnchor="middle"
-                className="pointer-events-none fill-neutral-800 font-semibold"
+                className="map-section-label pointer-events-none font-semibold"
               >
                 {section.name}
               </text>
@@ -157,7 +157,7 @@ export default function SectionMap({
           x="300"
           y="435"
           textAnchor="middle"
-          className="fill-neutral-400 text-sm"
+          className="map-label text-sm"
         >
           ENTRANCE
         </text>
@@ -165,9 +165,9 @@ export default function SectionMap({
       </svg>
 
 
-      <div className="mt-5 flex flex-wrap gap-5 text-sm text-neutral-500">
+      <div className="map-legend mt-5 flex flex-wrap gap-5 text-sm">
         <span>
-          White = Available
+          Gray = Available
         </span>
 
         <span>
@@ -175,7 +175,7 @@ export default function SectionMap({
         </span>
 
         <span>
-          Gray = Sold
+          Dark gray = Sold
         </span>
       </div>
 

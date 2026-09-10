@@ -34,7 +34,7 @@ export default async function VenuePage({
 
         <div className="mb-10">
 
-          <p className="text-sm text-black">
+          <p className="page-supporting-text text-sm">
             {venue.city}, {venue.state}
           </p>
 
@@ -43,7 +43,7 @@ export default async function VenuePage({
             {venue.name}
           </h1>
 
-          <p className="mt-3 max-w-2xl text-black">
+          <p className="page-supporting-text mt-3 max-w-2xl">
             {venue.description}
           </p>
 

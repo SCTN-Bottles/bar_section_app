@@ -10,7 +10,7 @@ export default function VenueHeader({
   venue,
 }: VenueHeaderProps) {
   return (
-    <header className="venue-header border-b">
+    <header className="venue-header border-b-2">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link
           href={`/${venue.venueName}`}

@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #e6e8eb;
-  --foreground: #2f343a;
-  --surface: #f3f4f6;
-  --surface-muted: #e9ebee;
-  --border: #c7cbd0;
-  --muted: #68707a;
-  --control: #454b52;
-  --header: #d8dce1;
-  --map-surface: #dde1e5;
+  --background: #171a1e;
+  --foreground: #f1f4f6;
+  --surface: #252a30;
+  --surface-muted: #2d333a;
+  --border: #48515b;
+  --muted: #aeb7c1;
+  --control: #0e1114;
+  --header: #101317;
+  --map-surface: #1e242a;
+  --selected-fill: #4b4537;
+  --selected-border: #b9a66f;
 }
 
 * {
@@ -23,7 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* A cool, low-glare gray palette for Tailwind's neutral utilities. */
+/* A charcoal dark palette for Tailwind's neutral utilities. */
 .bg-neutral-50 {
   background-color: var(--surface);
 }
@@ -39,14 +41,14 @@ body {
 
 .border-neutral-400,
 .stroke-neutral-400 {
-  border-color: #a3aab2;
-  stroke: #a3aab2;
+  border-color: #66717c;
+  stroke: #66717c;
 }
 
 .border-neutral-500,
 .stroke-neutral-500 {
-  border-color: #717983;
-  stroke: #717983;
+  border-color: #89939e;
+  stroke: #89939e;
 }
 
 .text-neutral-500,
@@ -64,11 +66,11 @@ body {
 }
 
 .fill-neutral-400 {
-  fill: #a3aab2;
+  fill: #8d98a4;
 }
 
 .fill-neutral-600 {
-  fill: #68707a;
+  fill: #aeb7c1;
 }
 
 .fill-neutral-800 {
@@ -83,39 +85,82 @@ body {
   background-color: var(--control);
 }
 
+.text-black {
+  color: var(--foreground);
+}
+
 .border-black,
 .focus\:border-black:focus {
-  border-color: var(--control);
+  border-color: var(--foreground);
 }
 
 .hover\:bg-neutral-800:hover {
-  background-color: #353a40;
+  background-color: #050607;
 }
 
 .hover\:text-black:hover {
-  color: var(--control);
+  color: var(--foreground);
+}
+
+.fill-amber-100 {
+  fill: var(--selected-fill);
+}
+
+.stroke-amber-600,
+.border-amber-600 {
+  border-color: var(--selected-border);
+  stroke: var(--selected-border);
+}
+
+.map-section-label {
+  fill: var(--foreground);
+  paint-order: stroke fill;
+  stroke: #171a1e;
+  stroke-linejoin: round;
+  stroke-width: 3px;
+}
+
+.map-label {
+  fill: var(--foreground);
+}
+
+.map-legend {
+  color: var(--foreground);
 }
 
 .text-white {
-  color: #fafafa;
+  color: #f8fafc;
 }
 
 .bg-green-50 {
-  background-color: #e3ece5;
+  background-color: #203b2a;
+}
+
+.border-green-200 {
+  border-color: #467454;
 }
 
 .text-green-700 {
-  color: #3f6848;
+  color: #9dd3a8;
+}
+
+.text-green-800,
+.text-green-900 {
+  color: #d2ead7;
+}
+
+.page-supporting-text {
+  color: #c6cdd5;
 }
 
 .venue-header {
   background-color: var(--header);
-  border-color: #b9c0c8;
+  border-color: #39424b;
 }
 
 .section-map {
   background-color: var(--map-surface);
-  border-color: #b9c0c8;
+  border-color: #46515c;
 }
 
 button,
