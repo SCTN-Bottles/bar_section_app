@@ -1,88 +1,125 @@
 "use client";
 
-import { Section } from "@/types/venue";
+import {
+  Section,
+  VenueArea,
+  venueAreaLabels,
+} from "@/types/venue";
 
 type SectionMapProps = {
+  area: VenueArea;
   sections: Section[];
   selectedSectionId: string;
   onSelectSection: (sectionId: string) => void;
 };
 
+function AreaFixtures({ area }: { area: VenueArea }) {
+  if (area === "cabanas") {
+    return (
+      null
+    );
+  }
+
+  if (area === "attic") {
+    return (
+      <>
+        <rect
+          x="190"
+          y="120"
+          width="220"
+          height="100"
+          rx="14"
+          className="fill-neutral-200 stroke-neutral-500"
+          strokeDasharray="6"
+        />
+        <text x="300" y="175" textAnchor="middle" className="map-label text-sm">
+          DANCE FLOOR
+        </text>
+        <rect
+          x="200"
+          y="280"
+          width="200"
+          height="48"
+          rx="8"
+          className="fill-neutral-100 stroke-neutral-500"
+        />
+        <text x="300" y="310" textAnchor="middle" className="map-label text-sm">
+          BAR
+        </text>
+      </>
+    );
+  }
+
+  if (area === "bar") {
+    return (
+      <>
+        <rect
+          x="80"
+          y="90"
+          width="180"
+          height="180"
+          rx="10"
+          className="fill-neutral-100 stroke-neutral-500"
+        />
+        <text x="170" y="185" textAnchor="middle" className="map-label text-sm">
+          BAR
+        </text>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <rect
+        x="200"
+        y="30"
+        width="200"
+        height="50"
+        rx="8"
+        className="fill-neutral-100 stroke-neutral-500"
+      />
+      <text x="300" y="60" textAnchor="middle" className="map-label text-sm">
+        DJ BOOTH
+      </text>
+      <rect
+        x="205"
+        y="125"
+        width="190"
+        height="220"
+        rx="12"
+        className="fill-neutral-200 stroke-neutral-500"
+        strokeDasharray="6"
+      />
+      <text x="300" y="235" textAnchor="middle" className="map-label text-sm">
+        DANCE FLOOR
+      </text>
+    </>
+  );
+}
+
 export default function SectionMap({
+  area,
   sections,
   selectedSectionId,
   onSelectSection,
 }: SectionMapProps) {
   return (
-    <div className="section-map rounded-xl border p-6">
-
+    <div className="section-map self-start rounded-xl border p-6">
       <svg
-        viewBox="0 0 600 470"
+        viewBox="0 0 600 360"
         className="h-auto w-full"
-        aria-label="My House section map"
+        aria-label={`${venueAreaLabels[area]} section map`}
       >
+        <AreaFixtures area={area} />
 
-        {/* Main Bar */}
-        <rect
-          x="200"
-          y="30"
-          width="200"
-          height="50"
-          rx="8"
-          className="fill-neutral-100 stroke-neutral-500"
-        />
-
-        <text
-          x="300"
-          y="60"
-          textAnchor="middle"
-          className="map-label text-sm"
-        >
-          DJ BOOTH
-        </text>
-
-
-        {/* Dance Floor */}
-        <rect
-          x="205"
-          y="125"
-          width="190"
-          height="220"
-          rx="12"
-          className="fill-neutral-200 stroke-neutral-500"
-          strokeDasharray="6"
-        />
-
-        <text
-          x="300"
-          y="235"
-          textAnchor="middle"
-          className="map-label text-sm"
-        >
-          DANCE FLOOR
-        </text>
-
-
-        {/* Sections */}
         {sections.map((section) => {
-          const selected =
-            selectedSectionId === section.id;
-
-          const sold =
-            section.status === "sold";
-
-          let sectionClasses =
-            "fill-neutral-50 stroke-neutral-500";
-
-          if (selected) {
-            sectionClasses =
-              "fill-amber-100 stroke-amber-600";
-          }
-
-          if (sold) {
-            sectionClasses =
-              "fill-neutral-200 stroke-neutral-300";
-          }
+          const selected = selectedSectionId === section.id;
+          const sold = section.status === "sold";
+          const sectionClasses = sold
+            ? "fill-neutral-200 stroke-neutral-300"
+            : selected
+              ? "fill-primary stroke-primary"
+              : "fill-neutral-50 stroke-neutral-500";
 
           return (
             <g
@@ -90,60 +127,31 @@ export default function SectionMap({
               role="button"
               tabIndex={sold ? -1 : 0}
               aria-label={`Section ${section.name}`}
-              className={
-                sold
-                  ? "cursor-not-allowed"
-                  : "cursor-pointer"
-              }
-              onClick={() => {
-                if (!sold) {
-                  onSelectSection(
-                    section.id
-                  );
-                }
-              }}
+              className={sold ? "cursor-not-allowed" : "cursor-pointer"}
+              onClick={() => !sold && onSelectSection(section.id)}
               onKeyDown={(event) => {
-                if (
-                  !sold &&
-                  (event.key === "Enter" ||
-                    event.key === " ")
-                ) {
-                  onSelectSection(
-                    section.id
-                  );
+                if (!sold && (event.key === "Enter" || event.key === " ")) {
+                  onSelectSection(section.id);
                 }
               }}
             >
               <rect
                 x={section.mapPosition.x}
                 y={section.mapPosition.y}
-                width={
-                  section.mapPosition.width
-                }
-                height={
-                  section.mapPosition.height
-                }
+                width={section.mapPosition.width}
+                height={section.mapPosition.height}
                 rx="8"
                 className={sectionClasses}
-                strokeWidth={
-                  selected ? 3 : 2
-                }
+                strokeWidth={selected ? 3 : 2}
               />
-
               <text
-                x={
-                  section.mapPosition.x +
-                  section.mapPosition.width /
-                    2
-                }
-                y={
-                  section.mapPosition.y +
-                  section.mapPosition.height /
-                    2
-                }
+                x={section.mapPosition.x + section.mapPosition.width / 2}
+                y={section.mapPosition.y + section.mapPosition.height / 2}
                 dominantBaseline="middle"
                 textAnchor="middle"
-                className="map-section-label pointer-events-none font-semibold"
+                className={`pointer-events-none font-semibold ${
+                  selected ? "map-section-label-selected" : "map-section-label"
+                }`}
               >
                 {section.name}
               </text>
@@ -151,34 +159,13 @@ export default function SectionMap({
           );
         })}
 
-
-        {/* Entrance */}
-        <text
-          x="300"
-          y="435"
-          textAnchor="middle"
-          className="map-label text-sm"
-        >
-          ENTRANCE
-        </text>
-
       </svg>
 
-
       <div className="map-legend mt-5 flex flex-wrap gap-5 text-sm">
-        <span>
-          Gray = Available
-        </span>
-
-        <span>
-          Gold = Selected
-        </span>
-
-        <span>
-          Dark gray = Sold
-        </span>
+        <span>Gray = Available</span>
+        <span>Gold = Selected</span>
+        <span>Dark gray = Sold</span>
       </div>
-
     </div>
   );
 }

@@ -38,7 +38,7 @@ export default async function VenuePage({
             {venue.city}, {venue.state}
           </p>
 
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight">
+          <h1 className="display-heading mt-2">
             Reserve a section at{" "}
             {venue.name}
           </h1>

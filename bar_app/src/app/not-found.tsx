@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-32 text-center">
 
-      <h1 className="text-4xl font-semibold">
+      <h1 className="display-heading">
         Page not found
       </h1>
 
@@ -15,7 +15,7 @@ export default function NotFound() {
 
       <Link
         href="/MyHouse"
-        className="mt-8 inline-block rounded-lg bg-black px-6 py-3 text-white"
+        className="mt-8 inline-block rounded-md bg-primary px-6 py-3 text-on-primary hover:bg-accent"
       >
         Return to My House
       </Link>
