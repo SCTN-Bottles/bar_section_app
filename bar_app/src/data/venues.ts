@@ -59,7 +59,7 @@ export const venues: Venue[] = [
         capacity: 8,
         minimumSpend: 350,
         deposit: 100,
-        status: "available",
+        status: "sold",
         description:
           "Cabana positioned beside the main floor.",
 
@@ -128,10 +128,10 @@ export const venues: Venue[] = [
        },
       },
       { id: "cabana-3", name: "Cabana 3", area: "cabanas", capacity: 10, minimumSpend: 350, deposit: 100, status: "available", description: "Cabana positioned beside the main floor.", mapPosition: { x: 425, y: 145, width: 110, height: 70 } },
-      { id: "attic-1", name: "T1", area: "attic", capacity: 8, minimumSpend: 325, deposit: 100, status: "available", description: "Attic section on the left side of the dance floor.", mapPosition: { x: 50, y: 125, width: 100, height: 70 } },
+      { id: "attic-1", name: "T1", area: "attic", capacity: 8, minimumSpend: 325, deposit: 100, status: "sold", description: "Attic section on the left side of the dance floor.", mapPosition: { x: 50, y: 125, width: 100, height: 70 } },
       { id: "attic-2", name: "T2", area: "attic", capacity: 8, minimumSpend: 325, deposit: 100, status: "available", description: "Attic section on the right side of the dance floor.", mapPosition: { x: 450, y: 125, width: 100, height: 70 } },
       { id: "attic-3", name: "T3", area: "attic", capacity: 10, minimumSpend: 375, deposit: 125, status: "available", description: "Attic section beside the lower bar.", mapPosition: { x: 450, y: 245, width: 100, height: 70 } },
-      { id: "bar-1", name: "B1", area: "bar", capacity: 8, minimumSpend: 275, deposit: 100, status: "available", description: "Couches section to the right of the bar.", mapPosition: { x: 370, y: 110, width: 110, height: 70 } },
+      { id: "bar-1", name: "B1", area: "bar", capacity: 8, minimumSpend: 275, deposit: 100, status: "sold", description: "Couches section to the right of the bar.", mapPosition: { x: 370, y: 110, width: 110, height: 70 } },
       { id: "bar-2", name: "B2", area: "bar", capacity: 8, minimumSpend: 275, deposit: 100, status: "available", description: "Couches section to the right of the bar.", mapPosition: { x: 370, y: 220, width: 110, height: 70 } },
      ],
     },

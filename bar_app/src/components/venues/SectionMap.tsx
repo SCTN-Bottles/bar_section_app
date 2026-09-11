@@ -126,7 +126,10 @@ export default function SectionMap({
               key={section.id}
               role="button"
               tabIndex={sold ? -1 : 0}
-              aria-label={`Section ${section.name}`}
+              aria-disabled={sold}
+              aria-label={`Section ${section.name}, ${
+                sold ? "sold" : "available"
+              }`}
               className={sold ? "cursor-not-allowed" : "cursor-pointer"}
               onClick={() => !sold && onSelectSection(section.id)}
               onKeyDown={(event) => {
