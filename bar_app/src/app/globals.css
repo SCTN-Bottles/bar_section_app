@@ -1,169 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #171a1e;
-  --foreground: #f1f4f6;
-  --surface: #252a30;
-  --surface-muted: #2d333a;
-  --border: #48515b;
-  --muted: #aeb7c1;
-  --control: #0e1114;
-  --header: #101317;
-  --map-surface: #1e242a;
-  --selected-fill: #4b4537;
-  --selected-border: #b9a66f;
+  --background: #1f1f1f;
+  --foreground: #eeeeee;
+  --surface: #262626;
+  --surface-muted: #303030;
+  --border: #404040;
+  --muted: #dadada;
+  --primary: #f1b82d;
+  --accent: #c99700;
+  --on-primary: #1f1f1f;
+  --header: #262626;
+  --map-surface: #262626;
+  --shadow-card: rgb(255 255 255) 0 0 0 0 inset, rgb(255 255 255 / 5%) 0 0 0 1px inset, rgb(0 0 0 / 0%) 0 0 0 0;
+  --shadow-elevated: rgb(255 255 255) 0 0 0 0 inset, rgb(255 255 255 / 10%) 0 0 0 1px inset, rgb(0 0 0 / 10%) 0 1px 3px 0, rgb(0 0 0 / 10%) 0 1px 2px -1px;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Roboto, Inter, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
-/* A charcoal dark palette for Tailwind's neutral utilities. */
-.bg-neutral-50 {
-  background-color: var(--surface);
+.display-heading { font-size: 60px; font-weight: 600; line-height: 1; letter-spacing: -1.2px; }
+.section-heading { font-size: 36px; font-weight: 400; line-height: 1.11; }
+
+/* Theme mappings keep the existing Tailwind markup aligned with Obsidian tokens. */
+.bg-neutral-50 { background-color: var(--surface); box-shadow: var(--shadow-card); }
+.bg-neutral-100, .bg-neutral-200 { background-color: var(--surface-muted); }
+.border-neutral-300, .stroke-neutral-300, .border-neutral-400, .stroke-neutral-400, .border-neutral-500, .stroke-neutral-500 { border-color: var(--border); stroke: var(--border); }
+.text-neutral-500, .text-neutral-600 { color: var(--muted); }
+.fill-neutral-50 { fill: var(--surface); }
+.fill-neutral-100, .fill-neutral-200 { fill: var(--surface-muted); }
+.fill-neutral-400, .fill-neutral-600 { fill: var(--muted); }
+.fill-neutral-800 { fill: var(--foreground); }
+
+.bg-primary { background-color: var(--primary); }
+.border-primary, .stroke-primary { border-color: var(--primary); stroke: var(--primary); }
+.fill-primary { fill: var(--primary); }
+.text-foreground { color: var(--foreground); }
+.text-on-primary { color: var(--on-primary); }
+.hover\:bg-accent:hover { background-color: var(--accent); }
+.hover\:border-primary:hover { border-color: var(--primary); }
+.hover\:text-foreground:hover { color: var(--foreground); }
+.focus\:border-primary:focus { border-color: var(--primary); }
+
+/* Semantic success feedback remains distinct from the primary interaction color. */
+.bg-green-50 { background-color: #203b2a; }
+.border-green-200 { border-color: #467454; }
+.text-green-700 { color: #9dd3a8; }
+.text-green-800, .text-green-900 { color: #d2ead7; }
+
+.page-supporting-text { color: var(--muted); }
+.venue-header { background-color: var(--header); border-color: var(--border); box-shadow: var(--shadow-elevated); }
+.section-map { background-color: var(--map-surface); border-color: var(--border); box-shadow: var(--shadow-card); }
+.map-section-label { fill: var(--foreground); paint-order: stroke fill; stroke: var(--background); stroke-linejoin: round; stroke-width: 3px; }
+.map-section-label-selected { fill: var(--on-primary); stroke: var(--on-primary); }
+.map-label, .map-legend { color: var(--foreground); fill: var(--foreground); }
+
+button, a, input {
+  transition: color 100ms var(--ease-standard), background-color 100ms var(--ease-standard), border-color 100ms var(--ease-standard), box-shadow 100ms var(--ease-standard);
 }
 
-.bg-neutral-100,
-.bg-neutral-200 {
-  background-color: var(--surface-muted);
-}
+button { min-height: 44px; }
 
-.border-neutral-300 {
-  border-color: var(--border);
-}
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-.border-neutral-400,
-.stroke-neutral-400 {
-  border-color: #66717c;
-  stroke: #66717c;
-}
-
-.border-neutral-500,
-.stroke-neutral-500 {
-  border-color: #89939e;
-  stroke: #89939e;
-}
-
-.text-neutral-500,
-.text-neutral-600 {
-  color: var(--muted);
-}
-
-.fill-neutral-50 {
-  fill: var(--surface);
-}
-
-.fill-neutral-100,
-.fill-neutral-200 {
-  fill: var(--surface-muted);
-}
-
-.fill-neutral-400 {
-  fill: #8d98a4;
-}
-
-.fill-neutral-600 {
-  fill: #aeb7c1;
-}
-
-.fill-neutral-800 {
-  fill: var(--foreground);
-}
-
-.stroke-neutral-300 {
-  stroke: var(--border);
-}
-
-.bg-black {
-  background-color: var(--control);
-}
-
-.text-black {
-  color: var(--foreground);
-}
-
-.border-black,
-.focus\:border-black:focus {
-  border-color: var(--foreground);
-}
-
-.hover\:bg-neutral-800:hover {
-  background-color: #050607;
-}
-
-.hover\:text-black:hover {
-  color: var(--foreground);
-}
-
-.fill-amber-100 {
-  fill: var(--selected-fill);
-}
-
-.stroke-amber-600,
-.border-amber-600 {
-  border-color: var(--selected-border);
-  stroke: var(--selected-border);
-}
-
-.map-section-label {
-  fill: var(--foreground);
-  paint-order: stroke fill;
-  stroke: #171a1e;
-  stroke-linejoin: round;
-  stroke-width: 3px;
-}
-
-.map-label {
-  fill: var(--foreground);
-}
-
-.map-legend {
-  color: var(--foreground);
-}
-
-.text-white {
-  color: #f8fafc;
-}
-
-.bg-green-50 {
-  background-color: #203b2a;
-}
-
-.border-green-200 {
-  border-color: #467454;
-}
-
-.text-green-700 {
-  color: #9dd3a8;
-}
-
-.text-green-800,
-.text-green-900 {
-  color: #d2ead7;
-}
-
-.page-supporting-text {
-  color: #c6cdd5;
-}
-
-.venue-header {
-  background-color: var(--header);
-  border-color: #39424b;
-}
-
-.section-map {
-  background-color: var(--map-surface);
-  border-color: #46515c;
-}
-
-button,
-a {
-  transition: 150ms ease;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0ms !important; }
 }
