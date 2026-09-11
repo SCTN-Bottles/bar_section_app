@@ -130,7 +130,7 @@ export default function SectionMap({
               aria-label={`Section ${section.name}, ${
                 sold ? "sold" : "available"
               }`}
-              className={sold ? "cursor-not-allowed" : "cursor-pointer"}
+              className={sold ? "pointer-events-none cursor-default" : "cursor-pointer"}
               onClick={() => !sold && onSelectSection(section.id)}
               onKeyDown={(event) => {
                 if (!sold && (event.key === "Enter" || event.key === " ")) {
