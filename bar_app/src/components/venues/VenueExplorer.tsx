@@ -157,7 +157,15 @@ export default function VenueExplorer({ venue }: VenueExplorerProps) {
                 >
                   <div className="flex justify-between">
                     <div>
-                      <p className="font-semibold">{section.name}</p>
+                      <p className="flex items-center gap-2 font-semibold">
+                        <span
+                          aria-hidden="true"
+                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                            sold ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
+                        {section.name}
+                      </p>
                       <p className="mt-1 text-sm text-neutral-500">
                         Up to {section.capacity} guests
                       </p>

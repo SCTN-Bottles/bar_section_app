@@ -15,6 +15,8 @@ export default function SectionDetails({
   bookingDate,
   bookingTime,
 }: SectionDetailsProps) {
+  const sold = section.status === "sold";
+  const availabilityLabel = sold ? "Sold" : "Available";
   const reservationQuery = new URLSearchParams({
     date: bookingDate,
     time: bookingTime,
@@ -28,8 +30,12 @@ export default function SectionDetails({
           <h2 className="section-heading mt-1">{section.name}</h2>
         </div>
 
-        <span className="rounded-full bg-green-50 px-3 py-1 text-sm text-green-700">
-          Available
+        <span
+          className={`rounded-full px-3 py-1 text-sm ${
+            sold ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
+          }`}
+        >
+          {availabilityLabel}
         </span>
       </div>
 
