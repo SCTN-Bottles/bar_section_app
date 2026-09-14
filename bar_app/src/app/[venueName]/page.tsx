@@ -9,13 +9,27 @@ type VenuePageProps = {
   params: Promise<{
     venueName: string;
   }>;
+  searchParams: Promise<{
+    date?: string;
+    time?: string;
+    section?: string;
+    step?: string;
+    addons?: string;
+    restart?: string;
+  }>;
 };
 
 export default async function VenuePage({
   params,
+  searchParams,
 }: VenuePageProps) {
 
   const { venueName } = await params;
+  const reservationParams = await searchParams;
+  const initialReservation = {
+    ...reservationParams,
+    sectionId: reservationParams.section,
+  };
 
   const venue =
     getVenueByName(venueName);
@@ -50,7 +64,11 @@ export default async function VenuePage({
         </div>
 
 
-        <VenueExplorer venue={venue} />
+        <VenueExplorer
+          key={initialReservation.restart ?? "reservation"}
+          venue={venue}
+          initialReservation={initialReservation}
+        />
 
       </section>
     </>

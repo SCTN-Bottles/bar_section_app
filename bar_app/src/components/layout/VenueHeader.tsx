@@ -1,4 +1,4 @@
-import Link from "next/link";
+"use client";
 
 import { Venue } from "@/types/venue";
 
@@ -9,15 +9,21 @@ type VenueHeaderProps = {
 export default function VenueHeader({
   venue,
 }: VenueHeaderProps) {
+  const homeHref = `/${venue.venueName}?restart=1`;
+
   return (
     <header className="venue-header border-b-2">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-        <Link
-          href={`/${venue.venueName}`}
+        <a
+          href={homeHref}
+          onClick={(event) => {
+            event.preventDefault();
+            window.location.assign(homeHref);
+          }}
           className="text-xl font-semibold text-foreground"
         >
           {venue.name}
-        </Link>
+        </a>
 
         <p className="text-xs text-foreground">
           Reservations powered by SECTN

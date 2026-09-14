@@ -40,6 +40,15 @@ export type BookingCalendar = {
   placeholderTime: string;
 };
 
+export type BeverageType = "bottle" | "keg";
+
+export type BeverageOption = {
+  id: string;
+  name: string;
+  type: BeverageType;
+  price: number;
+};
+
 export type Venue = {
   id: string;
   name: string;
@@ -48,5 +57,6 @@ export type Venue = {
   state: string;
   description: string;
   bookingCalendar: BookingCalendar;
+  beverages: BeverageOption[];
   sections: Section[];
 };

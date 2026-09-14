@@ -147,6 +147,14 @@ export default function SectionMap({
                 className={sectionClasses}
                 strokeWidth={selected ? 3 : 2}
               />
+              <circle
+                cx={section.mapPosition.x + 13}
+                cy={section.mapPosition.y + 13}
+                r="5"
+                fill={sold ? "#dc2626" : "#238636"}
+                stroke="#1f1f1f"
+                strokeWidth="2"
+              />
               <text
                 x={section.mapPosition.x + section.mapPosition.width / 2}
                 y={section.mapPosition.y + section.mapPosition.height / 2}
@@ -165,9 +173,9 @@ export default function SectionMap({
       </svg>
 
       <div className="map-legend mt-5 flex flex-wrap gap-5 text-sm">
-        <span>Gray = Available</span>
+        <span>Green dot = Available</span>
+        <span>Red dot = Sold</span>
         <span>Gold = Selected</span>
-        <span>Dark gray = Sold</span>
       </div>
     </div>
   );

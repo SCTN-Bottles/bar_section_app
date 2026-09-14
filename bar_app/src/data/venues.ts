@@ -13,6 +13,15 @@ export const venues: Venue[] = [
           availableWeekdays: [0, 2, 4, 5, 6],
           placeholderTime: "8:00 PM",
         },
+        beverages: [
+          { id: "titos", name: "Tito's Handmade Vodka", type: "bottle", price: 225 },
+          { id: "espolon", name: "Espolòn Blanco Tequila", type: "bottle", price: 200 },
+          { id: "jack-daniels", name: "Jack Daniel's", type: "bottle", price: 225 },
+          { id: "hennessy", name: "Hennessy VS", type: "bottle", price: 275 },
+          { id: "bud-light-keg", name: "Bud Light", type: "keg", price: 200 },
+          { id: "busch-light-keg", name: "Busch Light", type: "keg", price: 185 },
+          { id: "coors-light-keg", name: "Coors Light", type: "keg", price: 200 },
+        ],
         sections: [
       {
         id: "indoor-a1",

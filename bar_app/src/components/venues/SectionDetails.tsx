@@ -1,4 +1,4 @@
-import Link from "next/link";
+"use client";
 
 import { Section } from "@/types/venue";
 
@@ -7,6 +7,7 @@ type SectionDetailsProps = {
   section: Section;
   bookingDate: string;
   bookingTime: string;
+  onReserve: () => void;
 };
 
 export default function SectionDetails({
@@ -14,16 +15,13 @@ export default function SectionDetails({
   section,
   bookingDate,
   bookingTime,
+  onReserve,
 }: SectionDetailsProps) {
   const sold = section.status === "sold";
   const availabilityLabel = sold ? "Sold" : "Available";
-  const reservationQuery = new URLSearchParams({
-    date: bookingDate,
-    time: bookingTime,
-  });
 
   return (
-    <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
+    <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-5">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-neutral-500">Selected section</p>
@@ -39,37 +37,42 @@ export default function SectionDetails({
         </span>
       </div>
 
-      <div className="my-6 flex h-48 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
-        Section photo
+      <div className="mt-5 grid gap-4 sm:grid-cols-[150px_1fr]">
+        <div className="flex h-32 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-400 sm:h-full">
+          Section photo
+        </div>
+
+        <div>
+          <dl className="space-y-3">
+            <div className="flex justify-between gap-3">
+              <dt className="text-neutral-500">Minimum spend</dt>
+              <dd className="font-medium">${section.minimumSpend}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-neutral-500">Capacity</dt>
+              <dd className="font-medium">Up to {section.capacity} guests</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-neutral-500">Deposit</dt>
+              <dd className="font-medium">${section.deposit}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-neutral-500">Reservation</dt>
+              <dd className="text-right font-medium">{bookingDate} · {bookingTime}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
 
-      <p className="text-neutral-600">{section.description}</p>
+      <p className="mt-4 text-sm text-neutral-600">{section.description}</p>
 
-      <dl className="mt-6 space-y-4">
-        <div className="flex justify-between">
-          <dt className="text-neutral-500">Capacity</dt>
-          <dd className="font-medium">Up to {section.capacity} guests</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-neutral-500">Minimum spend</dt>
-          <dd className="font-medium">${section.minimumSpend}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-neutral-500">Deposit</dt>
-          <dd className="font-medium">${section.deposit}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-neutral-500">Reservation</dt>
-          <dd className="font-medium">{bookingDate} · {bookingTime}</dd>
-        </div>
-      </dl>
-
-      <Link
-        href={`/${venueName}/checkout/${section.id}?${reservationQuery.toString()}`}
-        className="mt-8 block rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent"
+      <button
+        type="button"
+        onClick={onReserve}
+        className="mt-5 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent"
       >
         Reserve section
-      </Link>
+      </button>
     </div>
   );
 }
