@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import VenueDataProvider from "@/components/providers/VenueDataProvider";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><VenueDataProvider>{children}</VenueDataProvider></body>
     </html>
   );
 }

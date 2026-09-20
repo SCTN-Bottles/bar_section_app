@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { formatBookingTime } from "@/lib/booking-time";
 import { BeverageOption, Section } from "@/types/venue";
 
 export type BeverageQuantities = Record<string, number>;
@@ -126,7 +127,7 @@ export default function BeverageSelection({
         <p className="text-sm text-neutral-500">Pre-ordering for</p>
         <p className="mt-1 text-xl font-semibold">Section {section.name}</p>
         <p className="mt-1 text-sm text-neutral-500">
-          {bookingDate} · {bookingTime}
+          {bookingDate} · {formatBookingTime(bookingTime)}
         </p>
       </div>
 

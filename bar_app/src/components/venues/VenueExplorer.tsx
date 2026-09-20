@@ -8,6 +8,7 @@ import BeverageSelection, {
 import BookingCalendar from "@/components/venues/BookingCalendar";
 import SectionDetails from "@/components/venues/SectionDetails";
 import SectionMap from "@/components/venues/SectionMap";
+import { formatBookingTime } from "@/lib/booking-time";
 import {
   Venue,
   VenueArea,
@@ -189,7 +190,7 @@ export default function VenueExplorer({
         <div>
           <p className="text-sm text-neutral-500">Reservation date</p>
           <p className="mt-1 font-semibold">
-            {bookingDateLabel} · {venue.bookingCalendar.placeholderTime}
+            {bookingDateLabel} · {formatBookingTime(venue.bookingCalendar.placeholderTime)}
           </p>
         </div>
 

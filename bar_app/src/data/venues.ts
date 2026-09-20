@@ -11,7 +11,7 @@ export const venues: Venue[] = [
       "Browse available sections and reserve your space for the night.",
         bookingCalendar: {
           availableWeekdays: [0, 2, 4, 5, 6],
-          placeholderTime: "8:00 PM",
+          placeholderTime: "20:00",
         },
         beverages: [
           { id: "titos", name: "Tito's Handmade Vodka", type: "bottle", price: 225 },

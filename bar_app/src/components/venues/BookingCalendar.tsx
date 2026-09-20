@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { formatBookingTime } from "@/lib/booking-time";
+
 type BookingCalendarProps = {
   value: string | null;
   onChange: (date: string) => void;
@@ -86,7 +88,7 @@ export default function BookingCalendar({
 
         <div className="rounded-md border border-primary bg-primary px-4 py-2 text-sm text-on-primary">
           <span className="text-on-primary">Time </span>
-          <span className="font-semibold">{placeholderTime}</span>
+          <span className="font-semibold">{formatBookingTime(placeholderTime)}</span>
         </div>
       </div>
 

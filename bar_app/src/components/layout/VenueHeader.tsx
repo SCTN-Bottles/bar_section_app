@@ -25,9 +25,12 @@ export default function VenueHeader({
           {venue.name}
         </a>
 
-        <p className="text-xs text-foreground">
-          Reservations powered by SECTN
-        </p>
+        <div className="flex items-center gap-4">
+          <a href="/vendor/login" className="text-sm text-neutral-500 hover:text-foreground">
+            Vendor login
+          </a>
+          <p className="text-xs text-foreground">Reservations powered by SECTN</p>
+        </div>
       </div>
     </header>
   );

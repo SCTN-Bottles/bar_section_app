@@ -69,6 +69,17 @@ button, a, input {
   transition: color 100ms var(--ease-standard), background-color 100ms var(--ease-standard), border-color 100ms var(--ease-standard), box-shadow 100ms var(--ease-standard);
 }
 
+.input {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0.55rem 0.7rem;
+}
+
 button { min-height: 44px; }
 
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
