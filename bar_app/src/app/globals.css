@@ -80,6 +80,15 @@ button, a, input {
   padding: 0.55rem 0.7rem;
 }
 
+.vendor-time-input {
+  color-scheme: dark;
+}
+
+.vendor-time-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+}
+
 button { min-height: 44px; }
 
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }

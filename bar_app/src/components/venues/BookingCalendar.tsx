@@ -153,10 +153,6 @@ export default function BookingCalendar({
           );
         })}
       </div>
-
-      <p className="mt-3 text-sm text-neutral-500">
-        Reservations are currently offered Tuesday, Thursday, and Friday through Sunday.
-      </p>
     </section>
   );
 }

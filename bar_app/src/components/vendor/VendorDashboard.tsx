@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useVenueData } from "@/components/providers/VenueDataProvider";
+import { formatBookingTime } from "@/lib/booking-time";
 import { logoutMockVendor, VendorSession } from "@/lib/vendor-auth";
 import {
   BeverageOption,
@@ -158,8 +159,25 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
               return <button key={day} type="button" aria-pressed={selected} onClick={() => toggleWeekday(index)} className={`rounded-md border px-4 py-2 text-sm ${selected ? "border-primary bg-primary text-on-primary" : "border-neutral-300"}`}>{day}</button>;
             })}
           </div>
-          <label className="mt-5 block max-w-xs text-sm">Default reservation time
-            <input required type="time" value={draft.bookingCalendar.placeholderTime} onChange={(event) => { setDraft({ ...draft, bookingCalendar: { ...draft.bookingCalendar, placeholderTime: event.target.value } }); setNotice(""); }} className="mt-2 block w-full rounded-md border border-neutral-300 bg-neutral-100 px-3 py-2" />
+          <label className="mt-5 block max-w-md text-sm text-neutral-500">
+            Default reservation time
+            <span className="mt-2 flex items-center justify-between gap-4 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-3 text-foreground">
+              <span>
+                <span className="block text-xs text-neutral-500">Selected time</span>
+                <span className="mt-1 block text-xl font-semibold">{formatBookingTime(draft.bookingCalendar.placeholderTime)}</span>
+              </span>
+              <input
+                required
+                type="time"
+                value={draft.bookingCalendar.placeholderTime}
+                onChange={(event) => {
+                  setDraft({ ...draft, bookingCalendar: { ...draft.bookingCalendar, placeholderTime: event.target.value } });
+                  setNotice("");
+                }}
+                className="vendor-time-input rounded-md border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-foreground focus:border-primary"
+                aria-label="Default reservation time"
+              />
+            </span>
           </label>
         </section>
 
