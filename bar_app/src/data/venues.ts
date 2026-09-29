@@ -74,7 +74,7 @@ export const venues: Venue[] = [
 
         mapPosition: {
           x: 65,
-          y: 145,
+          y: 30,
           width: 110,
           height: 70,
         },
@@ -131,12 +131,12 @@ export const venues: Venue[] = [
 
         mapPosition: {
           x: 245,
-          y: 145,
+          y: 30,
           width: 110,
           height: 70,
        },
       },
-      { id: "cabana-3", name: "Cabana 3", area: "cabanas", capacity: 10, minimumSpend: 350, deposit: 100, status: "available", description: "Cabana positioned beside the main floor.", mapPosition: { x: 425, y: 145, width: 110, height: 70 } },
+      { id: "cabana-3", name: "Cabana 3", area: "cabanas", capacity: 10, minimumSpend: 350, deposit: 100, status: "available", description: "Cabana positioned beside the main floor.", mapPosition: { x: 425, y: 30, width: 110, height: 70 } },
       { id: "attic-1", name: "T1", area: "attic", capacity: 8, minimumSpend: 325, deposit: 100, status: "sold", description: "Attic section on the left side of the dance floor.", mapPosition: { x: 50, y: 125, width: 100, height: 70 } },
       { id: "attic-2", name: "T2", area: "attic", capacity: 8, minimumSpend: 325, deposit: 100, status: "available", description: "Attic section on the right side of the dance floor.", mapPosition: { x: 450, y: 125, width: 100, height: 70 } },
       { id: "attic-3", name: "T3", area: "attic", capacity: 10, minimumSpend: 375, deposit: 125, status: "available", description: "Attic section beside the lower bar.", mapPosition: { x: 450, y: 245, width: 100, height: 70 } },

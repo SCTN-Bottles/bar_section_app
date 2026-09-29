@@ -16,7 +16,31 @@ type SectionMapProps = {
 function AreaFixtures({ area }: { area: VenueArea }) {
   if (area === "cabanas") {
     return (
-      null
+      <>
+        <rect
+          x="65"
+          y="130"
+          width="470"
+          height="95"
+          rx="14"
+          className="fill-neutral-200 stroke-neutral-500"
+          strokeDasharray="6"
+        />
+        <text x="300" y="182" textAnchor="middle" className="map-label text-sm">
+          BACKYARD
+        </text>
+        <rect
+          x="200"
+          y="270"
+          width="200"
+          height="48"
+          rx="8"
+          className="fill-neutral-100 stroke-neutral-500"
+        />
+        <text x="300" y="300" textAnchor="middle" className="map-label text-sm">
+          BAR
+        </text>
+      </>
     );
   }
 

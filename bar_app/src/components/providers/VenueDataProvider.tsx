@@ -28,6 +28,22 @@ function cloneSeedReservations() {
   return JSON.parse(JSON.stringify(seedReservations)) as Reservation[];
 }
 
+const cabanaMapPositions = {
+  "cabana-1": { x: 65, y: 30, width: 110, height: 70 },
+  "cabana-2": { x: 245, y: 30, width: 110, height: 70 },
+  "cabana-3": { x: 425, y: 30, width: 110, height: 70 },
+} as const;
+
+function applyCabanaMapLayout(venues: Venue[]) {
+  return venues.map((venue) => ({
+    ...venue,
+    sections: venue.sections.map((section) => {
+      const mapPosition = cabanaMapPositions[section.id as keyof typeof cabanaMapPositions];
+      return mapPosition ? { ...section, mapPosition: { ...mapPosition } } : section;
+    }),
+  }));
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -140,7 +156,11 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
       const stored = window.localStorage.getItem(storageKey);
       if (stored) {
         const parsed: unknown = JSON.parse(stored);
-        if (isValidVenueList(parsed)) setVenues(parsed);
+        if (isValidVenueList(parsed)) {
+          const next = applyCabanaMapLayout(parsed);
+          setVenues(next);
+          window.localStorage.setItem(storageKey, JSON.stringify(next));
+        }
       }
       const storedReservations = window.localStorage.getItem(reservationsStorageKey);
       if (storedReservations) {
