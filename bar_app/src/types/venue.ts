@@ -49,6 +49,30 @@ export type BeverageOption = {
   price: number;
 };
 
+export type ReservationBeverage = {
+  id: string;
+  name: string;
+  type: BeverageType;
+  price: number;
+  quantity: number;
+};
+
+export type Reservation = {
+  id: string;
+  venueId: string;
+  sectionId: string;
+  sectionName: string;
+  sectionArea: VenueArea;
+  customerName: string;
+  customerEmail: string;
+  guestCount: number;
+  reservationDate: string;
+  reservationTime: string;
+  beverages: ReservationBeverage[];
+  deposit: number;
+  createdAt: string;
+};
+
 export type Venue = {
   id: string;
   name: string;

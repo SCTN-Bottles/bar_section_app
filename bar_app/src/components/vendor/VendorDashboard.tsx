@@ -8,6 +8,7 @@ import { formatBookingTime } from "@/lib/booking-time";
 import { logoutMockVendor, VendorSession } from "@/lib/vendor-auth";
 import {
   BeverageOption,
+  Reservation,
   Section,
   Venue,
   VenueArea,
@@ -16,6 +17,10 @@ import {
 } from "@/types/venue";
 
 const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const months = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 type VendorDashboardProps = { session: VendorSession };
 type NewBeverage = Pick<BeverageOption, "name" | "type" | "price">;
@@ -30,12 +35,13 @@ function createNewBeverage(): NewBeverage {
 
 export default function VendorDashboard({ session }: VendorDashboardProps) {
   const router = useRouter();
-  const { venues, hydrated, updateVenue, resetVenues } = useVenueData();
+  const { venues, reservations, hydrated, updateVenue, resetVenues } = useVenueData();
   const venue = venues.find((item) => item.id === session.venueId);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
   const [activeZone, setActiveZone] = useState<VenueArea>(
     venue?.sections.find((section) => section.area)?.area ?? venueAreas[0],
   );
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "reservations">("management");
   const [notice, setNotice] = useState("");
   const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false);
   const [newBeverage, setNewBeverage] = useState<NewBeverage>(createNewBeverage);
@@ -147,7 +153,33 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         </div>
       </div>
 
-      <form onSubmit={save} className="mt-8 space-y-10">
+      <div className="mt-7 flex gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
+        <button
+          id="management-tab"
+          type="button"
+          role="tab"
+          aria-selected={activeDashboardTab === "management"}
+          aria-controls="management-panel"
+          onClick={() => setActiveDashboardTab("management")}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "management" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
+        >
+          Manage venue
+        </button>
+        <button
+          id="reservations-tab"
+          type="button"
+          role="tab"
+          aria-selected={activeDashboardTab === "reservations"}
+          aria-controls="reservations-panel"
+          onClick={() => setActiveDashboardTab("reservations")}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "reservations" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
+        >
+          Reservation history
+        </button>
+      </div>
+
+      {activeDashboardTab === "management" ? (
+      <form id="management-panel" role="tabpanel" aria-labelledby="management-tab" onSubmit={save} className="mt-8 space-y-10">
         {notice && <p role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</p>}
 
         <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
@@ -264,6 +296,11 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           <button type="submit" className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-accent">Save all changes</button>
         </div>
       </form>
+      ) : (
+        <ReservationHistory
+          reservations={reservations.filter((reservation) => reservation.venueId === draft.id)}
+        />
+      )}
 
       {isAddDrinkOpen && (
         <AddDrinkDialog
@@ -275,6 +312,118 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
       )}
     </main>
   );
+}
+
+function ReservationHistory({ reservations }: { reservations: Reservation[] }) {
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
+  const [page, setPage] = useState(1);
+  const pastReservations = [...reservations].sort(
+    (first, second) => new Date(second.reservationDate).getTime() - new Date(first.reservationDate).getTime(),
+  );
+  const years = [...new Set(pastReservations.map((reservation) => reservation.reservationDate.slice(0, 4)))].sort((first, second) => Number(second) - Number(first));
+  const filteredReservations = pastReservations.filter((reservation) => {
+    const [year, month] = reservation.reservationDate.split("-");
+    return (!selectedMonth || Number(month) === Number(selectedMonth)) && (!selectedYear || year === selectedYear);
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredReservations.length / 10));
+  const currentPage = Math.min(page, totalPages);
+  const visibleReservations = filteredReservations.slice((currentPage - 1) * 10, currentPage * 10);
+  const hasFilters = Boolean(selectedMonth || selectedYear);
+
+  function changeMonth(value: string) {
+    setSelectedMonth(value);
+    setPage(1);
+  }
+
+  function changeYear(value: string) {
+    setSelectedYear(value);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setSelectedMonth("");
+    setSelectedYear("");
+    setPage(1);
+  }
+
+  return (
+    <section id="reservations-panel" role="tabpanel" aria-labelledby="reservations-tab" className="mt-8 space-y-6 pb-12">
+      <div>
+        <h2 className="text-2xl font-semibold">Reservation history</h2>
+        <p className="mt-2 text-sm text-neutral-500">Review completed demo reservations, newest first.</p>
+      </div>
+
+      <section className="overflow-hidden rounded-xl border border-neutral-300 bg-neutral-50">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-300 px-5 py-4">
+          <div>
+            <h3 className="font-semibold">Reservation logs</h3>
+            <p className="mt-1 text-sm text-neutral-500">Showing {visibleReservations.length} of {filteredReservations.length} matching reservation{filteredReservations.length === 1 ? "" : "s"}.</p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-sm text-neutral-500">
+              Month
+              <select value={selectedMonth} onChange={(event) => changeMonth(event.target.value)} className="input mt-1 min-w-36">
+                <option value="">All months</option>
+                {months.map((month, index) => <option key={month} value={String(index + 1)}>{month}</option>)}
+              </select>
+            </label>
+            <label className="text-sm text-neutral-500">
+              Year
+              <select value={selectedYear} onChange={(event) => changeYear(event.target.value)} className="input mt-1 min-w-28">
+                <option value="">All years</option>
+                {years.map((year) => <option key={year} value={year}>{year}</option>)}
+              </select>
+            </label>
+            {hasFilters && <button type="button" onClick={clearFilters} className="rounded-md border border-neutral-300 px-3 py-2 text-sm hover:border-primary">Clear filters</button>}
+          </div>
+        </div>
+        {visibleReservations.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[660px] text-left text-sm">
+              <thead className="bg-neutral-100 text-neutral-500">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Date</th>
+                  <th className="px-5 py-3 font-medium">Guest</th>
+                  <th className="px-5 py-3 font-medium">Section</th>
+                  <th className="px-5 py-3 font-medium">Guests</th>
+                  <th className="px-5 py-3 font-medium">Deposit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleReservations.map((reservation) => (
+                  <tr key={reservation.id} className="border-t border-neutral-300">
+                    <td className="px-5 py-4 whitespace-nowrap">{formatReservationDate(reservation.reservationDate)}<span className="block text-xs text-neutral-500">{formatBookingTime(reservation.reservationTime)}</span></td>
+                    <td className="px-5 py-4"><span className="block font-medium">{reservation.customerName}</span><span className="block text-xs text-neutral-500">{reservation.customerEmail}</span></td>
+                    <td className="px-5 py-4">{reservation.sectionName}<span className="block text-xs text-neutral-500">{venueAreaLabels[reservation.sectionArea]}</span></td>
+                    <td className="px-5 py-4">{reservation.guestCount}</td>
+                    <td className="px-5 py-4">${reservation.deposit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-5 py-8 text-sm text-neutral-500">{hasFilters ? "No reservations match the selected month and year." : "No reservations have been recorded yet."}</p>
+        )}
+
+        {filteredReservations.length > 0 && (
+          <div className="flex items-center justify-between gap-4 border-t border-neutral-300 px-5 py-4 text-sm">
+            <span className="text-neutral-500">Page {currentPage} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={currentPage === 1} className="rounded-md border border-neutral-300 px-3 py-2 disabled:cursor-default disabled:opacity-40 hover:border-primary disabled:hover:border-neutral-300">Previous</button>
+              <button type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={currentPage === totalPages} className="rounded-md border border-neutral-300 px-3 py-2 disabled:cursor-default disabled:opacity-40 hover:border-primary disabled:hover:border-neutral-300">Next</button>
+            </div>
+          </div>
+        )}
+      </section>
+    </section>
+  );
+}
+
+function formatReservationDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(year, month - 1, day));
 }
 
 function SectionEditor({ section, onChange }: { section: Section; onChange: (id: string, changes: Partial<Section>) => void }) {

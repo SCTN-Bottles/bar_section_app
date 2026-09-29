@@ -7,10 +7,12 @@ import {
 
 type DemoCheckoutFormProps = {
   maxGuests: number;
+  onComplete: (details: { customerName: string; customerEmail: string; guestCount: number }) => void;
 };
 
 export default function DemoCheckoutForm({
   maxGuests,
+  onComplete,
 }: DemoCheckoutFormProps) {
 
   const [
@@ -23,7 +25,12 @@ export default function DemoCheckoutForm({
     event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
-
+    const data = new FormData(event.currentTarget);
+    onComplete({
+      customerName: String(data.get("name") ?? "").trim(),
+      customerEmail: String(data.get("email") ?? "").trim(),
+      guestCount: Number(data.get("guests")),
+    });
     setSubmitted(true);
   }
 

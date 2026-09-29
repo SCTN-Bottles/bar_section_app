@@ -6,6 +6,7 @@ import BeverageSelection, {
   BeverageQuantities,
 } from "@/components/venues/BeverageSelection";
 import BookingCalendar from "@/components/venues/BookingCalendar";
+import ReservationAgreement from "@/components/venues/ReservationAgreement";
 import SectionDetails from "@/components/venues/SectionDetails";
 import SectionMap from "@/components/venues/SectionMap";
 import { formatBookingTime } from "@/lib/booking-time";
@@ -27,7 +28,7 @@ type VenueExplorerProps = {
   };
 };
 
-type ReservationStep = "sections" | "drinks";
+type ReservationStep = "sections" | "drinks" | "agreement";
 
 function isBookableDate(value: string | undefined, availableWeekdays: number[]) {
   if (!value) {
@@ -97,14 +98,14 @@ export default function VenueExplorer({
     initialSection?.id ?? "",
   );
   const [reservationStep, setReservationStep] = useState<ReservationStep>(
-    initialSection && initialReservation?.step === "drinks" ? "drinks" : "sections",
+    initialSection && initialReservation?.step === "agreement" ? "agreement" : initialSection && initialReservation?.step === "drinks" ? "drinks" : "sections",
   );
   const [beverageQuantities, setBeverageQuantities] = useState<BeverageQuantities>(
     () => getBeverageQuantities(initialReservation?.addons, venue),
   );
 
   useEffect(() => {
-    if (reservationStep === "drinks") {
+    if (reservationStep === "drinks" || reservationStep === "agreement") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [reservationStep]);
@@ -179,6 +180,15 @@ export default function VenueExplorer({
         quantities={beverageQuantities}
         onChangeQuantities={setBeverageQuantities}
         onBack={() => setReservationStep("sections")}
+        onContinue={() => setReservationStep("agreement")}
+      />
+    );
+  }
+
+  if (reservationStep === "agreement" && selectedSection) {
+    return (
+      <ReservationAgreement
+        onBack={() => setReservationStep("drinks")}
         checkoutHref={`/${venue.venueName}/checkout/${selectedSection.id}?${checkoutQuery.toString()}`}
       />
     );

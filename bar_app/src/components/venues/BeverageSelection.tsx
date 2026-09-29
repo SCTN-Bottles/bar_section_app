@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { formatBookingTime } from "@/lib/booking-time";
 import { BeverageOption, Section } from "@/types/venue";
 
@@ -15,7 +13,7 @@ type BeverageSelectionProps = {
   quantities: BeverageQuantities;
   onChangeQuantities: (quantities: BeverageQuantities) => void;
   onBack: () => void;
-  checkoutHref: string;
+  onContinue: () => void;
 };
 
 function formatCurrency(value: number) {
@@ -34,7 +32,7 @@ export default function BeverageSelection({
   quantities,
   onChangeQuantities,
   onBack,
-  checkoutHref,
+  onContinue,
 }: BeverageSelectionProps) {
   const bottles = beverages.filter((beverage) => beverage.type === "bottle");
   const kegs = beverages.filter((beverage) => beverage.type === "keg");
@@ -132,7 +130,7 @@ export default function BeverageSelection({
       </div>
 
       <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 2 of 3</p>
+        <p className="text-sm text-neutral-500">Step 2 of 4</p>
         <h1 className="mt-1 text-3xl font-semibold">Bottles & kegs</h1>
         <p className="mt-2 text-sm text-neutral-500">
           Choose at least one item to continue to checkout.
@@ -166,12 +164,13 @@ export default function BeverageSelection({
       </div>
 
       {selectedCount > 0 ? (
-        <Link
-          href={checkoutHref}
+        <button
+          type="button"
+          onClick={onContinue}
           className="mt-6 block rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent"
         >
-          Continue to checkout
-        </Link>
+          Continue to agreement
+        </button>
       ) : (
         <button
           type="button"

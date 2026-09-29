@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import DemoCheckoutForm from "@/components/checkout/DemoCheckoutForm";
 import VenueHeader from "@/components/layout/VenueHeader";
@@ -45,7 +46,8 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
 }
 
 export default function CheckoutPageClient({ initialVenue, sectionId, date, time, addons }: CheckoutPageClientProps) {
-  const { venue } = useVenueByName(initialVenue.venueName);
+  const { venue, addReservation } = useVenueByName(initialVenue.venueName);
+  const [reservationComplete, setReservationComplete] = useState(false);
   const activeVenue = venue ?? initialVenue;
   const section = activeVenue.sections.find((item) => item.id === sectionId);
   const backQuery = new URLSearchParams({
@@ -56,7 +58,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   });
   if (addons) backQuery.set("addons", addons);
 
-  if (!section || section.status !== "available") {
+  if (!section || (section.status !== "available" && !reservationComplete)) {
     return (
       <>
         <VenueHeader venue={activeVenue} />
@@ -89,7 +91,25 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
         <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink selection</Link>
         <h1 className="display-heading mt-6">Reserve {section.name}</h1>
         <div className="mt-10 grid gap-10 lg:grid-cols-2">
-          <DemoCheckoutForm maxGuests={section.capacity} />
+          <DemoCheckoutForm
+            maxGuests={section.capacity}
+            onComplete={(details) => {
+              setReservationComplete(true);
+              addReservation({
+                venueId: activeVenue.id,
+                sectionId: section.id,
+                sectionName: section.name,
+                sectionArea: section.area,
+                customerName: details.customerName,
+                customerEmail: details.customerEmail,
+                guestCount: details.guestCount,
+                reservationDate: date ?? new Date().toISOString().slice(0, 10),
+                reservationTime,
+                beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
+                deposit: section.deposit,
+              });
+            }}
+          />
           <aside className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
             <p className="text-sm text-neutral-500">Reservation summary</p>
             <h2 className="mt-2 text-2xl font-semibold">{activeVenue.name}</h2>
