@@ -38,8 +38,18 @@ export default function SectionDetails({
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-[150px_1fr]">
-        <div className="flex h-32 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-400 sm:h-full">
-          Section photo
+        <div className="relative h-32 overflow-hidden rounded-lg bg-neutral-100 sm:h-full">
+          {section.imagePath ? (
+            <img
+              src={section.imagePath}
+              alt={`${section.name} section at ${venueName}`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-neutral-400">
+              Section photo
+            </div>
+          )}
         </div>
 
         <div>

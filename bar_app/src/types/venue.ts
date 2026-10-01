@@ -32,6 +32,7 @@ export type Section = {
   deposit: number;
   status: SectionStatus;
   description: string;
+  imagePath?: string;
   mapPosition: SectionMapPosition;
 };
 

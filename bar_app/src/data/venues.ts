@@ -33,6 +33,7 @@ export const venues: Venue[] = [
         status: "sold",
         description:
           "Section located near the main floor.",
+        imagePath: "/images/indoor/a1.jpg",
 
         mapPosition: {
           x: 70,
@@ -52,6 +53,7 @@ export const venues: Venue[] = [
         status: "available",
         description:
           "Larger section with room for up to 10 guests.",
+        imagePath: "/images/indoor/a2.jpg",
 
         mapPosition: {
           x: 70,
@@ -90,6 +92,7 @@ export const venues: Venue[] = [
         status: "available",
         description:
           "Larger section across from the A sections.",
+        imagePath: "/images/indoor/b1.jpg",
 
         mapPosition: {
           x: 445,
@@ -109,6 +112,7 @@ export const venues: Venue[] = [
         status: "available",
         description:
           "Mid-sized section near the center floor.",
+        imagePath: "/images/indoor/b2.jpg",
 
         mapPosition: {
           x: 445,

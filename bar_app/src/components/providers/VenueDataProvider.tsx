@@ -44,6 +44,20 @@ function applyCabanaMapLayout(venues: Venue[]) {
   }));
 }
 
+function applySectionImagePaths(venues: Venue[]) {
+  const seedSectionsById = new Map(
+    seedVenues.flatMap((venue) => venue.sections).map((section) => [section.id, section]),
+  );
+
+  return venues.map((venue) => ({
+    ...venue,
+    sections: venue.sections.map((section) => ({
+      ...section,
+      imagePath: section.imagePath ?? seedSectionsById.get(section.id)?.imagePath,
+    })),
+  }));
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -157,7 +171,7 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
       if (stored) {
         const parsed: unknown = JSON.parse(stored);
         if (isValidVenueList(parsed)) {
-          const next = applyCabanaMapLayout(parsed);
+          const next = applySectionImagePaths(applyCabanaMapLayout(parsed));
           setVenues(next);
           window.localStorage.setItem(storageKey, JSON.stringify(next));
         }
