@@ -92,10 +92,12 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
     <>
       <VenueHeader venue={activeVenue} />
       <section className="mx-auto max-w-5xl px-6 py-16">
-        <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink sign</Link>
-        <p className="mt-6 text-sm text-neutral-500">Step 5 of 5</p>
-        <h1 className="display-heading mt-2">Reserve {section.name}</h1>
-        <div className="mt-10 grid gap-10 lg:grid-cols-2">
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
+            <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink sign</Link>
+            <p className="mt-6 text-sm text-neutral-500">Step 5 of 5</p>
+            <h1 className="mt-1 text-3xl font-semibold">Reserve {section.name}</h1>
+            <div className="mt-6">
           <DemoCheckoutForm
             maxGuests={section.capacity}
             onComplete={(details) => {
@@ -116,6 +118,8 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
               });
             }}
           />
+            </div>
+          </div>
           <aside className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
             <p className="text-sm text-neutral-500">Reservation summary</p>
             <h2 className="mt-2 text-2xl font-semibold">{activeVenue.name}</h2>

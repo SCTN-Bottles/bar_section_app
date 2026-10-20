@@ -167,7 +167,7 @@ export default function BeverageSelection({
         <button
           type="button"
           onClick={onContinue}
-          className="mt-6 block rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent"
+          className="mt-6 block w-full rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent"
         >
           Continue to drink sign
         </button>
