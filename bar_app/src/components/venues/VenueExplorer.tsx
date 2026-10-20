@@ -6,10 +6,12 @@ import BeverageSelection, {
   BeverageQuantities,
 } from "@/components/venues/BeverageSelection";
 import BookingCalendar from "@/components/venues/BookingCalendar";
+import DrinkSignCustomization from "@/components/venues/DrinkSignCustomization";
 import ReservationAgreement from "@/components/venues/ReservationAgreement";
 import SectionDetails from "@/components/venues/SectionDetails";
 import SectionMap from "@/components/venues/SectionMap";
 import { formatBookingTime } from "@/lib/booking-time";
+import { normalizeDrinkSignText } from "@/lib/drink-sign";
 import {
   Venue,
   VenueArea,
@@ -24,11 +26,12 @@ type VenueExplorerProps = {
     sectionId?: string;
     step?: string;
     addons?: string;
+    signText?: string;
     restart?: string;
   };
 };
 
-type ReservationStep = "sections" | "drinks" | "agreement";
+type ReservationStep = "sections" | "drinks" | "sign" | "agreement";
 
 function isBookableDate(value: string | undefined, availableWeekdays: number[]) {
   if (!value) {
@@ -98,14 +101,19 @@ export default function VenueExplorer({
     initialSection?.id ?? "",
   );
   const [reservationStep, setReservationStep] = useState<ReservationStep>(
-    initialSection && initialReservation?.step === "agreement" ? "agreement" : initialSection && initialReservation?.step === "drinks" ? "drinks" : "sections",
+    initialSection && (initialReservation?.step === "drinks" || initialReservation?.step === "sign" || initialReservation?.step === "agreement")
+      ? initialReservation.step
+      : "sections",
   );
   const [beverageQuantities, setBeverageQuantities] = useState<BeverageQuantities>(
     () => getBeverageQuantities(initialReservation?.addons, venue),
   );
+  const [drinkSignText, setDrinkSignText] = useState(
+    () => normalizeDrinkSignText(initialReservation?.signText),
+  );
 
   useEffect(() => {
-    if (reservationStep === "drinks" || reservationStep === "agreement") {
+    if (reservationStep !== "sections") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [reservationStep]);
@@ -132,6 +140,7 @@ export default function VenueExplorer({
     setBookingDate(date);
     setSelectedSectionId(getFirstAvailableSectionId(activeArea));
     setBeverageQuantities({});
+    setDrinkSignText("");
     setReservationStep("sections");
   }
 
@@ -139,6 +148,7 @@ export default function VenueExplorer({
     setBookingDate(null);
     setSelectedSectionId("");
     setBeverageQuantities({});
+    setDrinkSignText("");
     setReservationStep("sections");
   }
 
@@ -169,6 +179,8 @@ export default function VenueExplorer({
     time: venue.bookingCalendar.placeholderTime,
     addons,
   });
+  const signText = normalizeDrinkSignText(drinkSignText);
+  if (signText) checkoutQuery.set("signText", signText);
 
   if (reservationStep === "drinks" && selectedSection) {
     return (
@@ -180,6 +192,17 @@ export default function VenueExplorer({
         quantities={beverageQuantities}
         onChangeQuantities={setBeverageQuantities}
         onBack={() => setReservationStep("sections")}
+        onContinue={() => setReservationStep("sign")}
+      />
+    );
+  }
+
+  if (reservationStep === "sign" && selectedSection) {
+    return (
+      <DrinkSignCustomization
+        text={drinkSignText}
+        onChangeText={setDrinkSignText}
+        onBack={() => setReservationStep("drinks")}
         onContinue={() => setReservationStep("agreement")}
       />
     );
@@ -188,7 +211,7 @@ export default function VenueExplorer({
   if (reservationStep === "agreement" && selectedSection) {
     return (
       <ReservationAgreement
-        onBack={() => setReservationStep("drinks")}
+        onBack={() => setReservationStep("sign")}
         checkoutHref={`/${venue.venueName}/checkout/${selectedSection.id}?${checkoutQuery.toString()}`}
       />
     );

@@ -113,6 +113,7 @@ function isReservation(value: unknown): value is Reservation {
     isNonEmptyString(reservation.reservationDate) &&
     isNonEmptyString(reservation.reservationTime) &&
     Array.isArray(reservation.beverages) &&
+    (reservation.drinkSignText === undefined || typeof reservation.drinkSignText === "string") &&
     reservation.beverages.every((beverage) =>
       isNonEmptyString(beverage.id) &&
       isNonEmptyString(beverage.name) &&

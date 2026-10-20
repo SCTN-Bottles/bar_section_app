@@ -13,6 +13,7 @@ type VenuePageClientProps = {
     sectionId?: string;
     step?: string;
     addons?: string;
+    signText?: string;
     restart?: string;
   };
 };

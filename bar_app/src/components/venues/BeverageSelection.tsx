@@ -130,10 +130,10 @@ export default function BeverageSelection({
       </div>
 
       <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 2 of 4</p>
+        <p className="text-sm text-neutral-500">Step 2 of 5</p>
         <h1 className="mt-1 text-3xl font-semibold">Bottles & kegs</h1>
         <p className="mt-2 text-sm text-neutral-500">
-          Choose at least one item to continue to checkout.
+          Choose at least one item, then personalize your drink sign.
         </p>
       </div>
 
@@ -169,7 +169,7 @@ export default function BeverageSelection({
           onClick={onContinue}
           className="mt-6 block rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent"
         >
-          Continue to agreement
+          Continue to drink sign
         </button>
       ) : (
         <button

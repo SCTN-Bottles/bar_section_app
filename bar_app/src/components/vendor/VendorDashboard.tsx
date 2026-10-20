@@ -386,6 +386,7 @@ function ReservationHistory({ reservations }: { reservations: Reservation[] }) {
                   <th className="px-5 py-3 font-medium">Date</th>
                   <th className="px-5 py-3 font-medium">Guest</th>
                   <th className="px-5 py-3 font-medium">Section</th>
+                  <th className="px-5 py-3 font-medium">Drink sign</th>
                   <th className="px-5 py-3 font-medium">Guests</th>
                   <th className="px-5 py-3 font-medium">Deposit</th>
                 </tr>
@@ -396,6 +397,7 @@ function ReservationHistory({ reservations }: { reservations: Reservation[] }) {
                     <td className="px-5 py-4 whitespace-nowrap">{formatReservationDate(reservation.reservationDate)}<span className="block text-xs text-neutral-500">{formatBookingTime(reservation.reservationTime)}</span></td>
                     <td className="px-5 py-4"><span className="block font-medium">{reservation.customerName}</span><span className="block text-xs text-neutral-500">{reservation.customerEmail}</span></td>
                     <td className="px-5 py-4">{reservation.sectionName}<span className="block text-xs text-neutral-500">{venueAreaLabels[reservation.sectionArea]}</span></td>
+                    <td className="min-w-40 max-w-64 px-5 py-4 whitespace-pre-wrap [overflow-wrap:anywhere]">{reservation.drinkSignText || "—"}</td>
                     <td className="px-5 py-4">{reservation.guestCount}</td>
                     <td className="px-5 py-4">${reservation.deposit}</td>
                   </tr>

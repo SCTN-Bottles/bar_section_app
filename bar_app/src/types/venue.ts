@@ -70,6 +70,7 @@ export type Reservation = {
   reservationDate: string;
   reservationTime: string;
   beverages: ReservationBeverage[];
+  drinkSignText?: string;
   deposit: number;
   createdAt: string;
 };

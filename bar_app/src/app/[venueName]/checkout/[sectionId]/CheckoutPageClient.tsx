@@ -7,6 +7,7 @@ import DemoCheckoutForm from "@/components/checkout/DemoCheckoutForm";
 import VenueHeader from "@/components/layout/VenueHeader";
 import { useVenueByName } from "@/components/providers/VenueDataProvider";
 import { formatBookingTime } from "@/lib/booking-time";
+import { normalizeDrinkSignText } from "@/lib/drink-sign";
 import { BeverageOption, Venue } from "@/types/venue";
 
 type CheckoutPageClientProps = {
@@ -15,6 +16,7 @@ type CheckoutPageClientProps = {
   date?: string;
   time?: string;
   addons?: string;
+  signText?: string;
 };
 
 type SelectedBeverage = { beverage: BeverageOption; quantity: number };
@@ -45,18 +47,20 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
   }, []);
 }
 
-export default function CheckoutPageClient({ initialVenue, sectionId, date, time, addons }: CheckoutPageClientProps) {
+export default function CheckoutPageClient({ initialVenue, sectionId, date, time, addons, signText }: CheckoutPageClientProps) {
   const { venue, addReservation } = useVenueByName(initialVenue.venueName);
   const [reservationComplete, setReservationComplete] = useState(false);
   const activeVenue = venue ?? initialVenue;
   const section = activeVenue.sections.find((item) => item.id === sectionId);
+  const drinkSignText = normalizeDrinkSignText(signText);
   const backQuery = new URLSearchParams({
     date: date ?? "",
     time: time ?? activeVenue.bookingCalendar.placeholderTime,
     section: sectionId,
-    step: "drinks",
+    step: "sign",
   });
   if (addons) backQuery.set("addons", addons);
+  if (drinkSignText) backQuery.set("signText", drinkSignText);
 
   if (!section || (section.status !== "available" && !reservationComplete)) {
     return (
@@ -88,8 +92,9 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
     <>
       <VenueHeader venue={activeVenue} />
       <section className="mx-auto max-w-5xl px-6 py-16">
-        <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink selection</Link>
-        <h1 className="display-heading mt-6">Reserve {section.name}</h1>
+        <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink sign</Link>
+        <p className="mt-6 text-sm text-neutral-500">Step 5 of 5</p>
+        <h1 className="display-heading mt-2">Reserve {section.name}</h1>
         <div className="mt-10 grid gap-10 lg:grid-cols-2">
           <DemoCheckoutForm
             maxGuests={section.capacity}
@@ -106,6 +111,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
                 reservationDate: date ?? new Date().toISOString().slice(0, 10),
                 reservationTime,
                 beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
+                drinkSignText: drinkSignText || undefined,
                 deposit: section.deposit,
               });
             }}
@@ -119,6 +125,10 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
               <SummaryRow label="Time" value={formatBookingTime(reservationTime)} />
               <SummaryRow label="Capacity" value={`Up to ${section.capacity} guests`} />
               <SummaryRow label="Minimum spend" value={`$${section.minimumSpend}`} />
+              <div className="border-t border-neutral-300 pt-4">
+                <p className="text-neutral-500">Drink sign message</p>
+                <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">{drinkSignText || "No custom message"}</p>
+              </div>
               <div className="border-t border-neutral-300 pt-4">
                 <span className="text-neutral-500">Pre-ordered drinks</span>
                 {selectedBeverages.length ? (

@@ -11,11 +11,11 @@ export default function ReservationAgreement({ onBack, checkoutHref }: Reservati
   return (
     <div className="mx-auto max-w-3xl rounded-xl border border-neutral-300 bg-neutral-50 p-6">
       <button type="button" onClick={onBack} className="text-sm text-neutral-500 hover:text-foreground">
-        ← Back to drinks
+        ← Back to drink sign
       </button>
 
       <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 3 of 4</p>
+        <p className="text-sm text-neutral-500">Step 4 of 5</p>
         <h1 className="mt-1 text-3xl font-semibold">Reservation agreement</h1>
       </div>
 

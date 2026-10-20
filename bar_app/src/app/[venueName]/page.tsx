@@ -13,6 +13,7 @@ type VenuePageProps = {
     section?: string;
     step?: string;
     addons?: string;
+    signText?: string;
     restart?: string;
   }>;
 };
