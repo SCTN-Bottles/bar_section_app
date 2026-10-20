@@ -140,17 +140,21 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   }
 
   return (
+    <>
+      <header className="venue-header border-b-2">
+        <div className="venue-header-content grid w-full items-center gap-2 px-3 py-3 sm:px-4">
+          <p className="justify-self-start text-xs text-foreground sm:text-sm">{session.role} portal</p>
+          <a href="/vendor" className="venue-header-title text-base font-semibold text-foreground sm:text-xl">{venue?.name ?? draft.name}</a>
+          <nav aria-label="Vendor portal navigation" className="col-span-3 flex flex-wrap items-center justify-end gap-2 sm:col-span-1 sm:justify-self-end">
+            <a href={`/${draft.venueName}`} className="inline-flex min-h-11 items-center rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:px-4 sm:text-sm">View reservation site</a>
+            <button type="button" onClick={() => { logoutMockVendor(); router.replace("/vendor/login"); }} className="rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:px-4 sm:text-sm">Log out</button>
+          </nav>
+        </div>
+      </header>
     <main className="mx-auto max-w-7xl px-6 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-5 border-b border-neutral-300 pb-7">
-        <div>
-          <p className="text-sm text-neutral-500">{session.role} portal · {draft.name}</p>
-          <h1 className="display-heading mt-2">Manage your venue</h1>
+      <div className="border-b border-neutral-300 pb-7">
+          <h1 className="display-heading">Manage your venue</h1>
           <p className="mt-3 max-w-2xl text-neutral-500">Update the information customers use when reserving sections.</p>
-        </div>
-        <div className="flex gap-3">
-          <a href={`/${draft.venueName}`} className="rounded-md border border-neutral-300 px-4 py-3 text-sm hover:border-primary">View reservation site</a>
-          <button type="button" onClick={() => { logoutMockVendor(); router.replace("/vendor/login"); }} className="rounded-md border border-neutral-300 px-4 py-3 text-sm hover:border-primary">Log out</button>
-        </div>
       </div>
 
       <div className="mt-7 flex gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
@@ -311,6 +315,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         />
       )}
     </main>
+    </>
   );
 }
 
