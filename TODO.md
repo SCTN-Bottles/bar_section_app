@@ -5,3 +5,4 @@
 4. Vercel hosting
 5. Login auth for manager login
 6. Make website look higher quality and make changes according to myhouse specs 
+7. add disclaimer about being 21+ to purchase
