@@ -1,4 +1,15 @@
 {
+  "name": "bar_section_app",
+  "private": true,
+  "workspaces": [
+    "bar_app"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=bar_app",
+    "build": "npm run build --workspace=bar_app",
+    "start": "npm run start --workspace=bar_app",
+    "lint": "npm run lint --workspace=bar_app"
+  },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0"
