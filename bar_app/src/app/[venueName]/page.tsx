@@ -30,8 +30,7 @@ export default async function VenuePage({
     sectionId: reservationParams.section,
   };
 
-  const venue =
-    getVenueByName(venueName);
+  const venue = await getVenueByName(venueName);
 
 
   if (!venue) {

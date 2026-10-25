@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -16,14 +16,6 @@ export default function VendorLoginPage() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [resetRequested, setResetRequested] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    void getVendorSession().then((session) => {
-      if (isMounted && session) router.replace("/vendor");
-    });
-    return () => { isMounted = false; };
-  }, [router]);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,7 +54,13 @@ export default function VendorLoginPage() {
       if (signInError) {
         setError("That email and password don't match a vendor account.");
       } else {
-        router.replace("/vendor");
+        const session = await getVendorSession();
+        if (session) {
+          router.replace("/");
+        } else {
+          await supabase.auth.signOut();
+          setError("We couldn't verify this account's venue access. Check your assignment and try again.");
+        }
       }
     } catch {
       setError("We couldn't sign you in right now. Please try again.");
@@ -72,7 +70,7 @@ export default function VendorLoginPage() {
   }
 
   return <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12"><div className="w-full rounded-xl border border-neutral-300 bg-neutral-50 p-7">
-    <p className="text-sm text-neutral-500">SECTN vendor portal</p><h1 className="mt-2 text-3xl font-semibold">{isForgotPassword ? "Reset your password" : "Sign in to manage MyHouse"}</h1>
+    <p className="text-sm text-neutral-500">SECTN vendor portal</p><h1 className="mt-2 text-3xl font-semibold">{isForgotPassword ? "Reset your password" : "Sign in to manage your venue"}</h1>
     <p className="mt-3 text-sm text-neutral-500">{isForgotPassword ? "Enter the email address for your vendor account and we'll send a reset link if it exists." : "Sign in with the email and password provided for your vendor account."}</p>
     <form onSubmit={submit} className="mt-6 space-y-4">
       <Field label="Email"><input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="input" /></Field>

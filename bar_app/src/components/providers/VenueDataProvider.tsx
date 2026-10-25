@@ -3,59 +3,28 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { reservations as seedReservations } from "@/data/reservations";
-import { venues as seedVenues } from "@/data/venues";
+import { getBeverageOptions } from "@/lib/beverages";
+import { getSections } from "@/lib/sections";
+import { getVenues } from "@/lib/venues";
 import { BeverageOption, Reservation, Section, Venue, venueAreas } from "@/types/venue";
 
-const storageKey = "sectn-demo-venues";
 const reservationsStorageKey = "sectn-demo-reservations";
 
 type VenueDataContextValue = {
   venues: Venue[];
   reservations: Reservation[];
   hydrated: boolean;
+  venueError: string | null;
+  beverageError: string | null;
+  sectionError: string | null;
   updateVenue: (venue: Venue) => boolean;
   addReservation: (reservation: Omit<Reservation, "id" | "createdAt">) => void;
-  resetVenues: () => void;
 };
 
 const VenueDataContext = createContext<VenueDataContextValue | null>(null);
 
-function cloneSeedVenues() {
-  return JSON.parse(JSON.stringify(seedVenues)) as Venue[];
-}
-
 function cloneSeedReservations() {
   return JSON.parse(JSON.stringify(seedReservations)) as Reservation[];
-}
-
-const cabanaMapPositions = {
-  "cabana-1": { x: 65, y: 30, width: 110, height: 70 },
-  "cabana-2": { x: 245, y: 30, width: 110, height: 70 },
-  "cabana-3": { x: 425, y: 30, width: 110, height: 70 },
-} as const;
-
-function applyCabanaMapLayout(venues: Venue[]) {
-  return venues.map((venue) => ({
-    ...venue,
-    sections: venue.sections.map((section) => {
-      const mapPosition = cabanaMapPositions[section.id as keyof typeof cabanaMapPositions];
-      return mapPosition ? { ...section, mapPosition: { ...mapPosition } } : section;
-    }),
-  }));
-}
-
-function applySectionImagePaths(venues: Venue[]) {
-  const seedSectionsById = new Map(
-    seedVenues.flatMap((venue) => venue.sections).map((section) => [section.id, section]),
-  );
-
-  return venues.map((venue) => ({
-    ...venue,
-    sections: venue.sections.map((section) => ({
-      ...section,
-      imagePath: section.imagePath ?? seedSectionsById.get(section.id)?.imagePath,
-    })),
-  }));
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -152,42 +121,82 @@ export function isValidVenue(value: unknown): value is Venue {
   );
 }
 
-function isValidVenueList(value: unknown): value is Venue[] {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every(isValidVenue) &&
-    new Set(value.map((venue) => venue.id)).size === value.length
-  );
-}
-
 export default function VenueDataProvider({ children }: { children: React.ReactNode }) {
-  const [venues, setVenues] = useState<Venue[]>(cloneSeedVenues);
+  const [venues, setVenues] = useState<Venue[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>(cloneSeedReservations);
   const [hydrated, setHydrated] = useState(false);
+  const [venueError, setVenueError] = useState<string | null>(null);
+  const [beverageError, setBeverageError] = useState<string | null>(null);
+  const [sectionError, setSectionError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        if (isValidVenueList(parsed)) {
-          const next = applySectionImagePaths(applyCabanaMapLayout(parsed));
-          setVenues(next);
-          window.localStorage.setItem(storageKey, JSON.stringify(next));
+    let cancelled = false;
+
+    async function hydrate() {
+      let localReservations = cloneSeedReservations();
+      try {
+        const storedReservations = window.localStorage.getItem(reservationsStorageKey);
+        if (storedReservations) {
+          const parsed: unknown = JSON.parse(storedReservations);
+          if (Array.isArray(parsed) && parsed.every(isReservation) && !cancelled) {
+            localReservations = parsed;
+          }
         }
+      } catch {
+        window.localStorage.removeItem(reservationsStorageKey);
       }
-      const storedReservations = window.localStorage.getItem(reservationsStorageKey);
-      if (storedReservations) {
-        const parsed: unknown = JSON.parse(storedReservations);
-        if (Array.isArray(parsed) && parsed.every(isReservation)) setReservations(parsed);
+
+      try {
+        const baseVenues = await getVenues();
+        const loaded = await Promise.all(baseVenues.map(async (venue) => {
+          const [beverages, sections] = await Promise.allSettled([
+            getBeverageOptions(venue.venueName),
+            getSections(venue.venueName),
+          ]);
+          return { venue, beverages, sections };
+        }));
+
+        if (cancelled) return;
+        if (loaded.some(({ beverages }) => beverages.status === "rejected")) {
+          setBeverageError("Drink options could not be loaded. Please refresh the page.");
+        }
+        if (loaded.some(({ sections }) => sections.status === "rejected")) {
+          setSectionError("Sections could not be loaded. Please refresh the page.");
+        }
+        const nextVenues = loaded.map(({ venue, beverages, sections }) => ({
+          ...venue,
+          beverages: beverages.status === "fulfilled" ? beverages.value : [],
+          sections: sections.status === "fulfilled" ? sections.value : [],
+        }));
+        localReservations = localReservations.map((reservation) => {
+          if (reservation.venueId !== "venue-1") return reservation;
+          const venue = nextVenues.find((item) => item.venueName === "myhouse");
+          const section = venue?.sections.find((item) =>
+            item.area === reservation.sectionArea && item.name === reservation.sectionName,
+          );
+          return venue ? {
+            ...reservation,
+            venueId: venue.id,
+            sectionId: section?.id ?? reservation.sectionId,
+          } : reservation;
+        });
+        setReservations(localReservations);
+        setVenues(nextVenues.map((venue) => ({
+          ...venue,
+          sections: venue.sections.map((section) => localReservations.some(
+            (reservation) => reservation.id.startsWith("reservation-") &&
+              reservation.venueId === venue.id && reservation.sectionId === section.id,
+          ) ? { ...section, status: "sold" as const } : section),
+        })));
+      } catch {
+        if (!cancelled) setVenueError("Venues could not be loaded. Please refresh the page.");
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
-    } catch {
-      window.localStorage.removeItem(storageKey);
-      window.localStorage.removeItem(reservationsStorageKey);
-    } finally {
-      setHydrated(true);
     }
+
+    void hydrate();
+    return () => { cancelled = true; };
   }, []);
 
   const addReservation = useCallback((reservation: Omit<Reservation, "id" | "createdAt">) => {
@@ -207,7 +216,6 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
         ...venue,
         sections: venue.sections.map((section) => section.id === reservation.sectionId ? { ...section, status: "sold" as const } : section),
       });
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
   }, []);
@@ -216,23 +224,14 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
     if (!isValidVenue(venue)) return false;
     setVenues((current) => {
       const next = current.map((item) => (item.id === venue.id ? venue : item));
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
     return true;
   }, []);
 
-  const resetVenues = useCallback(() => {
-    const next = cloneSeedVenues();
-    setVenues(next);
-    setReservations(cloneSeedReservations());
-    window.localStorage.removeItem(storageKey);
-    window.localStorage.removeItem(reservationsStorageKey);
-  }, []);
-
   const value = useMemo(
-    () => ({ venues, reservations, hydrated, updateVenue, addReservation, resetVenues }),
-    [venues, reservations, hydrated, updateVenue, addReservation, resetVenues],
+    () => ({ venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue, addReservation }),
+    [venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue, addReservation],
   );
 
   return <VenueDataContext.Provider value={value}>{children}</VenueDataContext.Provider>;
@@ -246,5 +245,5 @@ export function useVenueData() {
 
 export function useVenueByName(venueName: string) {
   const { venues, ...context } = useVenueData();
-  return { venue: venues.find((item) => item.venueName === venueName), ...context };
+  return { venue: venues.find((item) => item.venueName.toLowerCase() === venueName.toLowerCase()), ...context };
 }

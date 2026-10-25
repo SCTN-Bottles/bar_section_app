@@ -48,7 +48,7 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
 }
 
 export default function CheckoutPageClient({ initialVenue, sectionId, date, time, addons, signText }: CheckoutPageClientProps) {
-  const { venue, addReservation } = useVenueByName(initialVenue.venueName);
+  const { venue, addReservation, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
   const [reservationComplete, setReservationComplete] = useState(false);
   const activeVenue = venue ?? initialVenue;
   const section = activeVenue.sections.find((item) => item.id === sectionId);
@@ -61,6 +61,14 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   });
   if (addons) backQuery.set("addons", addons);
   if (drinkSignText) backQuery.set("signText", drinkSignText);
+
+  if (!hydrated) {
+    return <main className="mx-auto max-w-5xl px-6 py-16 text-neutral-500">Loading drink options…</main>;
+  }
+
+  if (venueError || beverageError || sectionError) {
+    return <main role="alert" className="mx-auto max-w-5xl px-6 py-16 text-red-700">{venueError ?? beverageError ?? sectionError}</main>;
+  }
 
   if (!section || (section.status !== "available" && !reservationComplete)) {
     return (

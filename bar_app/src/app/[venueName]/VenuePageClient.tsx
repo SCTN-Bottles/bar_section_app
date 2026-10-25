@@ -22,15 +22,25 @@ export default function VenuePageClient({
   initialVenue,
   initialReservation,
 }: VenuePageClientProps) {
-  const { venue } = useVenueByName(initialVenue.venueName);
+  const { venue, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
   const activeVenue = venue ?? initialVenue;
   const venueKey = JSON.stringify(activeVenue);
+
+  if (!hydrated) {
+    return <main className="mx-auto max-w-7xl px-6 py-16 text-neutral-500">Loading venue options…</main>;
+  }
+
+  if (venueError) {
+    return <main role="alert" className="mx-auto max-w-7xl px-6 py-16 text-red-700">{venueError}</main>;
+  }
 
   return (
     <>
       <VenueHeader venue={activeVenue} />
 
       <section className="mx-auto max-w-7xl px-6 py-12">
+        {beverageError && <p role="alert" className="mb-6 text-red-700">{beverageError}</p>}
+        {sectionError && <p role="alert" className="mb-6 text-red-700">{sectionError}</p>}
         <div className="mb-10">
           <p className="page-supporting-text text-sm">
             {activeVenue.city}, {activeVenue.state}

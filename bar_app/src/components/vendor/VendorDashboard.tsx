@@ -3,8 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useVenueData } from "@/components/providers/VenueDataProvider";
+import { isValidVenue, useVenueData } from "@/components/providers/VenueDataProvider";
 import { formatBookingTime } from "@/lib/booking-time";
+import { saveBeverageOptions } from "@/lib/beverages";
+import { saveSections } from "@/lib/sections";
+import { saveVenueSchedule } from "@/lib/venues";
 import { logoutVendor, type VendorSession } from "@/lib/vendor-auth";
 import {
   BeverageOption,
@@ -35,14 +38,15 @@ function createNewBeverage(): NewBeverage {
 
 export default function VendorDashboard({ session }: VendorDashboardProps) {
   const router = useRouter();
-  const { venues, reservations, hydrated, updateVenue, resetVenues } = useVenueData();
-  const venue = venues.find((item) => item.id === session.venueId);
+  const { venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
+  const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
   const [activeZone, setActiveZone] = useState<VenueArea>(
     venue?.sections.find((section) => section.area)?.area ?? venueAreas[0],
   );
   const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "reservations">("management");
   const [notice, setNotice] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false);
   const [newBeverage, setNewBeverage] = useState<NewBeverage>(createNewBeverage);
 
@@ -52,7 +56,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
       setNotice("We couldn't sign you out. Please try again.");
       return;
     }
-    router.replace("/vendor/login");
+    router.replace("/");
     router.refresh();
   }
 
@@ -69,8 +73,16 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
     }
   }, [venue]);
 
-  if (!hydrated || !draft) {
+  if (!hydrated) {
     return <main className="mx-auto max-w-7xl px-6 py-16 text-neutral-500">Loading vendor portal…</main>;
+  }
+
+  if (!draft && venue) {
+    return <main className="mx-auto max-w-7xl px-6 py-16 text-neutral-500">Loading vendor portal…</main>;
+  }
+
+  if (!draft) {
+    return <main className="mx-auto max-w-7xl px-6 py-16 text-red-700">{venueError ?? "This venue is not available in the portal."}</main>;
   }
 
   function updateSection(sectionId: string, changes: Partial<Section>) {
@@ -135,18 +147,30 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
     setNotice("");
   }
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!draft || !updateVenue(draft)) {
+    if (isSaving) return;
+    if (!draft || !isValidVenue(draft)) {
       setNotice("Check required names, non-negative prices, and section values before saving.");
       return;
     }
-    setNotice("Changes saved. The reservation site now uses these details in this browser.");
+    setIsSaving(true);
+    try {
+      const venueDetails = await saveVenueSchedule(draft);
+      const sections = await saveSections(session.venueId, session.venueName, venue?.sections ?? [], draft.sections);
+      const beverages = await saveBeverageOptions(session.venueId, venue?.beverages ?? [], draft.beverages);
+      updateVenue({ ...venueDetails, sections, beverages });
+      setNotice("Venue schedule, sections, and drinks saved to the database.");
+    } catch {
+      setNotice("Some changes could not be saved. Reload the page before trying again.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function reset() {
-    resetVenues();
-    setNotice("Demo data restored.");
+    if (venue) setDraft(cloneVenue(venue));
+    setNotice("Unsaved changes discarded.");
   }
 
   return (
@@ -195,6 +219,9 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
       {activeDashboardTab === "management" ? (
       <form id="management-panel" role="tabpanel" aria-labelledby="management-tab" onSubmit={save} className="mt-8 space-y-10">
         {notice && <p role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</p>}
+        {venueError && <p role="alert" className="text-red-700">{venueError}</p>}
+        {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
+        {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
 
         <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
           <h2 id="schedule-heading" className="text-2xl font-semibold">Booking schedule</h2>
@@ -306,8 +333,8 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         </section>
 
         <div className="flex flex-wrap items-center justify-between gap-4 pb-12">
-          <button type="button" onClick={reset} className="rounded-md border border-neutral-300 px-5 py-3 text-sm hover:border-primary">Reset demo data</button>
-          <button type="submit" className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-accent">Save all changes</button>
+          <button type="button" onClick={reset} className="rounded-md border border-neutral-300 px-5 py-3 text-sm hover:border-primary">Discard unsaved changes</button>
+          <button type="submit" disabled={isSaving || !!venueError || !!beverageError || !!sectionError} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-accent disabled:opacity-60">{isSaving ? "Saving…" : "Save all changes"}</button>
         </div>
       </form>
       ) : (

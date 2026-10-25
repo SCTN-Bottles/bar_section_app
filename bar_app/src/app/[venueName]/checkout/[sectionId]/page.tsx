@@ -11,7 +11,7 @@ type CheckoutPageProps = {
 export default async function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
   const { venueName, sectionId } = await params;
   const { date, time, addons, signText } = await searchParams;
-  const result = getSectionByVenueAndId(venueName, sectionId);
+  const result = await getSectionByVenueAndId(venueName, sectionId);
   if (!result) notFound();
 
   return (
