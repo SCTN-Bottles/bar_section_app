@@ -6,20 +6,16 @@ import { useRouter } from "next/navigation";
 import { isValidVenue, useVenueData } from "@/components/providers/VenueDataProvider";
 import { formatBookingTime } from "@/lib/booking-time";
 import { saveBeverageOptions } from "@/lib/beverages";
-import { saveSections } from "@/lib/sections";
-import { saveVenueSchedule } from "@/lib/venues";
+import WeeklyBookingEditor from "@/components/vendor/WeeklyBookingEditor";
+import SectionDefaultsEditor from "@/components/vendor/SectionDefaultsEditor";
 import { logoutVendor, type VendorSession } from "@/lib/vendor-auth";
 import {
   BeverageOption,
   Reservation,
-  Section,
   Venue,
-  VenueArea,
   venueAreaLabels,
-  venueAreas,
 } from "@/types/venue";
 
-const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const months = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -41,10 +37,8 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const { venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
   const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
-  const [activeZone, setActiveZone] = useState<VenueArea>(
-    venue?.sections.find((section) => section.area)?.area ?? venueAreas[0],
-  );
-  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "reservations">("management");
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "reservations">("management");
+  const [defaultsOpened, setDefaultsOpened] = useState(false);
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false);
@@ -62,14 +56,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
 
   useEffect(() => {
     if (venue) {
-      setDraft(cloneVenue(venue));
-      setActiveZone((currentZone) => {
-        if (venue.sections.some((section) => section.area === currentZone)) {
-          return currentZone;
-        }
-
-        return venue.sections.find((section) => section.area)?.area ?? venueAreas[0];
-      });
+      setDraft((current) => ({ ...cloneVenue(venue), beverages: current?.beverages ?? venue.beverages }));
     }
   }, [venue]);
 
@@ -83,14 +70,6 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
 
   if (!draft) {
     return <main className="mx-auto max-w-7xl px-6 py-16 text-red-700">{venueError ?? "This venue is not available in the portal."}</main>;
-  }
-
-  function updateSection(sectionId: string, changes: Partial<Section>) {
-    setDraft((current) => current && {
-      ...current,
-      sections: current.sections.map((section) => section.id === sectionId ? { ...section, ...changes } : section),
-    });
-    setNotice("");
   }
 
   function updateBeverage(beverageId: string, changes: Partial<BeverageOption>) {
@@ -128,25 +107,6 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
     setNotice("");
   }
 
-  function toggleWeekday(day: number) {
-    if (
-      draft!.bookingCalendar.availableWeekdays.length === 1 &&
-      draft!.bookingCalendar.availableWeekdays.includes(day)
-    ) {
-      setNotice("Choose at least one booking day.");
-      return;
-    }
-    setDraft((current) => {
-      if (!current) return current;
-      const selected = current.bookingCalendar.availableWeekdays;
-      const nextDays = selected.includes(day)
-        ? selected.filter((value) => value !== day)
-        : [...selected, day].sort((a, b) => a - b);
-      return { ...current, bookingCalendar: { ...current.bookingCalendar, availableWeekdays: nextDays } };
-    });
-    setNotice("");
-  }
-
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSaving) return;
@@ -156,11 +116,10 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
     }
     setIsSaving(true);
     try {
-      const venueDetails = await saveVenueSchedule(draft);
-      const sections = await saveSections(session.venueId, session.venueName, venue?.sections ?? [], draft.sections);
       const beverages = await saveBeverageOptions(session.venueId, venue?.beverages ?? [], draft.beverages);
-      updateVenue({ ...venueDetails, sections, beverages });
-      setNotice("Venue schedule, sections, and drinks saved to the database.");
+      setDraft({ ...draft, beverages });
+      updateVenue({ ...draft, beverages });
+      setNotice("Drink menu saved to the database.");
     } catch {
       setNotice("Some changes could not be saved. Reload the page before trying again.");
     } finally {
@@ -170,7 +129,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
 
   function reset() {
     if (venue) setDraft(cloneVenue(venue));
-    setNotice("Unsaved changes discarded.");
+    setNotice("Unsaved drink changes discarded.");
   }
 
   return (
@@ -191,7 +150,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           <p className="mt-3 max-w-2xl text-neutral-500">Update the information customers use when reserving sections.</p>
       </div>
 
-      <div className="mt-7 flex gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
+      <div className="mt-7 flex flex-wrap gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
         <button
           id="management-tab"
           type="button"
@@ -201,7 +160,12 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           onClick={() => setActiveDashboardTab("management")}
           className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "management" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
         >
-          Manage venue
+          Add or Update Sections
+        </button>
+        <button id="defaults-tab" type="button" role="tab" aria-selected={activeDashboardTab === "defaults"} aria-controls="defaults-panel"
+          onClick={() => { setDefaultsOpened(true); setActiveDashboardTab("defaults"); }}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "defaults" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
+          Update Section Defaults
         </button>
         <button
           id="reservations-tab"
@@ -216,112 +180,15 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         </button>
       </div>
 
-      {activeDashboardTab === "management" ? (
-      <form id="management-panel" role="tabpanel" aria-labelledby="management-tab" onSubmit={save} className="mt-8 space-y-10">
+      <div id="management-panel" role="tabpanel" aria-labelledby="management-tab" hidden={activeDashboardTab !== "management"} className="mt-8 space-y-10">
         {notice && <p role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</p>}
         {venueError && <p role="alert" className="text-red-700">{venueError}</p>}
         {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
         {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
 
-        <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-          <h2 id="schedule-heading" className="text-2xl font-semibold">Booking schedule</h2>
-          <p className="mt-2 text-sm text-neutral-500">Set the recurring days and default time shown to guests.</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {weekdays.map((day, index) => {
-              const selected = draft.bookingCalendar.availableWeekdays.includes(index);
-              return <button key={day} type="button" aria-pressed={selected} onClick={() => toggleWeekday(index)} className={`rounded-md border px-4 py-2 text-sm ${selected ? "border-primary bg-primary text-on-primary" : "border-neutral-300"}`}>{day}</button>;
-            })}
-          </div>
-          <label className="mt-5 block max-w-md text-sm text-neutral-500">
-            Default reservation time
-            <span className="mt-2 flex items-center justify-between gap-4 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-3 text-foreground">
-              <span>
-                <span className="block text-xs text-neutral-500">Selected time</span>
-                <span className="mt-1 block text-xl font-semibold">{formatBookingTime(draft.bookingCalendar.placeholderTime)}</span>
-              </span>
-              <input
-                required
-                type="time"
-                value={draft.bookingCalendar.placeholderTime}
-                onChange={(event) => {
-                  setDraft({ ...draft, bookingCalendar: { ...draft.bookingCalendar, placeholderTime: event.target.value } });
-                  setNotice("");
-                }}
-                className="vendor-time-input rounded-md border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-foreground focus:border-primary"
-                aria-label="Default reservation time"
-              />
-            </span>
-          </label>
-        </section>
+        <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} />
 
-        <section aria-labelledby="sections-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-          <h2 id="sections-heading" className="text-2xl font-semibold">Sections</h2>
-          <p className="mt-2 text-sm text-neutral-500">Map placement is fixed for this demo.</p>
-
-          <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Section zones">
-            {venueAreas.map((zone, index) => {
-              const selected = activeZone === zone;
-
-              function moveTab(direction: number) {
-                const nextIndex = (index + direction + venueAreas.length) % venueAreas.length;
-                setActiveZone(venueAreas[nextIndex]);
-              }
-
-              return (
-                <button
-                  key={zone}
-                  id={`${zone}-zone-tab`}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  aria-controls={`${zone}-zone-panel`}
-                  tabIndex={selected ? 0 : -1}
-                  onClick={() => setActiveZone(zone)}
-                  onKeyDown={(event) => {
-                    if (event.key === "ArrowRight") {
-                      event.preventDefault();
-                      moveTab(1);
-                    } else if (event.key === "ArrowLeft") {
-                      event.preventDefault();
-                      moveTab(-1);
-                    } else if (event.key === "Home") {
-                      event.preventDefault();
-                      setActiveZone(venueAreas[0]);
-                    } else if (event.key === "End") {
-                      event.preventDefault();
-                      setActiveZone(venueAreas[venueAreas.length - 1]);
-                    }
-                  }}
-                  className={`rounded-md border px-4 py-2 text-sm font-semibold ${selected ? "border-primary bg-primary text-on-primary" : "border-neutral-300 hover:border-primary"}`}
-                >
-                  {venueAreaLabels[zone]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            id={`${activeZone}-zone-panel`}
-            role="tabpanel"
-            aria-labelledby={`${activeZone}-zone-tab`}
-            tabIndex={0}
-            className="mt-5"
-          >
-            <h3 className="text-lg font-semibold">{venueAreaLabels[activeZone]}</h3>
-            {draft.sections.filter((section) => section.area === activeZone).length > 0 ? (
-              <div className="mt-4 grid gap-5 xl:grid-cols-2">
-                {draft.sections
-                  .filter((section) => section.area === activeZone)
-                  .map((section) => <SectionEditor key={section.id} section={section} onChange={updateSection} />)}
-              </div>
-            ) : (
-              <p className="mt-4 rounded-lg border border-dashed border-neutral-300 px-4 py-6 text-sm text-neutral-500">
-                No sections are configured for this zone.
-              </p>
-            )}
-          </div>
-        </section>
-
+        <form onSubmit={save} className="space-y-6">
         <section aria-labelledby="menu-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><h2 id="menu-heading" className="text-2xl font-semibold">Drink menu</h2><p className="mt-2 text-sm text-neutral-500">Prices update throughout the reservation and checkout flow.</p></div>
@@ -333,11 +200,16 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         </section>
 
         <div className="flex flex-wrap items-center justify-between gap-4 pb-12">
-          <button type="button" onClick={reset} className="rounded-md border border-neutral-300 px-5 py-3 text-sm hover:border-primary">Discard unsaved changes</button>
-          <button type="submit" disabled={isSaving || !!venueError || !!beverageError || !!sectionError} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-accent disabled:opacity-60">{isSaving ? "Saving…" : "Save all changes"}</button>
+          <button type="button" onClick={reset} className="rounded-md border border-neutral-300 px-5 py-3 text-sm hover:border-primary">Discard drink changes</button>
+          <button type="submit" disabled={isSaving || !!venueError || !!beverageError || !!sectionError} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-accent disabled:opacity-60">{isSaving ? "Saving…" : "Save drink changes"}</button>
         </div>
-      </form>
-      ) : (
+        </form>
+      </div>
+      {defaultsOpened && <div id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
+        <SectionDefaultsEditor venueId={session.venueId} venueName={session.venueName}
+          onSaved={(sections) => { if (venue) updateVenue({ ...venue, sections }); }} />
+      </div>}
+      {activeDashboardTab === "reservations" && (
         <ReservationHistory
           reservations={reservations.filter((reservation) => reservation.venueId === draft.id)}
         />
@@ -468,22 +340,6 @@ function ReservationHistory({ reservations }: { reservations: Reservation[] }) {
 function formatReservationDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(year, month - 1, day));
-}
-
-function SectionEditor({ section, onChange }: { section: Section; onChange: (id: string, changes: Partial<Section>) => void }) {
-  const setNumber = (field: "capacity" | "minimumSpend" | "deposit", value: string) => onChange(section.id, { [field]: Number(value) });
-  return <section aria-labelledby={`${section.id}-editor-title`} className="rounded-lg border border-neutral-300 bg-neutral-100 p-4">
-    <h4 id={`${section.id}-editor-title`} className="font-semibold">{section.name}</h4>
-    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-      <Field label="Section name"><input required value={section.name} onChange={(event) => onChange(section.id, { name: event.target.value })} className="input" /></Field>
-      <Field label="Availability"><select value={section.status} onChange={(event) => onChange(section.id, { status: event.target.value as Section["status"] })} className="input"><option value="available">Available</option><option value="sold">Sold</option></select></Field>
-      <Field label="Capacity"><input required min="1" type="number" value={section.capacity} onChange={(event) => setNumber("capacity", event.target.value)} className="input" /></Field>
-      <Field label="Minimum spend"><input required min="0" type="number" value={section.minimumSpend} onChange={(event) => setNumber("minimumSpend", event.target.value)} className="input" /></Field>
-      <Field label="Deposit"><input required min="0" type="number" value={section.deposit} onChange={(event) => setNumber("deposit", event.target.value)} className="input" /></Field>
-      <Field label="Area"><input value={section.area} disabled className="input opacity-60" /></Field>
-    </div>
-    <Field label="Description"><textarea required value={section.description} onChange={(event) => onChange(section.id, { description: event.target.value })} className="input mt-1 min-h-20" /></Field>
-  </section>;
 }
 
 function BeverageEditor({ beverage, onChange, onRemove }: { beverage: BeverageOption; onChange: (id: string, changes: Partial<BeverageOption>) => void; onRemove: (id: string) => void }) {

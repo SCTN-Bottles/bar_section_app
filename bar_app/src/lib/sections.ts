@@ -89,7 +89,9 @@ export async function saveSections(
         status: section.status,
       })
       .eq("venue_id", venueId)
-      .eq("id", section.id);
+      .eq("id", section.id)
+      .select("id")
+      .single();
     if (error) throw error;
   }
 
