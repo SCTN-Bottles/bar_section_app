@@ -33,12 +33,14 @@ export type Section = {
   status: SectionStatus;
   description: string;
   imagePath?: string;
+  reservationTime?: string;
   mapPosition: SectionMapPosition;
 };
 
 export type BookingCalendar = {
   availableWeekdays: number[];
   placeholderTime: string;
+  availableSlots?: ("day" | "night")[];
 };
 
 export type BeverageType = "bottle" | "keg";

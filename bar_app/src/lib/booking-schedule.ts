@@ -112,3 +112,14 @@ export async function saveBookingSchedule(sections: ScheduledSection[]) {
   if (error) throw error;
   if (data?.length !== sections.length) throw new Error("Some settings were not saved. Check your venue access and try again.");
 }
+
+export async function getScheduleDates(venueId: string, week: string): Promise<string[]> {
+  const { data, error } = await devDb.rpc("get_schedule_dates", { p_venue_id: venueId, p_week: week });
+  if (error) throw error;
+  return (data as { reservation_date: string }[]).map((row) => row.reservation_date);
+}
+
+export async function deleteScheduleDay(venueId: string, date: string) {
+  const { error } = await devDb.rpc("delete_schedule_day", { p_venue_id: venueId, p_date: date });
+  if (error) throw error;
+}

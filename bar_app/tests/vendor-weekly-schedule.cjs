@@ -17,7 +17,11 @@ async function main() {
     const stored = new Map();
     const writes = [];
     const defaultWrites = [];
+    const menuDefaults = [{ id: "11111111-1111-4111-8111-111111111111", name: "House bottle", type: "bottle", price: 60 }];
+    const dayMenus = new Map();
+    let failMenuSave = false;
     let failNextSave = false;
+    let failDelete = false;
     await context.addInitScript(() => {
       // A test-only browser session; every Supabase request is intercepted below.
       localStorage.setItem("sb-cenaxburlzpsjkkdprzd-auth-token", JSON.stringify({ access_token: "test-session", refresh_token: "test-refresh", expires_at: 4102444800, token_type: "bearer", user: { id: "test-manager", email: "manager@example.test" } }));
@@ -40,7 +44,48 @@ async function main() {
           data = { id: section.id };
         } else data = defaults;
       }
-      else if (url.pathname.endsWith("/beverage_options")) data = [];
+      else if (url.pathname.endsWith("/beverage_options")) {
+        if (request.method() === "GET") data = menuDefaults;
+        else if (request.method() === "POST") {
+          const drink = request.postDataJSON();
+          assert.equal(drink.venue_id, venue.id);
+          const existing = menuDefaults.find((item) => item.id === drink.id);
+          if (existing) Object.assign(existing, drink); else menuDefaults.push(drink);
+          data = { id: drink.id };
+        } else if (request.method() === "PATCH") {
+          const drink = menuDefaults.find((item) => url.searchParams.get("id") === `eq.${item.id}`);
+          Object.assign(drink, request.postDataJSON()); data = { id: drink.id };
+        } else if (request.method() === "DELETE") {
+          const removed = url.searchParams.get("id");
+          for (let index = menuDefaults.length - 1; index >= 0; index--) if (removed.includes(menuDefaults[index].id)) menuDefaults.splice(index, 1);
+          data = [];
+        }
+      }
+      else if (url.pathname.endsWith("/rpc/get_schedule_dates")) {
+        const { p_venue_id, p_week } = request.postDataJSON();
+        assert.equal(p_venue_id, venue.id);
+        const end = new Date(p_week+"T12:00:00"); end.setDate(end.getDate()+6);
+        const last = end.toISOString().slice(0,10);
+        data = [...new Set([...stored.values(), ...dayMenus.values()].map(row=>row.reservation_date))]
+          .filter(date=>date>=p_week && date<=last).sort().map(reservation_date=>({reservation_date}));
+      }
+      else if (url.pathname.endsWith("/rpc/delete_schedule_day")) {
+        if (failDelete) { failDelete = false; return route.fulfill({status:500,json:{message:"Delete failed"}}); }
+        const { p_venue_id, p_date } = request.postDataJSON();
+        assert.equal(p_venue_id,venue.id);
+        for(const [key,row] of stored) if(row.reservation_date===p_date) stored.delete(key);
+        dayMenus.delete(p_date);
+        data = null;
+      }
+      else if (url.pathname.endsWith("/drink_schedule")) {
+        if (request.method() === "GET") data = [...dayMenus.values()].filter((row) => url.searchParams.get("reservation_date").includes(row.reservation_date));
+        else {
+          if (failMenuSave) { failMenuSave = false; return route.fulfill({ status: 500, json: { message: "Test menu save error" } }); }
+          assert.equal(url.searchParams.get("on_conflict"), "venue_id,reservation_date");
+          data = request.postDataJSON();
+          for (const row of data) { assert.equal(row.venue_id, venue.id); dayMenus.set(row.reservation_date, row); }
+        }
+      }
       else if (url.pathname.endsWith("/bookings") || url.pathname.endsWith("/rpc/save_section_schedule")) {
         assert.equal(request.headers()[request.method() === "GET" ? "accept-profile" : "content-profile"], "sctn-dev");
         if (request.method() === "POST") {
@@ -71,6 +116,7 @@ async function main() {
 
     await page.goto(`${process.env.TEST_BASE_URL || "http://localhost:3000"}/vendor`);
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "Drink menu", exact: true }).count(), 0);
     await page.getByLabel("Week starting Sunday").fill("2026-12-30");
     assert.equal(await page.getByLabel("Week starting Sunday").inputValue(), "2026-12-27");
     await page.getByRole("button", { name: "Confirm days", exact: true }).click();
@@ -157,8 +203,160 @@ async function main() {
     await management.getByText("Starting from section defaults").waitFor();
     assert.equal(await management.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "175.25");
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "New tabs must fit mobile layout");
+    const dailyMenu = page.getByRole("region", { name: "Daily drink menu editor", exact: true });
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "60");
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("90.25");
+    await management.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(1).click();
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "60");
+    await dailyMenu.getByRole("button", { name: "Remove House bottle", exact: true }).click();
+    await management.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(0).click();
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "90.25");
+    failMenuSave = true;
+    await dailyMenu.getByRole("button", { name: "Save drink changes", exact: true }).click();
+    await dailyMenu.getByRole("alert").waitFor();
+    assert.equal(dayMenus.size, 0);
+    await dailyMenu.getByRole("button", { name: "Save drink changes", exact: true }).click();
+    await dailyMenu.getByText("Drink menus saved for 2 selected days.", { exact: true }).waitFor();
+    assert.equal(dayMenus.size, 2);
+    assert.equal(dayMenus.get("2027-01-03").beverages[0].price, 90.25);
+    assert.deepEqual(dayMenus.get("2027-01-04").beverages, []);
+    assert.equal(menuDefaults[0].price, 60);
+    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    const drinkDefaults = page.getByRole("region", { name: "Default drink menu editor", exact: true });
+    await drinkDefaults.getByLabel("Price ($)", { exact: true }).waitFor();
+    await drinkDefaults.getByRole("button", { name: "Remove House bottle", exact: true }).click();
+    await drinkDefaults.getByRole("button", { name: "Add drink", exact: true }).click();
+    await drinkDefaults.getByLabel("Drink name", { exact: true }).fill("New default keg");
+    await drinkDefaults.getByLabel("Type", { exact: true }).selectOption("keg");
+    await drinkDefaults.getByLabel("Price ($)", { exact: true }).fill("125.50");
+    await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
+    await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
+    assert.equal(menuDefaults.length, 1);
+    assert.equal(menuDefaults[0].name, "New default keg");
+    assert.equal(dayMenus.get("2027-01-03").beverages[0].price, 90.25);
+    await page.reload();
+    await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
+    await page.getByLabel("Week starting Sunday").fill("2027-01-03");
+    await page.getByRole("button", { name: "Confirm days", exact: true }).click();
+    await dailyMenu.getByText("Loaded from saved daily menu").waitFor();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "House bottle");
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "90.25");
+    await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(1).click();
+    await dailyMenu.getByText("No drinks on this menu. Add a drink, or save an empty menu.").waitFor();
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Daily menu must fit mobile layout");
+    if (process.env.TEST_MENU_SCREENSHOT_PATH) {
+      await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(0).click();
+      await dailyMenu.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: process.env.TEST_MENU_SCREENSHOT_PATH });
+    }
+    // Saved snapshots retain their contents until the vendor explicitly replaces them.
+    await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(0).click();
+    await dailyMenu.getByRole("button", { name: "Use latest drink defaults", exact: true }).click();
+    await dailyMenu.getByLabel("Drink name", { exact: true }).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "New default keg");
+    assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "House bottle");
+    await dailyMenu.getByRole("button", { name: "Save drink changes", exact: true }).click();
+    await dailyMenu.getByText("Drink menus saved for 2 selected days.", { exact: true }).waitFor();
+    assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "New default keg");
+
+    // Unsaved days drop deleted defaults even when their prices were edited locally.
+    await page.getByLabel("Week starting Sunday").fill("2027-01-10");
+    await page.getByRole("button", { name: "Confirm days", exact: true }).click();
+    await dailyMenu.getByText("Starting from drink menu defaults").waitFor();
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("150");
+    await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(1).click();
+    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await drinkDefaults.getByRole("button", { name: "Remove New default keg", exact: true }).click();
+    await drinkDefaults.getByRole("button", { name: "Add drink", exact: true }).click();
+    await drinkDefaults.getByLabel("Drink name", { exact: true }).fill("Replacement bottle");
+    await drinkDefaults.getByLabel("Price ($)", { exact: true }).fill("80");
+    await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
+    await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
+    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await dailyMenu.getByLabel("Drink name", { exact: true }).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "Replacement bottle");
+    assert.equal(await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").count(), 2);
+    assert.equal(await page.getByLabel("Week starting Sunday").inputValue(), "2027-01-10");
+    await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(0).click();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "Replacement bottle");
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "80");
+    await page.getByRole("button", { name: "Confirm days", exact: true }).click();
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "80");
+    await dailyMenu.getByRole("button", { name: "Use latest drink defaults", exact: true }).click();
+    await dailyMenu.getByText("Latest drink defaults loaded for 2027-01-10. Click Save drink changes to apply them.", { exact: true }).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "Replacement bottle");
+    assert.equal(dayMenus.has("2027-01-10"), false);
+    assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "New default keg");
+    // Keep a day's price edit for a surviving default while applying new defaults.
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("99");
+    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await drinkDefaults.getByLabel("Price ($)", { exact: true }).fill("85");
+    await drinkDefaults.getByRole("button", { name: "Add drink", exact: true }).click();
+    await drinkDefaults.getByLabel("Drink name", { exact: true }).nth(1).fill("Added default bottle");
+    await drinkDefaults.getByLabel("Price ($)", { exact: true }).nth(1).fill("30");
+    await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
+    await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
+    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await dailyMenu.getByLabel("Drink name", { exact: true }).nth(1).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).nth(1).inputValue(), "Added default bottle");
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).nth(0).inputValue(), "99");
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).nth(1).inputValue(), "30");
+    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await drinkDefaults.getByRole("button", { name: "Remove Added default bottle", exact: true }).click();
+    await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
+    await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
+    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await dailyMenu.getByLabel("Drink name", { exact: true }).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).count(), 1);
+    assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "99");
+    assert.equal(dayMenus.has("2027-01-10"), false);
+    // Saved Tuesday is outside the venue's default weekdays and must load automatically.
+    page.once("dialog", dialog=>dialog.accept());
+    const savedDate="2027-02-02";
+    for(const slot of ["day","night"]) for(const section of defaults) {
+      stored.set(savedDate+":"+slot+":"+section.id,{section_id:section.id,reservation_date:savedDate,booking_slot:slot,reservation_time:"21:30",section_name:section.name,section_description:section.description,guest_count:18,status:"available",minimum_spend_amount:777,deposit_amount:80});
+    }
+    dayMenus.set(savedDate,{venue_id:venue.id,reservation_date:savedDate,beverages:[{...menuDefaults[0],price:88}]});
+    await page.getByLabel("Week starting Sunday").fill("2027-01-31");
+    await page.getByText("Saved days are selected and their settings are loaded.",{exact:true}).waitFor();
+    const tuesday=page.getByRole("button",{name:/^Tuesday/});
+    assert.equal(await tuesday.getAttribute("aria-pressed"),"true");
+    assert.equal(await dayTabs.count(),1);
+    assert.equal(await page.getByLabel("Minimum spend ($)",{exact:true}).inputValue(),"777");
+    await dailyMenu.getByLabel("Price ($)",{exact:true}).waitFor();
+    assert.equal(await dailyMenu.getByLabel("Price ($)",{exact:true}).inputValue(),"88");
+    await tuesday.click();
+    assert.equal(await tuesday.getAttribute("aria-pressed"),"false");
+    await page.getByText(/Pending deletion:/).waitFor();
+    assert.ok(dayMenus.has(savedDate),"Unselecting must not delete saved menus");
+    assert.ok([...stored.values()].some(row=>row.reservation_date===savedDate),"Unselecting must not delete section entries");
+    await tuesday.click();
+    assert.equal(await tuesday.getAttribute("aria-pressed"),"true");
+    assert.equal(await page.getByText(/Pending deletion:/).count(),0);
+    await page.getByRole("button",{name:"Confirm days",exact:true}).click();
+    await page.getByText("Loaded from saved booking settings").waitFor();
+    assert.ok(dayMenus.has(savedDate),"Confirm days must not delete menus");
+    await tuesday.click();
+    failDelete=true;
+    await page.getByRole("button",{name:"Confirm changes",exact:true}).click();
+    await page.getByRole("alert").filter({hasText:"Changes could not be saved"}).waitFor();
+    assert.equal(await tuesday.getAttribute("aria-pressed"),"false");
+    assert.ok(dayMenus.has(savedDate),"Failed confirmation must retain saved data");
+    await page.getByText(/Pending deletion:/).waitFor();
+    await page.getByRole("button",{name:"Confirm changes",exact:true}).click();
+    await page.getByText("Changes confirmed. Settings deleted for 1 removed day.",{exact:true}).waitFor();
+    assert.equal(await tuesday.getAttribute("aria-pressed"),"false");
+    assert.equal(dayMenus.has(savedDate),false);
+    assert.equal([...stored.values()].some(row=>row.reservation_date===savedDate),false);
+    assert.ok(dayMenus.has("2027-01-03"));
+    assert.equal(await dayTabs.count(),0);
+    await page.getByRole("button",{name:"Next week",exact:true}).click();
+    await page.getByRole("button",{name:"Previous week",exact:true}).click();
+    assert.equal(await page.getByRole("tablist",{name:"Confirmed booking days"}).count(),0);
     assert.deepEqual(errors, []);
-    console.log("PASS: weekly schedules, section defaults loading/editing/persistence, validation, scoped section updates, new-day defaults, and mobile layout");
+    console.log("PASS: weekly sections, daily menus, editable defaults, add/remove drinks, validation, save retries, snapshots, reloads, and mobile layout");
   } finally { await browser.close(); }
 }
 

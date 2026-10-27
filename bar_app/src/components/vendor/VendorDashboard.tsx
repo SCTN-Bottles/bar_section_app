@@ -1,16 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { isValidVenue, useVenueData } from "@/components/providers/VenueDataProvider";
+import { useVenueData } from "@/components/providers/VenueDataProvider";
 import { formatBookingTime } from "@/lib/booking-time";
-import { saveBeverageOptions } from "@/lib/beverages";
+import DrinkMenuEditor from "@/components/vendor/DrinkMenuEditor";
 import WeeklyBookingEditor from "@/components/vendor/WeeklyBookingEditor";
 import SectionDefaultsEditor from "@/components/vendor/SectionDefaultsEditor";
 import { logoutVendor, type VendorSession } from "@/lib/vendor-auth";
 import {
-  BeverageOption,
   Reservation,
   Venue,
   venueAreaLabels,
@@ -22,14 +21,9 @@ const months = [
 ];
 
 type VendorDashboardProps = { session: VendorSession };
-type NewBeverage = Pick<BeverageOption, "name" | "type" | "price">;
 
 function cloneVenue(venue: Venue) {
   return JSON.parse(JSON.stringify(venue)) as Venue;
-}
-
-function createNewBeverage(): NewBeverage {
-  return { name: "", type: "bottle", price: 0 };
 }
 
 export default function VendorDashboard({ session }: VendorDashboardProps) {
@@ -37,12 +31,11 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const { venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
   const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
-  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "reservations">("management");
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations">("management");
   const [defaultsOpened, setDefaultsOpened] = useState(false);
   const [notice, setNotice] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false);
-  const [newBeverage, setNewBeverage] = useState<NewBeverage>(createNewBeverage);
+  const [drinkDefaultsOpened, setDrinkDefaultsOpened] = useState(false);
+  const [menuRefreshVersion, setMenuRefreshVersion] = useState(0);
 
   async function logout() {
     const { error } = await logoutVendor();
@@ -72,66 +65,6 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
     return <main className="mx-auto max-w-7xl px-6 py-16 text-red-700">{venueError ?? "This venue is not available in the portal."}</main>;
   }
 
-  function updateBeverage(beverageId: string, changes: Partial<BeverageOption>) {
-    setDraft((current) => current && {
-      ...current,
-      beverages: current.beverages.map((beverage) => beverage.id === beverageId ? { ...beverage, ...changes } : beverage),
-    });
-    setNotice("");
-  }
-
-  function openAddBeverage() {
-    setNewBeverage(createNewBeverage());
-    setIsAddDrinkOpen(true);
-  }
-
-  function addBeverage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = newBeverage.name.trim();
-    if (!name || !Number.isFinite(newBeverage.price) || newBeverage.price < 0) return;
-
-    const id = `drink-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setDraft((current) => current && {
-      ...current,
-      beverages: [...current.beverages, { id, ...newBeverage, name }],
-    });
-    setIsAddDrinkOpen(false);
-    setNotice("");
-  }
-
-  function removeBeverage(beverageId: string) {
-    setDraft((current) => current && {
-      ...current,
-      beverages: current.beverages.filter((beverage) => beverage.id !== beverageId),
-    });
-    setNotice("");
-  }
-
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (isSaving) return;
-    if (!draft || !isValidVenue(draft)) {
-      setNotice("Check required names, non-negative prices, and section values before saving.");
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const beverages = await saveBeverageOptions(session.venueId, venue?.beverages ?? [], draft.beverages);
-      setDraft({ ...draft, beverages });
-      updateVenue({ ...draft, beverages });
-      setNotice("Drink menu saved to the database.");
-    } catch {
-      setNotice("Some changes could not be saved. Reload the page before trying again.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  function reset() {
-    if (venue) setDraft(cloneVenue(venue));
-    setNotice("Unsaved drink changes discarded.");
-  }
-
   return (
     <>
       <header className="venue-header border-b-2">
@@ -157,7 +90,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           role="tab"
           aria-selected={activeDashboardTab === "management"}
           aria-controls="management-panel"
-          onClick={() => setActiveDashboardTab("management")}
+          onClick={() => { setMenuRefreshVersion((value) => value + 1); setActiveDashboardTab("management"); }}
           className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "management" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
         >
           Add or Update Sections
@@ -166,6 +99,11 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           onClick={() => { setDefaultsOpened(true); setActiveDashboardTab("defaults"); }}
           className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "defaults" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
           Update Section Defaults
+        </button>
+        <button id="drink-defaults-tab" type="button" role="tab" aria-selected={activeDashboardTab === "drink-defaults"} aria-controls="drink-defaults-panel"
+          onClick={() => { setDrinkDefaultsOpened(true); setActiveDashboardTab("drink-defaults"); }}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "drink-defaults" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
+          Update Drink Menu Defaults
         </button>
         <button
           id="reservations-tab"
@@ -186,28 +124,15 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
         {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
 
-        <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} />
-
-        <form onSubmit={save} className="space-y-6">
-        <section aria-labelledby="menu-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h2 id="menu-heading" className="text-2xl font-semibold">Drink menu</h2><p className="mt-2 text-sm text-neutral-500">Prices update throughout the reservation and checkout flow.</p></div>
-            <button type="button" onClick={openAddBeverage} className="rounded-md bg-primary px-4 py-3 text-sm font-semibold text-on-primary hover:bg-accent">Add drink</button>
-          </div>
-          <div className="mt-6 space-y-3">
-            {draft.beverages.map((beverage) => <BeverageEditor key={beverage.id} beverage={beverage} onChange={updateBeverage} onRemove={removeBeverage} />)}
-          </div>
-        </section>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-12">
-          <button type="button" onClick={reset} className="rounded-md border border-neutral-300 px-5 py-3 text-sm hover:border-primary">Discard drink changes</button>
-          <button type="submit" disabled={isSaving || !!venueError || !!beverageError || !!sectionError} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-accent disabled:opacity-60">{isSaving ? "Saving…" : "Save drink changes"}</button>
-        </div>
-        </form>
+        <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} menuRefreshVersion={menuRefreshVersion} />
       </div>
       {defaultsOpened && <div id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
         <SectionDefaultsEditor venueId={session.venueId} venueName={session.venueName}
           onSaved={(sections) => { if (venue) updateVenue({ ...venue, sections }); }} />
+      </div>}
+      {drinkDefaultsOpened && <div id="drink-defaults-panel" role="tabpanel" aria-labelledby="drink-defaults-tab" hidden={activeDashboardTab !== "drink-defaults"} className="mt-8 pb-12">
+        <DrinkMenuEditor venueId={session.venueId} venueName={session.venueName}
+          onSaved={(beverages) => { if (venue) updateVenue({ ...venue, beverages }); setMenuRefreshVersion((value) => value + 1); }} />
       </div>}
       {activeDashboardTab === "reservations" && (
         <ReservationHistory
@@ -215,14 +140,6 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         />
       )}
 
-      {isAddDrinkOpen && (
-        <AddDrinkDialog
-          beverage={newBeverage}
-          onChange={setNewBeverage}
-          onClose={() => setIsAddDrinkOpen(false)}
-          onSubmit={addBeverage}
-        />
-      )}
     </main>
     </>
   );
@@ -340,80 +257,4 @@ function ReservationHistory({ reservations }: { reservations: Reservation[] }) {
 function formatReservationDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(year, month - 1, day));
-}
-
-function BeverageEditor({ beverage, onChange, onRemove }: { beverage: BeverageOption; onChange: (id: string, changes: Partial<BeverageOption>) => void; onRemove: (id: string) => void }) {
-  return <div className="grid gap-3 rounded-lg border border-neutral-300 bg-neutral-100 p-4 md:grid-cols-[1fr_140px_130px_auto]">
-    <Field label="Drink name"><input required value={beverage.name} onChange={(event) => onChange(beverage.id, { name: event.target.value })} className="input" /></Field>
-    <Field label="Type"><select value={beverage.type} onChange={(event) => onChange(beverage.id, { type: event.target.value as BeverageOption["type"] })} className="input"><option value="bottle">Bottle</option><option value="keg">Keg</option></select></Field>
-    <Field label="Price"><input required min="0" type="number" value={beverage.price} onChange={(event) => onChange(beverage.id, { price: Number(event.target.value) })} className="input" /></Field>
-    <button type="button" onClick={() => onRemove(beverage.id)} className="self-end rounded-md border border-neutral-300 px-4 py-2 text-sm hover:border-primary">Remove</button>
-  </div>;
-}
-
-function AddDrinkDialog({
-  beverage,
-  onChange,
-  onClose,
-  onSubmit,
-}: {
-  beverage: NewBeverage;
-  onChange: (beverage: NewBeverage) => void;
-  onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="presentation" onMouseDown={onClose}>
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-drink-title"
-        className="w-full max-w-md rounded-xl border border-neutral-300 bg-neutral-50 p-6 shadow-2xl"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <h2 id="add-drink-title" className="text-2xl font-semibold">Add a drink</h2>
-        <p className="mt-2 text-sm text-neutral-500">Add a bottle or keg to the menu.</p>
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <Field label="Drink name">
-            <input
-              required
-              autoFocus
-              value={beverage.name}
-              onChange={(event) => onChange({ ...beverage, name: event.target.value })}
-              className="input"
-            />
-          </Field>
-          <Field label="Type">
-            <select
-              value={beverage.type}
-              onChange={(event) => onChange({ ...beverage, type: event.target.value as BeverageOption["type"] })}
-              className="input"
-            >
-              <option value="bottle">Bottle</option>
-              <option value="keg">Keg</option>
-            </select>
-          </Field>
-          <Field label="Price">
-            <input
-              required
-              min="0"
-              step="0.01"
-              type="number"
-              value={beverage.price}
-              onChange={(event) => onChange({ ...beverage, price: Number(event.target.value) })}
-              className="input"
-            />
-          </Field>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:border-primary">Cancel</button>
-            <button type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-accent">Add drink</button>
-          </div>
-        </form>
-      </section>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block text-sm text-neutral-500">{label}{children}</label>;
 }

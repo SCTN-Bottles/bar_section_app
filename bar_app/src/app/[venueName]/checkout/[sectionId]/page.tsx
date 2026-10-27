@@ -5,12 +5,12 @@ import { getSectionByVenueAndId } from "@/lib/venues";
 
 type CheckoutPageProps = {
   params: Promise<{ venueName: string; sectionId: string }>;
-  searchParams: Promise<{ date?: string; time?: string; addons?: string; signText?: string }>;
+  searchParams: Promise<{ date?: string; time?: string; slot?: string; addons?: string; signText?: string }>;
 };
 
 export default async function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
   const { venueName, sectionId } = await params;
-  const { date, time, addons, signText } = await searchParams;
+  const { date, time, slot, addons, signText } = await searchParams;
   const result = await getSectionByVenueAndId(venueName, sectionId);
   if (!result) notFound();
 
@@ -20,6 +20,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
       sectionId={sectionId}
       date={date}
       time={time}
+      slot={slot}
       addons={addons}
       signText={signText}
     />

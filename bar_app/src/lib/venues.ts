@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { Venue } from "@/types/venue";
 
 const devDb = supabase.schema("sctn-dev");
-const venueColumns = "id, name, slug, description, city, state, booking_weekdays, booking_start_time";
+const venueColumns = "id, name, slug, description, city, state, booking_weekdays, booking_start_time, booking_slots";
 
 type VenueRow = {
   id: string;
@@ -14,6 +14,7 @@ type VenueRow = {
   state: string;
   booking_weekdays: number[];
   booking_start_time: string;
+  booking_slots: ("day" | "night")[];
 };
 
 function toVenue(row: VenueRow): Venue {
@@ -27,6 +28,7 @@ function toVenue(row: VenueRow): Venue {
     bookingCalendar: {
       availableWeekdays: row.booking_weekdays,
       placeholderTime: row.booking_start_time.slice(0, 5),
+      availableSlots: row.booking_slots,
     },
     sections: [],
     beverages: [],

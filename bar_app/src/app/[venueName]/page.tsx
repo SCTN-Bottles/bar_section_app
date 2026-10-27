@@ -9,6 +9,7 @@ type VenuePageProps = {
   }>;
   searchParams: Promise<{
     date?: string;
+    slot?: string;
     time?: string;
     section?: string;
     step?: string;

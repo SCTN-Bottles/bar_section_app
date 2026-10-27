@@ -9,6 +9,7 @@ type VenuePageClientProps = {
   initialVenue: Venue;
   initialReservation: {
     date?: string;
+    slot?: string;
     time?: string;
     sectionId?: string;
     step?: string;

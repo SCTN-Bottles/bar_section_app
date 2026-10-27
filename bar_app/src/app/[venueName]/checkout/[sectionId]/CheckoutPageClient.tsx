@@ -6,6 +6,7 @@ import { useState } from "react";
 import DemoCheckoutForm from "@/components/checkout/DemoCheckoutForm";
 import VenueHeader from "@/components/layout/VenueHeader";
 import { useVenueByName } from "@/components/providers/VenueDataProvider";
+import { useReservationDay } from "@/lib/use-reservation-day";
 import { formatBookingTime } from "@/lib/booking-time";
 import { normalizeDrinkSignText } from "@/lib/drink-sign";
 import { BeverageOption, Venue } from "@/types/venue";
@@ -15,6 +16,7 @@ type CheckoutPageClientProps = {
   sectionId: string;
   date?: string;
   time?: string;
+  slot?: string;
   addons?: string;
   signText?: string;
 };
@@ -47,14 +49,19 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
   }, []);
 }
 
-export default function CheckoutPageClient({ initialVenue, sectionId, date, time, addons, signText }: CheckoutPageClientProps) {
+export default function CheckoutPageClient({ initialVenue, sectionId, date, time, slot, addons, signText }: CheckoutPageClientProps) {
   const { venue, addReservation, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
   const [reservationComplete, setReservationComplete] = useState(false);
-  const activeVenue = venue ?? initialVenue;
+  const baseVenue = venue ?? initialVenue;
+  const availableSlots = baseVenue.bookingCalendar.availableSlots ?? ["night"];
+  const bookingSlot = slot === "day" && availableSlots.includes("day") ? "day" : availableSlots.includes("night") ? "night" : availableSlots[0];
+  const day = useReservationDay(baseVenue.id, baseVenue.venueName, date ?? null, bookingSlot);
+  const activeVenue = day.data ? { ...baseVenue, ...day.data } : baseVenue;
   const section = activeVenue.sections.find((item) => item.id === sectionId);
   const drinkSignText = normalizeDrinkSignText(signText);
   const backQuery = new URLSearchParams({
     date: date ?? "",
+    slot: bookingSlot,
     time: time ?? activeVenue.bookingCalendar.placeholderTime,
     section: sectionId,
     step: "sign",
@@ -62,9 +69,11 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   if (addons) backQuery.set("addons", addons);
   if (drinkSignText) backQuery.set("signText", drinkSignText);
 
-  if (!hydrated) {
+  if (!hydrated || day.loading) {
     return <main className="mx-auto max-w-5xl px-6 py-16 text-neutral-500">Loading drink options…</main>;
   }
+
+  if (!date || day.error) return <main className="mx-auto max-w-5xl space-y-4 px-6 py-16"><p role="alert" className="text-red-700">{day.error || "Choose a reservation date before checking out."}</p>{date && <button type="button" onClick={day.retry} className="rounded-md border px-4 py-2">Retry loading date</button>}<Link className="block underline" href={`/${activeVenue.venueName}`}>Choose a date</Link></main>;
 
   if (venueError || beverageError || sectionError) {
     return <main role="alert" className="mx-auto max-w-5xl px-6 py-16 text-red-700">{venueError ?? beverageError ?? sectionError}</main>;
@@ -88,7 +97,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   }
 
   const reservationDate = formatReservationDate(date);
-  const reservationTime = time ?? activeVenue.bookingCalendar.placeholderTime;
+  const reservationTime = section.reservationTime ?? activeVenue.bookingCalendar.placeholderTime;
   const selectedBeverages = getSelectedBeverages(addons, activeVenue.beverages);
   const beverageTotal = selectedBeverages.reduce(
     (total, { beverage, quantity }) => total + beverage.price * quantity,

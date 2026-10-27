@@ -53,12 +53,13 @@ export async function saveBeverageOptions(
 
   for (const beverage of beverages) {
     if (!existing.has(beverage.id)) {
-      const { error } = await devDb.from("beverage_options").insert({
+      const { error } = await devDb.from("beverage_options").upsert({
+        id: beverage.id,
         venue_id: venueId,
         name: beverage.name,
         type: beverage.type,
         price: beverage.price,
-      });
+      }, { onConflict: "id" }).select("id").single();
       if (error) throw error;
       continue;
     }
@@ -74,7 +75,7 @@ export async function saveBeverageOptions(
       .from("beverage_options")
       .update({ name: beverage.name, type: beverage.type, price: beverage.price })
       .eq("venue_id", venueId)
-      .eq("id", beverage.id);
+      .eq("id", beverage.id).select("id").single();
     if (error) throw error;
   }
 

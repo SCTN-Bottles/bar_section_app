@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  dateKey, loadBookingSchedule, offsetDate, saveBookingSchedule, scheduleKey,
+  dateKey, deleteScheduleDay, getScheduleDates, loadBookingSchedule, offsetDate, saveBookingSchedule, scheduleKey,
   validateSchedule, weekStart, type BookingSlot, type ScheduledSection,
 } from "@/lib/booking-schedule";
 import { venueAreaLabels, type Venue } from "@/types/venue";
+import DrinkMenuEditor from "@/components/vendor/DrinkMenuEditor";
 
 const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const buttonClass = "rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:border-primary disabled:opacity-50";
@@ -15,12 +16,16 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(`${date}T12:00:00`));
 }
 
-export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue; disabled: boolean }) {
+export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersion = 0 }: { venue: Venue; disabled: boolean; menuRefreshVersion?: number }) {
   const [week, setWeek] = useState(() => weekStart(dateKey(new Date())));
   const [days, setDays] = useState<number[]>(venue.bookingCalendar.availableWeekdays);
+  const [knownDates, setKnownDates] = useState<string[]>([]);
   const [confirmedDates, setConfirmedDates] = useState<string[]>([]);
   const [sections, setSections] = useState<ScheduledSection[]>([]);
   const [dirty, setDirty] = useState<Set<string>>(new Set());
+  const [menuDirty, setMenuDirty] = useState(false);
+  const [menuSaving, setMenuSaving] = useState(false);
+  const [confirmationVersion, setConfirmationVersion] = useState(0);
   const [activeDate, setActiveDate] = useState("");
   const [activeSection, setActiveSection] = useState("");
   const [activeSlot, setActiveSlot] = useState<BookingSlot>("night");
@@ -28,8 +33,52 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
   const [busy, setBusy] = useState<"loading" | "saving" | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [weekLoading, setWeekLoading] = useState(true);
+  const [weekError, setWeekError] = useState(false);
+  const [weekRetry, setWeekRetry] = useState(0);
+  const defaultDaysKey = venue.bookingCalendar.availableWeekdays.join(",");
+
+  useEffect(() => {
+    if (disabled) return;
+    let cancelled = false;
+    setWeekLoading(true);
+    setWeekError(false);
+    async function loadWeek() {
+      try {
+        const dates = await getScheduleDates(venue.id, week);
+        const loaded = dates.length ? await loadBookingSchedule(venue.id, venue.venueName, dates) : null;
+        if (cancelled) return;
+        setDays(dates.length ? dates.map((date) => new Date(`${date}T12:00:00`).getDay()) : defaultDaysKey.split(",").filter(Boolean).map(Number));
+        setConfirmedDates(dates);
+        setKnownDates(dates);
+        setSections(loaded?.sections ?? []);
+        setDirty(new Set());
+        setActiveDate(dates[0] ?? "");
+        if (loaded) {
+          setSlots(loaded.slots);
+          setActiveSlot((slot) => loaded.slots.includes(slot) ? slot : loaded.slots[0]);
+          setMessage("Saved days are selected and their settings are loaded.");
+        }
+      } catch {
+        if (!cancelled) setWeekError(true);
+      } finally {
+        if (!cancelled) setWeekLoading(false);
+      }
+    }
+    void loadWeek();
+    return () => { cancelled = true; };
+  }, [week, venue.id, venue.venueName, defaultDaysKey, disabled, weekRetry]);
+
+  function toggleDay(day: number) {
+    if (busy || weekLoading || weekError || menuSaving) return;
+    setDays((values) => values.includes(day) ? values.filter((value) => value !== day) : [...values, day]);
+    setMessage("");
+    setError("");
+  }
 
   const selectedDates = [...days].sort((a, b) => a - b).map((day) => offsetDate(week, day));
+  const removedDates = knownDates.filter((date) => !selectedDates.includes(date));
+  const canConfirmChanges = selectedDates.every((date) => confirmedDates.includes(date));
   const selectionConfirmed = confirmedDates.length > 0 && selectedDates.join() === confirmedDates.join();
   const visibleSections = sections.filter((section) => section.date === activeDate && section.slot === activeSlot);
   const current = visibleSections.find((section) => section.id === activeSection) ?? visibleSections[0];
@@ -38,7 +87,10 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
     if (!value || value === week) return;
     const next = weekStart(value);
     if (next === week) return;
-    if (dirty.size && !window.confirm("Discard unsaved section changes and switch weeks?")) return;
+    if ((dirty.size || menuDirty || removedDates.length) && !window.confirm("Discard unsaved section and drink changes and switch weeks?")) return;
+    setMenuDirty(false);
+    setWeekLoading(true);
+    setKnownDates([]);
     setWeek(next);
     setSections([]);
     setConfirmedDates([]);
@@ -49,7 +101,8 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
 
   async function confirmDays() {
     if (busy || !selectedDates.length) return;
-    if (sections.some((section) => dirty.has(scheduleKey(section)) && !selectedDates.includes(section.date))
+    if ((sections.some((section) => dirty.has(scheduleKey(section)) && !selectedDates.includes(section.date))
+      || (menuDirty && confirmedDates.some((date) => !selectedDates.includes(date))))
       && !window.confirm("Discard unsaved changes for the days you removed?")) return;
     setBusy("loading");
     setError("");
@@ -62,7 +115,9 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
       setDirty(new Set(nextSections.filter((section) => drafts.has(scheduleKey(section))).map(scheduleKey)));
       setSlots(loaded.slots);
       setActiveSlot((slot) => loaded.slots.includes(slot) ? slot : loaded.slots[0]);
+      setKnownDates((values) => [...new Set([...values, ...selectedDates])]);
       setConfirmedDates(selectedDates);
+      setConfirmationVersion((value) => value + 1);
       setActiveDate((date) => selectedDates.includes(date) ? date : selectedDates[0]);
       setMessage(nextSections.length ? "Days confirmed. Saved settings are loaded; new dates use section defaults." : "No active sections are configured for this venue.");
     } catch {
@@ -82,8 +137,9 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
   }
 
   async function confirmChanges() {
-    if (busy || !selectionConfirmed || !sections.length) return;
-    const invalid = validateSchedule(sections);
+    if (busy || menuSaving || !canConfirmChanges || (!sections.length && !removedDates.length)) return;
+    const retainedSections = sections.filter((section) => selectedDates.includes(section.date));
+    const invalid = validateSchedule(retainedSections);
     if (invalid) {
       setActiveDate(invalid.date);
       setActiveSection(invalid.id);
@@ -95,10 +151,15 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
     setError("");
     setMessage("");
     try {
-      await saveBookingSchedule(sections);
-      setSections((values) => values.map((section) => ({ ...section, name: section.name.trim(), description: section.description.trim(), saved: true })));
+      if (retainedSections.length) await saveBookingSchedule(retainedSections);
+      for (const date of removedDates) await deleteScheduleDay(venue.id, date);
+      setKnownDates(selectedDates);
+      setConfirmedDates(selectedDates);
+      setActiveDate((date) => selectedDates.includes(date) ? date : selectedDates[0] ?? "");
+      if (!selectedDates.length) setMenuDirty(false);
+      setSections((values) => values.filter((section) => selectedDates.includes(section.date)).map((section) => ({ ...section, name: section.name.trim(), description: section.description.trim(), saved: true })));
       setDirty(new Set());
-      setMessage(`Section settings saved for ${confirmedDates.length} day${confirmedDates.length === 1 ? "" : "s"}.`);
+      setMessage(removedDates.length ? `Changes confirmed. Settings deleted for ${removedDates.length} removed day${removedDates.length === 1 ? "" : "s"}.` : `Section settings saved for ${selectedDates.length} day${selectedDates.length === 1 ? "" : "s"}.`);
     } catch {
       setError("Changes could not be saved. Your edits are still here; please try again.");
     } finally {
@@ -108,8 +169,10 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
 
   return <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
     <h2 id="schedule-heading" className="text-2xl font-semibold">Booking schedule</h2>
-    <p className="mt-2 text-sm text-neutral-500">Choose a week and the days to manage, then confirm days to edit their sections.</p>
-    <fieldset disabled={Boolean(busy) || disabled} className="mt-5 space-y-5 disabled:opacity-60">
+    <p className="mt-2 text-sm text-neutral-500">Saved days load automatically. Confirm newly selected days to edit them. Unselecting a day marks its section and drink settings for deletion when you click Confirm changes. Customer reservations are kept.</p>
+    {weekLoading && <p role="status" className="mt-3 text-sm">Checking saved days…</p>}
+    {weekError && <p role="alert" className="mt-3 text-sm text-red-700">Saved days could not be loaded. <button type="button" onClick={() => setWeekRetry((value) => value + 1)} className="underline">Retry loading week</button></p>}
+    <fieldset disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError} className="mt-5 space-y-5 disabled:opacity-60">
       <div className="flex flex-wrap items-end gap-3">
         <button type="button" aria-label="Previous week" onClick={() => changeWeek(offsetDate(week, -7))} className={buttonClass}>Previous week</button>
         <label className="block text-sm text-neutral-500">Week starting Sunday
@@ -120,7 +183,7 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
       <p className="text-sm font-medium">{formatDate(week)} – {formatDate(offsetDate(week, 6))}</p>
       <div className="flex flex-wrap gap-2" aria-label="Days to edit">
         {weekdays.map((day, index) => <button key={day} type="button" aria-pressed={days.includes(index)}
-          onClick={() => { setDays((values) => values.includes(index) ? values.filter((value) => value !== index) : [...values, index]); setMessage(""); setError(""); }}
+          onClick={() => void toggleDay(index)}
           className={buttonClass + (days.includes(index) ? selectedClass : "")}>
           {day}<span className="mt-1 block text-xs">{formatDate(offsetDate(week, index))}</span>
         </button>)}
@@ -165,10 +228,16 @@ export default function WeeklyBookingEditor({ venue, disabled }: { venue: Venue;
           <label className="mt-4 block text-sm text-neutral-500">Description<textarea value={current.description} onChange={(event) => updateSection({ description: event.target.value })} className="input mt-1 min-h-24" /></label>
         </div>}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-300 pt-5">
-        <p className="text-sm text-neutral-500">Saves all sections for {confirmedDates.length} confirmed day{confirmedDates.length === 1 ? "" : "s"}. * Unsaved changes.</p>
-        <button type="button" onClick={confirmChanges} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary">{busy === "saving" ? "Saving…" : "Confirm changes"}</button>
-      </div>
+    </fieldset>}
+    {removedDates.length > 0 && <p role="status" className="mt-5 text-sm">Pending deletion: {removedDates.map(formatDate).join(", ")}. Click Confirm changes to delete these days, or select them again to keep them.</p>}
+    {(selectionConfirmed || removedDates.length > 0) && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-300 pt-5">
+      <p className="text-sm text-neutral-500">Saves selected sections and deletes days marked for removal. * Unsaved changes.</p>
+      <button type="button" disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError || !canConfirmChanges} onClick={confirmChanges} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary disabled:opacity-50">{busy === "saving" ? "Saving…" : "Confirm changes"}</button>
+    </div>}
+    {confirmedDates.length > 0 && <fieldset disabled={Boolean(busy) || disabled} hidden={!selectionConfirmed} className="mt-8">
+      <DrinkMenuEditor venueId={venue.id} venueName={venue.venueName} dates={confirmedDates}
+        refreshVersion={`${menuRefreshVersion}:${confirmationVersion}`}
+        activeDate={activeDate} onSelectDate={setActiveDate} onDirtyChange={setMenuDirty} onSavingChange={setMenuSaving} />
     </fieldset>}
   </section>;
 }

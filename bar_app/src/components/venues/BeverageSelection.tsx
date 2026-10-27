@@ -20,7 +20,8 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -133,7 +134,7 @@ export default function BeverageSelection({
         <p className="text-sm text-neutral-500">Step 2 of 5</p>
         <h1 className="mt-1 text-3xl font-semibold">Bottles & kegs</h1>
         <p className="mt-2 text-sm text-neutral-500">
-          Choose at least one item, then personalize your drink sign.
+          {beverages.length ? "Choose at least one item, then personalize your drink sign." : "No drinks are offered for this date. Continue to personalize your drink sign."}
         </p>
       </div>
 
@@ -163,7 +164,7 @@ export default function BeverageSelection({
         </div>
       </div>
 
-      {selectedCount > 0 ? (
+      {selectedCount > 0 || beverages.length === 0 ? (
         <button
           type="button"
           onClick={onContinue}

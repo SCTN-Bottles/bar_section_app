@@ -10,6 +10,7 @@ import DrinkSignCustomization from "@/components/venues/DrinkSignCustomization";
 import ReservationAgreement from "@/components/venues/ReservationAgreement";
 import SectionDetails from "@/components/venues/SectionDetails";
 import SectionMap from "@/components/venues/SectionMap";
+import { useReservationDay } from "@/lib/use-reservation-day";
 import { formatBookingTime } from "@/lib/booking-time";
 import { normalizeDrinkSignText } from "@/lib/drink-sign";
 import {
@@ -23,6 +24,7 @@ type VenueExplorerProps = {
   venue: Venue;
   initialReservation?: {
     date?: string;
+    slot?: string;
     sectionId?: string;
     step?: string;
     addons?: string;
@@ -55,7 +57,7 @@ function isBookableDate(value: string | undefined, availableWeekdays: number[]) 
   );
 }
 
-function getBeverageQuantities(value: string | undefined, venue: Venue) {
+function getBeverageQuantities(value: string | undefined) {
   if (!value) {
     return {};
   }
@@ -65,7 +67,7 @@ function getBeverageQuantities(value: string | undefined, venue: Venue) {
     const quantity = Number(quantityValue);
 
     if (
-      !venue.beverages.some((beverage) => beverage.id === id) ||
+      !id ||
       !Number.isInteger(quantity) ||
       quantity < 1
     ) {
@@ -77,20 +79,19 @@ function getBeverageQuantities(value: string | undefined, venue: Venue) {
 }
 
 export default function VenueExplorer({
-  venue,
+  venue: initialVenue,
   initialReservation,
 }: VenueExplorerProps) {
   const validDate = isBookableDate(
     initialReservation?.date,
-    venue.bookingCalendar.availableWeekdays,
+    initialVenue.bookingCalendar.availableWeekdays,
   )
     ? initialReservation?.date ?? null
     : null;
   const initialSection = validDate
-    ? venue.sections.find(
+    ? initialVenue.sections.find(
         (section) =>
-          section.id === initialReservation?.sectionId &&
-          section.status === "available",
+          section.id === initialReservation?.sectionId,
       )
     : undefined;
   const [activeArea, setActiveArea] = useState<VenueArea>(
@@ -106,11 +107,16 @@ export default function VenueExplorer({
       : "sections",
   );
   const [beverageQuantities, setBeverageQuantities] = useState<BeverageQuantities>(
-    () => getBeverageQuantities(initialReservation?.addons, venue),
+    () => getBeverageQuantities(initialReservation?.addons),
   );
   const [drinkSignText, setDrinkSignText] = useState(
     () => normalizeDrinkSignText(initialReservation?.signText),
   );
+
+  const availableSlots = initialVenue.bookingCalendar.availableSlots ?? ["night"];
+  const [bookingSlot, setBookingSlot] = useState<"day" | "night">(initialReservation?.slot === "day" && availableSlots.includes("day") ? "day" : availableSlots.includes("night") ? "night" : availableSlots[0]);
+  const day = useReservationDay(initialVenue.id, initialVenue.venueName, bookingDate, bookingSlot);
+  const venue = day.data ? { ...initialVenue, ...day.data } : initialVenue;
 
   useEffect(() => {
     if (reservationStep !== "sections") {
@@ -128,8 +134,9 @@ export default function VenueExplorer({
     (section) => section.area === activeArea,
   );
   const selectedSection = activeSections.find(
-    (section) => section.id === selectedSectionId,
-  );
+    (section) => section.id === selectedSectionId && section.status === "available",
+  ) ?? activeSections.find((section) => section.status === "available");
+  const bookingTime = selectedSection?.reservationTime ?? venue.bookingCalendar.placeholderTime;
 
   function changeArea(area: VenueArea) {
     setActiveArea(area);
@@ -165,18 +172,24 @@ export default function VenueExplorer({
     );
   }
 
+  if (day.loading || !day.data && !day.error) return <p role="status" className="py-12 text-neutral-500">Loading sections and drinks for {bookingDate}…</p>;
+  if (day.error) return <div className="space-y-4 py-8"><p role="alert" className="text-red-700">{day.error}</p><button type="button" onClick={day.retry} className="rounded-md border px-4 py-2">Retry loading date</button><button type="button" onClick={changeBookingDate} className="ml-3 rounded-md border px-4 py-2">Change date</button></div>;
+
   const bookingDateLabel = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
   }).format(new Date(`${bookingDate}T00:00:00`));
 
-  const addons = Object.entries(beverageQuantities)
+  const activeBeverageQuantities = Object.fromEntries(Object.entries(beverageQuantities)
+    .filter(([id]) => venue.beverages.some((beverage) => beverage.id === id)));
+  const addons = Object.entries(activeBeverageQuantities)
     .map(([id, quantity]) => `${id}:${quantity}`)
     .join(",");
   const checkoutQuery = new URLSearchParams({
     date: bookingDate,
-    time: venue.bookingCalendar.placeholderTime,
+    time: bookingTime,
+    slot: bookingSlot,
     addons,
   });
   const signText = normalizeDrinkSignText(drinkSignText);
@@ -188,8 +201,8 @@ export default function VenueExplorer({
         beverages={venue.beverages}
         section={selectedSection}
         bookingDate={bookingDate}
-        bookingTime={venue.bookingCalendar.placeholderTime}
-        quantities={beverageQuantities}
+        bookingTime={bookingTime}
+        quantities={activeBeverageQuantities}
         onChangeQuantities={setBeverageQuantities}
         onBack={() => setReservationStep("sections")}
         onContinue={() => setReservationStep("sign")}
@@ -223,7 +236,7 @@ export default function VenueExplorer({
         <div>
           <p className="text-sm text-neutral-500">Reservation date</p>
           <p className="mt-1 font-semibold">
-            {bookingDateLabel} · {formatBookingTime(venue.bookingCalendar.placeholderTime)}
+            {bookingDateLabel} · {formatBookingTime(bookingTime)}
           </p>
         </div>
 
@@ -236,6 +249,7 @@ export default function VenueExplorer({
         </button>
       </div>
 
+      {availableSlots.length > 1 && <div className="mb-6 flex gap-2" aria-label="Reservation period">{availableSlots.map((slot) => <button key={slot} type="button" aria-pressed={bookingSlot === slot} onClick={() => { setBookingSlot(slot); setSelectedSectionId(""); setBeverageQuantities({}); setReservationStep("sections"); }} className={`rounded-md border px-4 py-2 ${bookingSlot === slot ? "bg-primary text-on-primary" : "border-neutral-300"}`}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</div>}
       <div
         className="mb-6 flex flex-wrap gap-2"
         role="tablist"
@@ -274,7 +288,7 @@ export default function VenueExplorer({
         <SectionMap
           area={activeArea}
           sections={activeSections}
-          selectedSectionId={selectedSectionId}
+          selectedSectionId={selectedSection?.id ?? ""}
           onSelectSection={setSelectedSectionId}
         />
 
@@ -283,12 +297,13 @@ export default function VenueExplorer({
             {venueAreaLabels[activeArea]}
           </h2>
 
+          {!selectedSection && <p className="text-sm text-neutral-500">No sections are available in this area for the selected date.</p>}
           {selectedSection && (
             <SectionDetails
               venueName={venue.venueName}
               section={selectedSection}
               bookingDate={bookingDate}
-              bookingTime={venue.bookingCalendar.placeholderTime}
+              bookingTime={bookingTime}
               onReserve={() => setReservationStep("drinks")}
             />
           )}

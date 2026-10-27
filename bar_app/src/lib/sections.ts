@@ -15,6 +15,7 @@ type SectionRow = {
   deposit_amount: number | string;
   status: string;
   image_url: string | null;
+  reservation_time?: string;
 };
 
 function toSection(row: SectionRow): Section {
@@ -35,8 +36,17 @@ function toSection(row: SectionRow): Section {
     deposit: Number(row.deposit_amount),
     status: row.status as SectionStatus,
     imagePath: row.image_url ?? undefined,
+    reservationTime: row.reservation_time?.slice(0, 5),
     mapPosition: getSectionMapPosition(row.id),
   };
+}
+
+export async function getReservationSections(venueId: string, date: string, slot: "day" | "night") {
+  const { data, error } = await devDb.rpc("get_reservation_sections", {
+    p_venue_id: venueId, p_date: date, p_slot: slot,
+  });
+  if (error) throw error;
+  return (data as SectionRow[]).map(toSection);
 }
 
 export async function getSections(venueName: string): Promise<Section[]> {
