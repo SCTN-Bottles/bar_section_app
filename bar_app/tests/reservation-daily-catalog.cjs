@@ -40,6 +40,17 @@ async function main() {
     await page.getByText("$510.5", { exact: true }).waitFor();
     await page.getByText("Up to 18 guests", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Reserve section", exact: true }).click();
+    const ageDialog = page.getByRole("dialog", { name: "Age requirement: 21+" });
+    await ageDialog.waitFor();
+    const bounds = await ageDialog.boundingBox();
+    const viewport = page.viewportSize();
+    assert.ok(Math.abs(bounds.x + bounds.width / 2 - viewport.width / 2) < 2);
+    assert.ok(Math.abs(bounds.y + bounds.height / 2 - viewport.height / 2) < 2);
+    await ageDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("button", { name: "Reserve section", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Reserve section", exact: true }).click();
+    await ageDialog.getByRole("button", { name: "I’m 21 or older", exact: true }).click();
     await page.getByText("Sunday bottle", { exact: true }).waitFor();
     await page.getByText("$99.25 per bottle", { exact: true }).waitFor();
     assert.equal(await page.getByText("Default bottle", { exact: true }).count(), 0);
@@ -60,6 +71,7 @@ async function main() {
     await page.getByRole("heading", { name: "Monday A1", exact: true }).waitFor();
     await page.getByText("$610.25", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Reserve section", exact: true }).click();
+    await ageDialog.getByRole("button", { name: "I’m 21 or older", exact: true }).click();
     assert.equal(await page.getByText("Sunday bottle", { exact: true }).count(), 0);
     assert.ok(await page.getByRole("button", { name: "Continue to drink sign", exact: true }).isEnabled());
     // Direct checkout must also reload the selected date's prices instead of trusting URL values.

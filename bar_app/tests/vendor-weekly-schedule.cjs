@@ -313,13 +313,19 @@ async function main() {
     assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "99");
     assert.equal(dayMenus.has("2027-01-10"), false);
     // Saved Tuesday is outside the venue's default weekdays and must load automatically.
-    page.once("dialog", dialog=>dialog.accept());
     const savedDate="2027-02-02";
     for(const slot of ["day","night"]) for(const section of defaults) {
       stored.set(savedDate+":"+slot+":"+section.id,{section_id:section.id,reservation_date:savedDate,booking_slot:slot,reservation_time:"21:30",section_name:section.name,section_description:section.description,guest_count:18,status:"available",minimum_spend_amount:777,deposit_amount:80});
     }
     dayMenus.set(savedDate,{venue_id:venue.id,reservation_date:savedDate,beverages:[{...menuDefaults[0],price:88}]});
     await page.getByLabel("Week starting Sunday").fill("2027-01-31");
+    const discardDialog = page.getByRole("dialog", { name: "Discard unsaved changes?" });
+    await discardDialog.waitFor();
+    const dialogBounds = await discardDialog.boundingBox();
+    const viewport = page.viewportSize();
+    assert.ok(Math.abs(dialogBounds.x + dialogBounds.width / 2 - viewport.width / 2) < 2);
+    assert.ok(Math.abs(dialogBounds.y + dialogBounds.height / 2 - viewport.height / 2) < 2);
+    await discardDialog.getByRole("button", { name: "Discard and switch", exact: true }).click();
     await page.getByText("Saved days are selected and their settings are loaded.",{exact:true}).waitFor();
     const tuesday=page.getByRole("button",{name:/^Tuesday/});
     assert.equal(await tuesday.getAttribute("aria-pressed"),"true");

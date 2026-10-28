@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getBeverageOptions, saveBeverageOptions } from "@/lib/beverages";
 import { getDailyDrinkMenus, saveDailyDrinkMenus, validDrinkMenu, type DailyDrinkMenu } from "@/lib/drink-menus";
 import type { BeverageOption } from "@/types/venue";
+import { useConfirmation } from "@/components/ui/use-confirmation";
 
 type Props = {
   venueId: string; venueName: string; dates?: string[]; activeDate?: string;
@@ -41,6 +42,7 @@ function refreshDraft(defaults: BeverageOption[], baseline: BeverageOption[], dr
 }
 
 export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate, refreshVersion = "", onSelectDate, onDirtyChange, onSavingChange, onSaved }: Props) {
+  const { confirm, confirmationDialog } = useConfirmation();
   const isDefault = dates === undefined;
   const datesKey = dates?.join(",") ?? "defaults";
   const requestKey = `${datesKey}:${refreshVersion}`;
@@ -49,7 +51,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const draftRef = useRef({ menus, dirty });
   const baselineRef = useRef<DailyDrinkMenu[]>([]);
-  draftRef.current = { menus, dirty };
+  useEffect(() => { draftRef.current = { menus, dirty }; }, [menus, dirty]);
   const [loading, setLoading] = useState(true);
   const [loadedKey, setLoadedKey] = useState("");
   const [saving, setSaving] = useState(false);
@@ -60,6 +62,8 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
 
   useEffect(() => {
     let cancelled = false;
+    // Reset loading feedback when the requested dates or defaults change.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError("");
     setNotice("");
@@ -89,7 +93,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
     }
     void load();
     return () => { cancelled = true; };
-  }, [venueId, venueName, datesKey, requestKey, retry]);
+  }, [venueId, venueName, datesKey, requestKey, retry, isDefault]);
 
   useEffect(() => { onDirtyChange?.(dirty.size > 0); }, [dirty, onDirtyChange]);
   useEffect(() => { onSavingChange?.(saving); }, [saving, onSavingChange]);
@@ -129,7 +133,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
 
   async function useLatestDefaults() {
     if (!current || saving || loading) return;
-    if (dirty.has(current.date) && !window.confirm("Replace unsaved drink edits for this day with the latest defaults?")) return;
+    if (dirty.has(current.date) && !await confirm({ title: "Replace unsaved drink edits?", message: "Replace unsaved drink edits for this day with the latest defaults?", confirmLabel: "Replace edits" })) return;
     setSaving(true); setError(""); setNotice("");
     try {
       const beverages = await getBeverageOptions(venueName);
@@ -140,6 +144,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
   }
 
   return <section aria-label={isDefault ? "Default drink menu editor" : "Daily drink menu editor"} className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
+    {confirmationDialog}
     <h2 className="text-2xl font-semibold">{isDefault ? "Update Drink Menu Defaults" : "Drink menu"}</h2>
     <p className="mt-2 text-sm text-neutral-500">{isDefault ? "Add, remove, or edit the default drinks used for dates without a saved menu." : `Editing ${current?.date ?? activeDate}. Save drink changes saves the menus for all confirmed days.`}</p>
     {loading && <p role="status" className="mt-4 text-sm">Loading drink menu…</p>}

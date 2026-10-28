@@ -1,6 +1,7 @@
 "use client";
 
 import { Section } from "@/types/venue";
+import { useConfirmation } from "@/components/ui/use-confirmation";
 
 type SectionDetailsProps = {
   venueName: string;
@@ -18,10 +19,12 @@ export default function SectionDetails({
   onReserve,
 }: SectionDetailsProps) {
   const sold = section.status === "sold";
+  const { confirm, confirmationDialog } = useConfirmation();
   const availabilityLabel = sold ? "Sold" : "Available";
 
   return (
     <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-5">
+      {confirmationDialog}
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-neutral-500">Selected section</p>
@@ -78,7 +81,13 @@ export default function SectionDetails({
 
       <button
         type="button"
-        onClick={onReserve}
+        onClick={async () => {
+          if (await confirm({
+            title: "Age requirement: 21+",
+            message: "You must be 21 years of age or older to purchase a section. By continuing, you confirm that you are at least 21 years old.",
+            confirmLabel: "I’m 21 or older",
+          })) onReserve();
+        }}
         className="mt-5 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent"
       >
         Reserve section

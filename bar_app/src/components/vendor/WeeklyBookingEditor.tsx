@@ -7,6 +7,7 @@ import {
 } from "@/lib/booking-schedule";
 import { venueAreaLabels, type Venue } from "@/types/venue";
 import DrinkMenuEditor from "@/components/vendor/DrinkMenuEditor";
+import { useConfirmation } from "@/components/ui/use-confirmation";
 
 const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const buttonClass = "rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:border-primary disabled:opacity-50";
@@ -17,6 +18,7 @@ function formatDate(date: string) {
 }
 
 export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersion = 0 }: { venue: Venue; disabled: boolean; menuRefreshVersion?: number }) {
+  const { confirm, confirmationDialog } = useConfirmation();
   const [week, setWeek] = useState(() => weekStart(dateKey(new Date())));
   const [days, setDays] = useState<number[]>(venue.bookingCalendar.availableWeekdays);
   const [knownDates, setKnownDates] = useState<string[]>([]);
@@ -41,6 +43,8 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   useEffect(() => {
     if (disabled) return;
     let cancelled = false;
+    // The venue or requested week changed; reset feedback before loading it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWeekLoading(true);
     setWeekError(false);
     async function loadWeek() {
@@ -83,11 +87,11 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   const visibleSections = sections.filter((section) => section.date === activeDate && section.slot === activeSlot);
   const current = visibleSections.find((section) => section.id === activeSection) ?? visibleSections[0];
 
-  function changeWeek(value: string) {
+  async function changeWeek(value: string) {
     if (!value || value === week) return;
     const next = weekStart(value);
     if (next === week) return;
-    if ((dirty.size || menuDirty || removedDates.length) && !window.confirm("Discard unsaved section and drink changes and switch weeks?")) return;
+    if ((dirty.size || menuDirty || removedDates.length) && !await confirm({ title: "Discard unsaved changes?", message: "Discard unsaved section and drink changes and switch weeks?", confirmLabel: "Discard and switch" })) return;
     setMenuDirty(false);
     setWeekLoading(true);
     setKnownDates([]);
@@ -103,7 +107,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
     if (busy || !selectedDates.length) return;
     if ((sections.some((section) => dirty.has(scheduleKey(section)) && !selectedDates.includes(section.date))
       || (menuDirty && confirmedDates.some((date) => !selectedDates.includes(date))))
-      && !window.confirm("Discard unsaved changes for the days you removed?")) return;
+      && !await confirm({ title: "Discard unsaved changes?", message: "Discard unsaved changes for the days you removed?", confirmLabel: "Discard changes" })) return;
     setBusy("loading");
     setError("");
     setMessage("");
@@ -168,6 +172,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   }
 
   return <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
+    {confirmationDialog}
     <h2 id="schedule-heading" className="text-2xl font-semibold">Booking schedule</h2>
     <p className="mt-2 text-sm text-neutral-500">Saved days load automatically. Confirm newly selected days to edit them. Unselecting a day marks its section and drink settings for deletion when you click Confirm changes. Customer reservations are kept.</p>
     {weekLoading && <p role="status" className="mt-3 text-sm">Checking saved days…</p>}

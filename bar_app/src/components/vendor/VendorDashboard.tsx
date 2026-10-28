@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { useVenueData } from "@/components/providers/VenueDataProvider";
 import { formatBookingTime } from "@/lib/booking-time";
@@ -49,6 +50,8 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
 
   useEffect(() => {
     if (venue) {
+      // Refresh the local draft from provider updates while preserving drink edits.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft((current) => ({ ...cloneVenue(venue), beverages: current?.beverages ?? venue.beverages }));
     }
   }, [venue]);
@@ -70,7 +73,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
       <header className="venue-header border-b-2">
         <div className="venue-header-content grid w-full items-center gap-2 px-3 py-3 sm:px-4">
           <p className="justify-self-start text-xs text-foreground sm:text-sm">Vendor portal</p>
-          <a href="/vendor" className="venue-header-title text-base font-semibold text-foreground sm:text-xl">{venue?.name ?? draft.name}</a>
+          <Link href="/vendor" className="venue-header-title text-base font-semibold text-foreground sm:text-xl">{venue?.name ?? draft.name}</Link>
           <nav aria-label="Vendor portal navigation" className="col-span-3 flex flex-wrap items-center justify-end gap-2 sm:col-span-1 sm:justify-self-end">
             <a href={`/${draft.venueName}`} className="inline-flex min-h-11 items-center rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:px-4 sm:text-sm">View reservation site</a>
             <button type="button" onClick={logout} className="rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:px-4 sm:text-sm">Log out</button>

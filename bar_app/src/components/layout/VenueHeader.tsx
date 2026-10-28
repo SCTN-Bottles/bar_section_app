@@ -1,6 +1,7 @@
 "use client";
 
 import { Venue } from "@/types/venue";
+import Link from "next/link";
 
 type VenueHeaderProps = {
   venue: Venue;
@@ -20,21 +21,17 @@ export default function VenueHeader({
 
         <a
           href={homeHref}
-          onClick={(event) => {
-            event.preventDefault();
-            window.location.assign(homeHref);
-          }}
           className="venue-header-title text-base font-semibold text-foreground sm:text-xl"
         >
           {venue.name}
         </a>
 
-        <a
+        <Link
           href="/vendor"
           className="col-span-3 inline-flex min-h-11 items-center justify-self-end rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:col-span-1 sm:px-4 sm:text-sm"
         >
           Vendor portal
-        </a>
+        </Link>
       </div>
     </header>
   );

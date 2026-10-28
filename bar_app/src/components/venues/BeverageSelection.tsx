@@ -42,7 +42,8 @@ export default function BeverageSelection({
     const nextQuantity = Math.max(0, (quantities[id] ?? 0) + amount);
 
     if (nextQuantity === 0) {
-      const { [id]: _, ...remaining } = quantities;
+      const remaining = { ...quantities };
+      delete remaining[id];
       onChangeQuantities(remaining);
       return;
     }
