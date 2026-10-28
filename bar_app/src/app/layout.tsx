@@ -6,8 +6,19 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SCTN",
-  description:
-    "Venue section reservations powered by SCTN.",
+  applicationName: "SCTN",
+  description: "Reservations powered by SCTN.",
+  openGraph: {
+    title: "SCTN",
+    siteName: "SCTN",
+    description: "Reservations powered by SCTN.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "SCTN",
+    description: "Reservations powered by SCTN.",
+  },
 };
 
 export default function RootLayout({
