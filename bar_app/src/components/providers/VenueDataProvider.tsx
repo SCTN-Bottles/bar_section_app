@@ -9,7 +9,7 @@ import { getVenues } from "@/lib/venues";
 import { getDrinkSignError } from "@/lib/drink-sign";
 import { BeverageOption, Reservation, Section, Venue, venueAreas } from "@/types/venue";
 
-const reservationsStorageKey = "sectn-demo-reservations";
+const reservationsStorageKey = "sctn-demo-reservations";
 
 type VenueDataContextValue = {
   venues: Venue[];
