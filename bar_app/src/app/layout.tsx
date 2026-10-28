@@ -5,7 +5,7 @@ import VenueDataProvider from "@/components/providers/VenueDataProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SECTN",
+  title: "SCTN",
   description:
     "Venue section reservations powered by SCTN.",
 };
