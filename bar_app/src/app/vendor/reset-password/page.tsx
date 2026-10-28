@@ -64,7 +64,7 @@ export default function VendorResetPasswordPage() {
   }
 
   return <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12"><div className="w-full rounded-xl border border-neutral-300 bg-neutral-50 p-7">
-    <p className="text-sm text-neutral-500">SECTN vendor portal</p>
+    <p className="text-sm text-neutral-500">SCTN vendor portal</p>
     <h1 className="mt-2 text-3xl font-semibold">Choose a new password</h1>
     {isCheckingSession ? <p className="mt-4 text-sm text-neutral-500">Checking your reset link…</p> : !hasSession ? <div className="mt-4 space-y-3 text-sm text-neutral-600">
       <p>This reset link is invalid or has expired. Request a new one from the sign-in page.</p>
