@@ -6,6 +6,7 @@ import { reservations as seedReservations } from "@/data/reservations";
 import { getBeverageOptions } from "@/lib/beverages";
 import { getSections } from "@/lib/sections";
 import { getVenues } from "@/lib/venues";
+import { getDrinkSignError } from "@/lib/drink-sign";
 import { BeverageOption, Reservation, Section, Venue, venueAreas } from "@/types/venue";
 
 const reservationsStorageKey = "sectn-demo-reservations";
@@ -200,6 +201,8 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
   }, []);
 
   const addReservation = useCallback((reservation: Omit<Reservation, "id" | "createdAt">) => {
+    const signError = getDrinkSignError(reservation.drinkSignText);
+    if (signError) throw new Error(signError);
     const completeReservation: Reservation = {
       ...reservation,
       id: `reservation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

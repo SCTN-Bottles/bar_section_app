@@ -12,7 +12,7 @@ import SectionDetails from "@/components/venues/SectionDetails";
 import SectionMap from "@/components/venues/SectionMap";
 import { useReservationDay } from "@/lib/use-reservation-day";
 import { formatBookingTime } from "@/lib/booking-time";
-import { normalizeDrinkSignText } from "@/lib/drink-sign";
+import { getDrinkSignError, normalizeDrinkSignText } from "@/lib/drink-sign";
 import {
   Venue,
   VenueArea,
@@ -210,13 +210,13 @@ export default function VenueExplorer({
     );
   }
 
-  if (reservationStep === "sign" && selectedSection) {
+  if ((reservationStep === "sign" || (reservationStep === "agreement" && getDrinkSignError(drinkSignText))) && selectedSection) {
     return (
       <DrinkSignCustomization
         text={drinkSignText}
         onChangeText={setDrinkSignText}
         onBack={() => setReservationStep("drinks")}
-        onContinue={() => setReservationStep("agreement")}
+        onContinue={() => { if (!getDrinkSignError(drinkSignText)) setReservationStep("agreement"); }}
       />
     );
   }

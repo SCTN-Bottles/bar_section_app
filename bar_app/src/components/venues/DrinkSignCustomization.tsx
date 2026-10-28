@@ -1,6 +1,6 @@
 "use client";
 
-import { MAX_DRINK_SIGN_LENGTH } from "@/lib/drink-sign";
+import { getDrinkSignError, MAX_DRINK_SIGN_LENGTH } from "@/lib/drink-sign";
 
 type DrinkSignCustomizationProps = {
   text: string;
@@ -15,6 +15,7 @@ export default function DrinkSignCustomization({
   onBack,
   onContinue,
 }: DrinkSignCustomizationProps) {
+  const error = getDrinkSignError(text);
   return (
     <div className="mx-auto max-w-2xl rounded-xl border border-neutral-300 bg-neutral-50 p-6">
       <button type="button" onClick={onBack} className="text-sm text-neutral-500 hover:text-foreground">
@@ -37,7 +38,7 @@ export default function DrinkSignCustomization({
               aria-live="polite"
               aria-atomic="true"
             >
-              {text.trim() || "Happy Birthday, Alex!"}
+              {error ? "Please update your message" : text.trim() || "Happy Birthday, Alex!"}
             </p>
           </div>
         </div>
@@ -47,7 +48,7 @@ export default function DrinkSignCustomization({
         </figcaption>
       </figure>
 
-      <form onSubmit={(event) => { event.preventDefault(); onContinue(); }} className="mt-6">
+      <form onSubmit={(event) => { event.preventDefault(); if (!error) onContinue(); }} className="mt-6">
         <label htmlFor="drink-sign-text" className="block text-sm font-medium">
           Your sign message <span className="font-normal text-neutral-500">(optional)</span>
         </label>
@@ -59,14 +60,17 @@ export default function DrinkSignCustomization({
           maxLength={MAX_DRINK_SIGN_LENGTH}
           rows={3}
           placeholder="e.g. Happy Birthday, Alex!"
-          aria-describedby="drink-sign-help drink-sign-count"
+          aria-invalid={Boolean(error)}
+          aria-describedby={`drink-sign-help drink-sign-count${error ? " drink-sign-error" : ""}`}
           className="mt-2 block w-full resize-y rounded-md border border-neutral-300 bg-neutral-100 px-4 py-3 text-base leading-6 placeholder:text-neutral-500 focus:border-primary"
         />
         <div className="mt-2 flex justify-between gap-4 text-xs leading-5 text-neutral-500">
           <p id="drink-sign-help">Leave this blank if you don&apos;t want a custom message.</p>
           <span id="drink-sign-count" className="shrink-0">{text.length}/{MAX_DRINK_SIGN_LENGTH}</span>
         </div>
-        <button type="submit" className="mt-6 w-full rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent">
+        <p className="mt-2 text-xs text-neutral-500">Slurs are not allowed. General profanity is allowed.</p>
+        {error && <p id="drink-sign-error" role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+        <button type="submit" disabled={Boolean(error)} className="mt-6 w-full rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent disabled:opacity-50">
           Continue to agreement
         </button>
       </form>

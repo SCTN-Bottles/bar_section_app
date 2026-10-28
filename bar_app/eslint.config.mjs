@@ -6,16 +6,19 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["tests/**/*.cjs"],
+    settings: { next: { rootDir: "bar_app/" } },
+  },
+  {
+    files: ["bar_app/tests/**/*.cjs"],
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
+    "**/.next/**",
+    "**/out/**",
+    "**/build/**",
+    "**/next-env.d.ts",
   ]),
 ]);
 

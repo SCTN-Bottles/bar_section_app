@@ -57,6 +57,8 @@ npm install
 
 This installs the packages listed in `package.json`, including Next.js, React, TypeScript, Tailwind CSS, and ESLint.
 
+There is one `package.json` and one `package-lock.json`, both in the repository root. Run all npm commands from that folder. The Next.js app's source, public assets, and app configuration remain in `bar_app/`; the npm scripts target that folder automatically.
+
 ## Run the program in development mode
 
 Start the local development server:
@@ -90,6 +92,12 @@ npm run lint
 Checks the project for ESLint issues.
 
 ```bash
+npm run typecheck
+```
+
+Checks the app's TypeScript types.
+
+```bash
 npm run build
 ```
 
@@ -114,7 +122,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 ## Project structure
 
 ```text
-src/
+bar_app/src/
 ├── app/                         # Next.js pages and global styles
 │   ├── page.tsx                 # Home page
 │   ├── venues/page.tsx          # Venue listing page
@@ -129,7 +137,7 @@ src/
 
 ## Update venue and section information
 
-The current venue data is stored in [`src/data/venues.ts`](src/data/venues.ts). To change a venue, section, capacity, minimum spend, deposit, or availability status, edit that file and save it. The development server will reload automatically.
+The venue seed data is stored in [`bar_app/src/data/venues.ts`](bar_app/src/data/venues.ts). The app source is inside `bar_app/src/`. The development server reloads automatically when source files change.
 
 ## Troubleshooting
 

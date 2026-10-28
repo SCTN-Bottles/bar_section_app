@@ -74,6 +74,20 @@ async function main() {
     await ageDialog.getByRole("button", { name: "I’m 21 or older", exact: true }).click();
     assert.equal(await page.getByText("Sunday bottle", { exact: true }).count(), 0);
     assert.ok(await page.getByRole("button", { name: "Continue to drink sign", exact: true }).isEnabled());
+    await page.getByRole("button", { name: "Continue to drink sign", exact: true }).click();
+    const signInput = page.getByLabel("Your sign message");
+    await signInput.fill("n.i.g.g.e.r");
+    await page.getByRole("alert").filter({ hasText: "Slurs are not allowed" }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Continue to agreement" }).isEnabled(), false);
+    await signInput.fill("Fuck yeah, happy birthday!");
+    await page.getByRole("button", { name: "Continue to agreement" }).click();
+    await page.getByRole("heading", { name: "Reservation agreement", exact: true }).waitFor();
+    await page.goto(`${base}/myhouse/checkout/${section.id}?date=2027-01-03&signText=n1gg3r`);
+    await page.getByRole("alert").filter({ hasText: "Slurs are not allowed" }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Complete demo reservation" }).count(), 0);
+    await page.getByRole("link", { name: "Edit drink sign" }).click();
+    await signInput.waitFor();
+    assert.equal(await page.getByRole("button", { name: "Continue to agreement" }).isEnabled(), false);
     // Direct checkout must also reload the selected date's prices instead of trusting URL values.
     await page.goto(`${base}/myhouse/checkout/${section.id}?date=2027-01-03&slot=night&time=01:00&addons=${drink.id}:1`);
     await page.getByRole("heading", { name: "Reserve Sunday A1", exact: true }).waitFor();

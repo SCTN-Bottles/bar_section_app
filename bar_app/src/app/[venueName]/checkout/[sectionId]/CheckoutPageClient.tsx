@@ -8,7 +8,7 @@ import VenueHeader from "@/components/layout/VenueHeader";
 import { useVenueByName } from "@/components/providers/VenueDataProvider";
 import { useReservationDay } from "@/lib/use-reservation-day";
 import { formatBookingTime } from "@/lib/booking-time";
-import { normalizeDrinkSignText } from "@/lib/drink-sign";
+import { getDrinkSignError, normalizeDrinkSignText } from "@/lib/drink-sign";
 import { BeverageOption, Venue } from "@/types/venue";
 
 type CheckoutPageClientProps = {
@@ -68,6 +68,13 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   });
   if (addons) backQuery.set("addons", addons);
   if (drinkSignText) backQuery.set("signText", drinkSignText);
+  const signError = getDrinkSignError(signText);
+
+  if (signError) return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16">
+    <h1 className="text-2xl font-semibold">Update your drink sign</h1>
+    <p role="alert" className="text-red-700">{signError}</p>
+    <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="inline-block underline">Edit drink sign</Link>
+  </main>;
 
   if (!hydrated || day.loading) {
     return <main className="mx-auto max-w-5xl px-6 py-16 text-neutral-500">Loading drink options…</main>;
