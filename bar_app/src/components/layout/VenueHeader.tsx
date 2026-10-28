@@ -16,7 +16,7 @@ export default function VenueHeader({
     <header className="venue-header border-b-2">
       <div className="venue-header-content grid w-full items-center gap-2 px-3 py-3 sm:px-4">
         <p className="justify-self-start text-[10px] text-foreground sm:text-xs">
-          Reservations powered by SECTN
+          Reservations powered by SCTN
         </p>
 
         <a

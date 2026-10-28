@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "SECTN",
   description:
-    "Venue section reservations powered by SECTN.",
+    "Venue section reservations powered by SCTN.",
 };
 
 export default function RootLayout({
