@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { submitReservation } from "@/lib/reservations";
 import { useState } from "react";
 
 import DemoCheckoutForm from "@/components/checkout/DemoCheckoutForm";
@@ -50,7 +51,9 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
 }
 
 export default function CheckoutPageClient({ initialVenue, sectionId, date, time, slot, addons, signText }: CheckoutPageClientProps) {
-  const { venue, addReservation, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
+  const { venue, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
+  const [emailWarning, setEmailWarning] = useState("");
+  const [submissionId] = useState(() => crypto.randomUUID());
   const [reservationComplete, setReservationComplete] = useState(false);
   const baseVenue = venue ?? initialVenue;
   const availableSlots = baseVenue.bookingCalendar.availableSlots ?? ["night"];
@@ -122,11 +125,13 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
             <p className="mt-6 text-sm text-neutral-500">Step 5 of 5</p>
             <h1 className="mt-1 text-3xl font-semibold">Reserve {section.name}</h1>
             <div className="mt-6">
+          {reservationComplete && <p role="status" className="mb-4 break-all">Reservation number: {submissionId}</p>}
+          {emailWarning && <p role="alert" className="mb-4">{emailWarning}</p>}
           <DemoCheckoutForm
             maxGuests={section.capacity}
-            onComplete={(details) => {
-              setReservationComplete(true);
-              addReservation({
+            onComplete={async (details) => {
+
+              const warning = await submitReservation(submissionId, {
                 venueId: activeVenue.id,
                 sectionId: section.id,
                 sectionName: section.name,
@@ -139,7 +144,9 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
                 beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
                 drinkSignText: drinkSignText || undefined,
                 deposit: section.deposit,
-              });
+              }, bookingSlot);
+              setEmailWarning(warning ?? "");
+              setReservationComplete(true);
             }}
           />
             </div>
@@ -181,3 +188,4 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between gap-3"><span className="text-neutral-500">{label}</span><span className="text-right">{value}</span></div>;
 }
+

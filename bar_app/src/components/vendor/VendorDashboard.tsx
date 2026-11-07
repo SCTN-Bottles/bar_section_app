@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { useVenueData } from "@/components/providers/VenueDataProvider";
 import { formatBookingTime } from "@/lib/booking-time";
+import ReservationReview from "@/components/vendor/ReservationReview";
 import DrinkMenuEditor from "@/components/vendor/DrinkMenuEditor";
 import WeeklyBookingEditor from "@/components/vendor/WeeklyBookingEditor";
 import SectionDefaultsEditor from "@/components/vendor/SectionDefaultsEditor";
@@ -32,7 +33,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const { venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
   const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
-  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations">("management");
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations" | "review">("management");
   const [defaultsOpened, setDefaultsOpened] = useState(false);
   const [notice, setNotice] = useState("");
   const [drinkDefaultsOpened, setDrinkDefaultsOpened] = useState(false);
@@ -88,6 +89,17 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
 
       <div className="mt-7 flex flex-wrap gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
         <button
+          id="review-tab"
+          type="button"
+          role="tab"
+          aria-selected={activeDashboardTab === "review"}
+          aria-controls="review-panel"
+          onClick={() => setActiveDashboardTab("review")}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "review" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
+        >
+          Pending reservations
+        </button>
+        <button
           id="management-tab"
           type="button"
           role="tab"
@@ -137,6 +149,8 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         <DrinkMenuEditor venueId={session.venueId} venueName={session.venueName}
           onSaved={(beverages) => { if (venue) updateVenue({ ...venue, beverages }); setMenuRefreshVersion((value) => value + 1); }} />
       </div>}
+
+      {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} /></div>}
       {activeDashboardTab === "reservations" && (
         <ReservationHistory
           reservations={reservations.filter((reservation) => reservation.venueId === draft.id)}

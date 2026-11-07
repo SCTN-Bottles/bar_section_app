@@ -7,7 +7,7 @@ import {
 
 type DemoCheckoutFormProps = {
   maxGuests: number;
-  onComplete: (details: { customerName: string; customerEmail: string; guestCount: number }) => void;
+  onComplete: (details: { customerName: string; customerEmail: string; guestCount: number }) => Promise<void>;
 };
 
 export default function DemoCheckoutForm({
@@ -21,17 +21,28 @@ export default function DemoCheckoutForm({
   ] = useState(false);
 
 
-  function handleSubmit(
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function handleSubmit(
     event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    onComplete({
-      customerName: String(data.get("name") ?? "").trim(),
-      customerEmail: String(data.get("email") ?? "").trim(),
-      guestCount: Number(data.get("guests")),
-    });
-    setSubmitted(true);
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onComplete({
+        customerName: String(data.get("name") ?? "").trim(),
+        customerEmail: String(data.get("email") ?? "").trim(),
+        guestCount: Number(data.get("guests")),
+      });
+      setSubmitted(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Submission failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
 
@@ -40,12 +51,12 @@ export default function DemoCheckoutForm({
       <div className="rounded-xl border border-green-200 bg-green-50 p-6">
 
         <h2 className="text-xl font-semibold text-green-900">
-          Demo reservation complete
+          Reservation submitted for review
         </h2>
 
         <p className="mt-2 text-green-800">
-          No payment was processed.
-          This is only the prototype.
+          Your request is pending review by the venue.
+          Keep your reservation number for future reference.
         </p>
 
       </div>
@@ -123,16 +134,18 @@ export default function DemoCheckoutForm({
       </div>
 
 
+      {error && <p role="alert" className="text-red-700">{error}</p>}
       <button
         type="submit"
+        disabled={busy}
         className="w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent"
       >
-        Complete demo reservation
+        {busy ? "Submitting…" : "Submit Reservation For Review"}
       </button>
 
 
       <p className="text-center text-xs text-neutral-500">
-        Prototype only. No payment
+        Payment is collected after approval. No payment
         information is collected.
       </p>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { getDailyDrinkMenus } from "@/lib/drink-menus";
 import { getReservationSections } from "@/lib/sections";
 import type { BeverageOption, Section } from "@/types/venue";
@@ -9,7 +10,17 @@ type DayData = { sections: Section[]; beverages: BeverageOption[] };
 
 export function useReservationDay(venueId: string, venueName: string, date: string | null, slot: "day" | "night") {
   const [retry, setRetry] = useState(0);
-  const key = `${venueId}:${date}:${slot}:${retry}`;
+  useEffect(() => {
+    if (!date) return;
+    const refresh = () => setRetry((value) => value + 1);
+    const channel = supabase.channel(`availability-${venueId}-${date}-${slot}`)
+      .on("broadcast", { event: "section_unavailable" }, refresh)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") refresh();
+      });
+    return () => { void supabase.removeChannel(channel); };
+  }, [venueId, date, slot]);
+  const key = `${venueId}:${date}:${slot}`;
   const [result, setResult] = useState<{ key: string; data: DayData | null; error: string }>({ key: "", data: null, error: "" });
   useEffect(() => {
     if (!date) return;
@@ -21,7 +32,7 @@ export function useReservationDay(venueId: string, venueName: string, date: stri
         if (!cancelled) setResult({ key, data: null, error: "Section and drink options could not be loaded for this date. Please try again." });
       });
     return () => { cancelled = true; };
-  }, [venueId, venueName, date, slot, key]);
+  }, [venueId, venueName, date, slot, key, retry]);
   return {
     data: result.key === key ? result.data : null,
     loading: Boolean(date) && result.key !== key,

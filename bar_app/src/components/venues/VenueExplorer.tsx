@@ -9,6 +9,7 @@ import BookingCalendar from "@/components/venues/BookingCalendar";
 import DrinkSignCustomization from "@/components/venues/DrinkSignCustomization";
 import ReservationAgreement from "@/components/venues/ReservationAgreement";
 import SectionDetails from "@/components/venues/SectionDetails";
+import { getReservationSections } from "@/lib/sections";
 import SectionMap from "@/components/venues/SectionMap";
 import { useReservationDay } from "@/lib/use-reservation-day";
 import { formatBookingTime } from "@/lib/booking-time";
@@ -135,9 +136,26 @@ export default function VenueExplorer({
   );
   const selectedSection = activeSections.find(
     (section) => section.id === selectedSectionId && section.status === "available",
-  ) ?? activeSections.find((section) => section.status === "available");
+  ) ?? (reservationStep === "sections" ? activeSections.find((section) => section.status === "available") : undefined);
   const bookingTime = selectedSection?.reservationTime ?? venue.bookingCalendar.placeholderTime;
 
+  async function continueReservation(next: ReservationStep) {
+    if (!bookingDate || !selectedSection) return;
+    try {
+      const sections = await getReservationSections(venue.id, bookingDate, bookingSlot);
+      if (!sections.some((section) => section.id === selectedSection.id && section.status === "available")) {
+        window.alert("This section has just been reserved. Please choose another section.");
+        setSelectedSectionId("");
+        setReservationStep("sections");
+        day.retry();
+        return;
+      }
+      setSelectedSectionId(selectedSection.id);
+      setReservationStep(next);
+    } catch {
+      window.alert("Availability could not be checked. Please try again.");
+    }
+  }
   function changeArea(area: VenueArea) {
     setActiveArea(area);
     setSelectedSectionId(getFirstAvailableSectionId(area));
@@ -180,7 +198,14 @@ export default function VenueExplorer({
     month: "long",
     day: "numeric",
   }).format(new Date(`${bookingDate}T00:00:00`));
+  const hasSections = venue.sections.length > 0;
 
+  if (reservationStep !== "sections" && !selectedSection) {
+    return <div role="alert" className="space-y-4 py-8">
+      <p>This section has just been reserved. Please choose another section.</p>
+      <button type="button" onClick={() => { setSelectedSectionId(""); setReservationStep("sections"); }} className="rounded-md border px-4 py-2">Browse sections</button>
+    </div>;
+  }
   const activeBeverageQuantities = Object.fromEntries(Object.entries(beverageQuantities)
     .filter(([id]) => venue.beverages.some((beverage) => beverage.id === id)));
   const addons = Object.entries(activeBeverageQuantities)
@@ -205,7 +230,7 @@ export default function VenueExplorer({
         quantities={activeBeverageQuantities}
         onChangeQuantities={setBeverageQuantities}
         onBack={() => setReservationStep("sections")}
-        onContinue={() => setReservationStep("sign")}
+        onContinue={() => void continueReservation("sign")}
       />
     );
   }
@@ -216,7 +241,7 @@ export default function VenueExplorer({
         text={drinkSignText}
         onChangeText={setDrinkSignText}
         onBack={() => setReservationStep("drinks")}
-        onContinue={() => { if (!getDrinkSignError(drinkSignText)) setReservationStep("agreement"); }}
+        onContinue={() => { if (!getDrinkSignError(drinkSignText)) void continueReservation("agreement"); }}
       />
     );
   }
@@ -236,7 +261,7 @@ export default function VenueExplorer({
         <div>
           <p className="text-sm text-neutral-500">Reservation date</p>
           <p className="mt-1 font-semibold">
-            {bookingDateLabel} · {formatBookingTime(bookingTime)}
+            {bookingDateLabel}{hasSections && ` · ${formatBookingTime(bookingTime)}`}
           </p>
         </div>
 
@@ -250,66 +275,76 @@ export default function VenueExplorer({
       </div>
 
       {availableSlots.length > 1 && <div className="mb-6 flex gap-2" aria-label="Reservation period">{availableSlots.map((slot) => <button key={slot} type="button" aria-pressed={bookingSlot === slot} onClick={() => { setBookingSlot(slot); setSelectedSectionId(""); setBeverageQuantities({}); setReservationStep("sections"); }} className={`rounded-md border px-4 py-2 ${bookingSlot === slot ? "bg-primary text-on-primary" : "border-neutral-300"}`}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</div>}
-      <div
-        className="mb-6 flex flex-wrap gap-2"
-        role="tablist"
-        aria-label="Reservation areas"
-      >
-        {venueAreas.map((area) => {
-          const isActive = area === activeArea;
+      {!hasSections ? (
+        <p role="status" className="rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-8 text-center text-neutral-600">
+          {availableSlots.length > 1
+            ? `No bookings have been created for the selected date during the ${bookingSlot === "day" ? "daytime" : "nighttime"} period.`
+            : "No bookings have been created for the selected date."}
+        </p>
+      ) : (
+        <>
+          <div
+            className="mb-6 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Reservation areas"
+          >
+            {venueAreas.map((area) => {
+              const isActive = area === activeArea;
 
-          return (
-            <button
-              key={area}
-              id={`${area}-tab`}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls="area-sections-panel"
-              onClick={() => changeArea(area)}
-              className={`rounded-md border px-4 py-2 text-sm font-semibold ${
-                isActive
-                  ? "border-primary bg-primary text-on-primary hover:bg-accent"
-                  : "border-neutral-300 bg-neutral-50 hover:border-primary"
-              }`}
-            >
-              {venueAreaLabels[area]}
-            </button>
-          );
-        })}
-      </div>
+              return (
+                <button
+                  key={area}
+                  id={`${area}-tab`}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls="area-sections-panel"
+                  onClick={() => changeArea(area)}
+                  className={`rounded-md border px-4 py-2 text-sm font-semibold ${
+                    isActive
+                      ? "border-primary bg-primary text-on-primary hover:bg-accent"
+                      : "border-neutral-300 bg-neutral-50 hover:border-primary"
+                  }`}
+                >
+                  {venueAreaLabels[area]}
+                </button>
+              );
+            })}
+          </div>
 
-      <div
-        id="area-sections-panel"
-        role="tabpanel"
-        aria-labelledby={`${activeArea}-tab`}
-        className="grid items-start gap-8 lg:grid-cols-[1.5fr_1fr]"
-      >
-        <SectionMap
-          area={activeArea}
-          sections={activeSections}
-          selectedSectionId={selectedSection?.id ?? ""}
-          onSelectSection={setSelectedSectionId}
-        />
-
-        <div>
-          <h2 className="section-heading mb-4 text-foreground">
-            {venueAreaLabels[activeArea]}
-          </h2>
-
-          {!selectedSection && <p className="text-sm text-neutral-500">No sections are available in this area for the selected date.</p>}
-          {selectedSection && (
-            <SectionDetails
-              venueName={venue.venueName}
-              section={selectedSection}
-              bookingDate={bookingDate}
-              bookingTime={bookingTime}
-              onReserve={() => setReservationStep("drinks")}
+          <div
+            id="area-sections-panel"
+            role="tabpanel"
+            aria-labelledby={`${activeArea}-tab`}
+            className="grid items-start gap-8 lg:grid-cols-[1.5fr_1fr]"
+          >
+            <SectionMap
+              area={activeArea}
+              sections={activeSections}
+              selectedSectionId={selectedSection?.id ?? ""}
+              onSelectSection={setSelectedSectionId}
             />
-          )}
-        </div>
 
-      </div>
+            <div>
+              <h2 className="section-heading mb-4 text-foreground">
+                {venueAreaLabels[activeArea]}
+              </h2>
+
+              {!selectedSection && <p className="text-sm text-neutral-500">No sections are available in this area for the selected date.</p>}
+              {selectedSection && (
+                <SectionDetails
+                  venueName={venue.venueName}
+                  section={selectedSection}
+                  bookingDate={bookingDate}
+                  bookingTime={bookingTime}
+                  onReserve={() => void continueReservation("drinks")}
+                />
+              )}
+            </div>
+
+          </div>
+        </>
+      )}
     </>
   );
 }
