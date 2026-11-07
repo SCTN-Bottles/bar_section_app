@@ -8,6 +8,7 @@ type Request = {
   reservation_date: string; reservation_time: string; booking_slot: string;
   guest_count: number; deposit_amount: number; minimum_spend_amount: number;
   drink_sign_text: string; status: string;
+  payment_deadline: string | null;
   beverages: { name: string; quantity: number }[];
 };
 
@@ -20,24 +21,40 @@ export default function ReservationReview({ venueId }: { venueId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    const db = supabase.schema("sctn-dev");
+    let inFlight = false;
     async function load() {
-      const { data, error } = await db.from("bookings")
-        .select("id,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,guest_count,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id)")
-        .eq("sections.venue_id", venueId).eq("record_type", "reservation").in("status", ["pending", "confirmed"])
-        .order("created_at");
-      if (cancelled) return;
-      setLoading(false);
-      if (error) setError("Could not load requests. Please refresh.");
-      else { setRequests(data ?? []); }
+      if (inFlight || cancelled) return;
+      inFlight = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch(`/api/reservations/pending?venueId=${encodeURIComponent(venueId)}`, {
+          headers: { Authorization: `Bearer ${session?.access_token ?? ""}` }, cache: "no-store",
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not load requests.");
+        if (!cancelled) { setRequests(result.requests); setError(result.warning || ""); }
+      } catch (error) {
+        if (!cancelled) setError(error instanceof Error ? error.message : "Could not load requests. Please refresh.");
+      } finally {
+        inFlight = false;
+        if (!cancelled) setLoading(false);
+      }
     }
     void load();
+    const timer = window.setInterval(() => { void load(); }, 15000);
+    const onFocus = () => { void load(); };
+    window.addEventListener("focus", onFocus);
     const channel = supabase.channel(`review-${venueId}`)
       .on("broadcast", { event: "review_changed" }, () => { void load(); })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") void load();
       });
-    return () => { cancelled = true; void supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      void supabase.removeChannel(channel);
+    };
   }, [venueId, version]);
 
   async function review(id: string, status: "confirmed" | "cancelled") {
@@ -58,12 +75,14 @@ export default function ReservationReview({ venueId }: { venueId: string }) {
   }
 
   return <section className="mt-8 space-y-4">
-    <h2 className="text-2xl font-semibold">Reservations awaiting review</h2>
-    <p className="text-sm text-neutral-500">Approved guests receive an email with a private payment link and a 24-hour deadline.</p>
+    <h2 className="text-2xl font-semibold">Pending reservations</h2>
+    <p className="text-sm text-neutral-500">Requests awaiting review and approved reservations awaiting payment. Approved guests receive an email with a payment link and a 24-hour deadline.</p>
     {error && <p role="alert" className="text-red-700">{error}</p>}
-    {loading ? <p role="status">Loading requests…</p> : !requests.length && <p>No reservations are awaiting review.</p>}
-    {requests.map((request) => <article key={request.id} className="space-y-3 rounded-xl border p-5">
+    {loading ? <p role="status">Loading requests…</p> : !requests.length && <p>No reservations are awaiting review or payment.</p>}
+    {requests.map((request) => <article key={request.id} className="space-y-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5 [overflow-wrap:anywhere]">
       <h3 className="text-xl font-semibold">{request.section_name}</h3>
+      <p className="text-sm text-neutral-500">{request.status === "confirmed" ? "Approved · Awaiting payment · Section held" : "Pending management review"}</p>
+      {request.status === "confirmed" && request.payment_deadline && <p className="text-sm text-neutral-500">Payment due by {new Date(request.payment_deadline).toLocaleString()}.</p>}
       <p>{request.customer_name} · {request.customer_email}</p>
       <p>{request.reservation_date} · {request.booking_slot} · {request.reservation_time} · {request.guest_count} guests</p>
       <p>Deposit ${request.deposit_amount} · Minimum spend ${request.minimum_spend_amount}</p>
@@ -72,7 +91,7 @@ export default function ReservationReview({ venueId }: { venueId: string }) {
       <p className="break-all text-sm">Reservation number: {request.id}</p>
       <div className="flex gap-3">
         <button disabled={!!busy} onClick={() => void review(request.id, "confirmed")} className="rounded-md bg-primary px-4 py-2 text-on-primary disabled:opacity-50">{request.status === "confirmed" ? "Retry approval email" : "Approve"}</button>
-        <button disabled={!!busy || request.status !== "pending"} onClick={() => void review(request.id, "cancelled")} className="rounded-md border px-4 py-2 disabled:opacity-50">Deny</button>
+        <button disabled={!!busy || request.status !== "pending"} onClick={() => void review(request.id, "cancelled")} className="rounded-md border border-neutral-300 px-4 py-2 hover:border-primary disabled:opacity-50">Deny</button>
       </div>
     </article>)}
   </section>;

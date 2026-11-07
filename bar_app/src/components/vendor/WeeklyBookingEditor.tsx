@@ -71,7 +71,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
     }
     void loadWeek();
     return () => { cancelled = true; };
-  }, [week, venue.id, venue.venueName, defaultDaysKey, disabled, weekRetry]);
+  }, [week, venue.id, venue.venueName, defaultDaysKey, disabled, weekRetry, menuRefreshVersion]);
 
   function toggleDay(day: number) {
     if (busy || weekLoading || weekError || menuSaving) return;
@@ -224,7 +224,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
           <p className="mt-1 text-xs text-neutral-500">{current.saved ? "Loaded from saved booking settings" : "Starting from section defaults"}{dirty.has(scheduleKey(current)) ? " · Unsaved changes" : ""}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm text-neutral-500">Section name<input value={current.name} onChange={(event) => updateSection({ name: event.target.value })} className="input mt-1" /></label>
-            <label className="text-sm text-neutral-500">Availability<select value={current.status} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1"><option value="available">Available</option><option value="sold">Sold</option></select></label>
+            <label className="text-sm text-neutral-500">Availability<select value={current.status} disabled={current.reservedStatus !== undefined} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1 disabled:opacity-60"><option value="available">Available</option><option value="sold">Sold</option></select>{current.reservedStatus !== undefined && <span className="mt-2 block text-xs">Sold to an approved reservation for this date and time slot.</span>}</label>
             <label className="text-sm text-neutral-500">Capacity<input type="number" min="1" step="1" value={Number.isNaN(current.capacity) ? "" : current.capacity} onChange={(event) => updateSection({ capacity: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Reservation time<input type="time" value={current.time} onChange={(event) => updateSection({ time: event.target.value })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Minimum spend ($)<input type="number" min="0" step="0.01" value={Number.isNaN(current.minimumSpend) ? "" : current.minimumSpend} onChange={(event) => updateSection({ minimumSpend: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>

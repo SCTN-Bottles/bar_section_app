@@ -56,7 +56,7 @@ export default function VendorLoginPage() {
       } else {
         const session = await getVendorSession();
         if (session) {
-          router.replace("/");
+          router.replace("/vendor");
         } else {
           await supabase.auth.signOut();
           setError("We couldn't verify this account's venue access. Check your assignment and try again.");

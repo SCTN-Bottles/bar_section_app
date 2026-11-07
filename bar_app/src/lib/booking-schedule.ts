@@ -9,6 +9,8 @@ export type ScheduledSection = Section & {
   slot: BookingSlot;
   time: string;
   saved: boolean;
+  // Preserve manual availability when an approved reservation temporarily owns the slot.
+  reservedStatus?: SectionStatus;
 };
 
 type ScheduleRow = {
@@ -80,8 +82,15 @@ export async function loadBookingSchedule(venueId: string, venueName: string, da
     .in("section_id", sections.map((section) => section.id))
     .in("reservation_date", dates);
   if (error) throw error;
+  const { data: reservations, error: reservationError } = await devDb.from("bookings")
+    .select("section_id,reservation_date,booking_slot")
+    .eq("record_type", "reservation").in("status", ["confirmed", "completed"])
+    .in("section_id", sections.map((section) => section.id)).in("reservation_date", dates);
+  if (reservationError) throw reservationError;
+  const sold = new Set((reservations ?? []).map((row) => `${row.reservation_date}:${row.booking_slot}:${row.section_id}`));
   return {
-    sections: mergeSchedule(sections, dates, slots, venueResult.data.booking_start_time, data as ScheduleRow[]),
+    sections: mergeSchedule(sections, dates, slots, venueResult.data.booking_start_time, data as ScheduleRow[])
+      .map((section) => sold.has(scheduleKey(section)) ? { ...section, reservedStatus: section.status, status: "sold" as const } : section),
     slots,
   };
 }
@@ -105,7 +114,7 @@ export async function saveBookingSchedule(sections: ScheduledSection[]) {
     section_name: section.name.trim(),
     section_description: section.description.trim(),
     guest_count: section.capacity,
-    status: section.status,
+    status: section.reservedStatus ?? section.status,
     minimum_spend_amount: section.minimumSpend,
     deposit_amount: section.deposit,
   })) });

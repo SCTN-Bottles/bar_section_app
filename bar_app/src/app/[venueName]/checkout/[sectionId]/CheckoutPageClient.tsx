@@ -5,6 +5,7 @@ import { submitReservation } from "@/lib/reservations";
 import { useState } from "react";
 
 import DemoCheckoutForm from "@/components/checkout/DemoCheckoutForm";
+import ReservationConfirmation, { type ReservationReceipt } from "@/components/checkout/ReservationConfirmation";
 import VenueHeader from "@/components/layout/VenueHeader";
 import { useVenueByName } from "@/components/providers/VenueDataProvider";
 import { useReservationDay } from "@/lib/use-reservation-day";
@@ -52,9 +53,8 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
 
 export default function CheckoutPageClient({ initialVenue, sectionId, date, time, slot, addons, signText }: CheckoutPageClientProps) {
   const { venue, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
-  const [emailWarning, setEmailWarning] = useState("");
   const [submissionId] = useState(() => crypto.randomUUID());
-  const [reservationComplete, setReservationComplete] = useState(false);
+  const [receipt, setReceipt] = useState<ReservationReceipt | null>(null);
   const baseVenue = venue ?? initialVenue;
   const availableSlots = baseVenue.bookingCalendar.availableSlots ?? ["night"];
   const bookingSlot = slot === "day" && availableSlots.includes("day") ? "day" : availableSlots.includes("night") ? "night" : availableSlots[0];
@@ -73,6 +73,8 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   if (drinkSignText) backQuery.set("signText", drinkSignText);
   const signError = getDrinkSignError(signText);
 
+  if (receipt) return <><VenueHeader venue={baseVenue} /><ReservationConfirmation receipt={receipt} /></>;
+
   if (signError) return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16">
     <h1 className="text-2xl font-semibold">Update your drink sign</h1>
     <p role="alert" className="text-red-700">{signError}</p>
@@ -89,7 +91,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
     return <main role="alert" className="mx-auto max-w-5xl px-6 py-16 text-red-700">{venueError ?? beverageError ?? sectionError}</main>;
   }
 
-  if (!section || (section.status !== "available" && !reservationComplete)) {
+  if (!section || section.status !== "available") {
     return (
       <>
         <VenueHeader venue={activeVenue} />
@@ -125,8 +127,6 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
             <p className="mt-6 text-sm text-neutral-500">Step 5 of 5</p>
             <h1 className="mt-1 text-3xl font-semibold">Reserve {section.name}</h1>
             <div className="mt-6">
-          {reservationComplete && <p role="status" className="mb-4 break-all">Reservation number: {submissionId}</p>}
-          {emailWarning && <p role="alert" className="mb-4">{emailWarning}</p>}
           <DemoCheckoutForm
             maxGuests={section.capacity}
             onComplete={async (details) => {
@@ -145,8 +145,15 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
                 drinkSignText: drinkSignText || undefined,
                 deposit: section.deposit,
               }, bookingSlot);
-              setEmailWarning(warning ?? "");
-              setReservationComplete(true);
+              setReceipt({
+                id: submissionId, venueName: activeVenue.name, sectionName: section.name,
+                date: reservationDate, time: reservationTime, guestCount: details.guestCount,
+                customerEmail: details.customerEmail, minimumSpend: section.minimumSpend,
+                deposit: section.deposit, drinkSignText,
+                beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
+                emailWarning: warning,
+              });
+              window.scrollTo({ top: 0, behavior: "instant" });
             }}
           />
             </div>

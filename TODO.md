@@ -11,3 +11,4 @@
 10. idempotency for payment 
 11. check security vulns before deploying
 12. make sure to change dev keys to prod keys in vercel environment variables
+13. add rate limiting for vendor login and reservation submission

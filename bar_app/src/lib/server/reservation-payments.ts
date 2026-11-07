@@ -29,7 +29,7 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   if (approved && booking.status !== "confirmed") throw new Error("Reservation must be approved first.");
   const { data: payment, error: paymentError } = await db.from("reservation_payments").select("*").eq("booking_id", id).single();
   if (paymentError || !payment) throw new Error("Email record not found.");
-  if (approved ? payment.email_sent_at : payment.review_email_sent_at) return;
+  if (approved ? payment.payment_email_sent_at : payment.confirmation_email_sent_at) return;
   const apiKey = requiredEnv("RESEND_API_KEY");
   let deadline = payment.payment_deadline;
   if (approved && !deadline) {
@@ -60,7 +60,7 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   });
   if (!response.ok) throw new Error("Email delivery failed. Check the sender domain and recipient permissions in Resend.");
   const { error: saveError } = await db.from("reservation_payments").update(
-    approved ? { email_sent_at: new Date().toISOString() } : { review_email_sent_at: new Date().toISOString() },
+    approved ? { payment_email_sent_at: new Date().toISOString() } : { confirmation_email_sent_at: new Date().toISOString() },
   ).eq("booking_id", id);
   if (saveError) throw new Error("Email sent, but delivery tracking failed. Retry safely.");
 }
@@ -92,10 +92,72 @@ export async function prepareCheckout(id: string) {
     customer_email: booking.customer_email, client_reference_id: booking.id,
     metadata: { reservation_id: booking.id },
     line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: amount, product_data: { name: "Section reservation deposit" } } }],
-    success_url: `${siteUrl()}/pay?submitted=1`,
+    success_url: `${siteUrl()}/pay?submitted=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl()}/pay?token=${encodeURIComponent(token)}`,
   }, { idempotencyKey: `reservation-deposit-${booking.id}` });
   const { error } = await db.from("reservation_payments").update({ stripe_session_id: session.id }).eq("booking_id", booking.id);
   if (error) throw new Error("Could not save checkout. Please retry.");
   return session.url;
+}
+
+// Both the signed webhook and the return page reconcile the same verified session.
+// Conditional writes make concurrent deliveries and page refreshes safe.
+export async function reconcileCheckout(sessionId: string) {
+  const session = await stripeClient().checkout.sessions.retrieve(sessionId);
+  const id = session.metadata?.reservation_id;
+  if (!id) throw new Error("Reservation payment not found.");
+  const db = adminClient().schema("sctn-dev");
+  const { data: payment, error: paymentError } = await db.from("reservation_payments")
+    .select("stripe_session_id,paid_at").eq("booking_id", id).single();
+  const { data: booking, error: bookingError } = await db.from("bookings")
+    .select("deposit_amount,status").eq("id", id).eq("record_type", "reservation").single();
+  if (paymentError || bookingError || !payment || !booking || payment.stripe_session_id !== session.id) {
+    throw new Error("Reservation payment not found.");
+  }
+  if (session.payment_status !== "paid") return false;
+  if (session.currency !== "usd" || session.amount_total !== Math.round(Number(booking.deposit_amount) * 100)) {
+    throw new Error("Payment mismatch.");
+  }
+  if (booking.status !== "confirmed" && booking.status !== "completed") {
+    throw new Error("Please contact the venue to confirm your paid reservation.");
+  }
+  if (!payment.paid_at) {
+    const { error } = await db.from("reservation_payments")
+      .update({ paid_at: new Date().toISOString() }).eq("booking_id", id)
+      .eq("stripe_session_id", session.id).is("paid_at", null);
+    if (error) throw new Error("Could not record payment. Please retry.");
+  }
+  return true;
+}
+
+export type ReservationPaymentState = {
+  booking_id: string;
+  stripe_session_id: string | null;
+  paid_at: string | null;
+  payment_deadline: string | null;
+};
+
+export async function refreshReservationPayment(payment: ReservationPaymentState): Promise<"paid" | "expired" | "unpaid"> {
+  if (payment.paid_at) return "paid";
+  const expired = Boolean(payment.payment_deadline && Date.parse(payment.payment_deadline) <= Date.now());
+  if (payment.stripe_session_id) {
+    const stripe = stripeClient();
+    let session = await stripe.checkout.sessions.retrieve(payment.stripe_session_id);
+    if (session.metadata?.reservation_id !== payment.booking_id) throw new Error("Payment mismatch.");
+    if (session.payment_status === "paid") {
+      await reconcileCheckout(session.id);
+      return "paid";
+    }
+    if (!expired) return "unpaid";
+    // Close checkout before releasing inventory, so a guest cannot still pay for it.
+    // If payment wins the race, Stripe refuses expiration and a later refresh reconciles it.
+    if (session.status === "open") session = await stripe.checkout.sessions.expire(session.id);
+    if (session.status !== "expired" || session.payment_status === "paid") return "unpaid";
+  }
+  if (!expired) return "unpaid";
+  const db = adminClient().schema("sctn-dev");
+  const { error } = await db.from("bookings").update({ status: "cancelled" })
+    .eq("id", payment.booking_id).eq("record_type", "reservation").eq("status", "confirmed");
+  if (error) throw new Error("Could not release expired reservation.");
+  return "expired";
 }

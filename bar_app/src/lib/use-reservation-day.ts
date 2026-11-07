@@ -13,12 +13,19 @@ export function useReservationDay(venueId: string, venueName: string, date: stri
   useEffect(() => {
     if (!date) return;
     const refresh = () => setRetry((value) => value + 1);
+    // Releases after denial/expiry must reach an already-open section map too.
+    const timer = window.setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
     const channel = supabase.channel(`availability-${venueId}-${date}-${slot}`)
       .on("broadcast", { event: "section_unavailable" }, refresh)
       .subscribe((status) => {
         if (status === "SUBSCRIBED") refresh();
       });
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      void supabase.removeChannel(channel);
+    };
   }, [venueId, date, slot]);
   const key = `${venueId}:${date}:${slot}`;
   const [result, setResult] = useState<{ key: string; data: DayData | null; error: string }>({ key: "", data: null, error: "" });
