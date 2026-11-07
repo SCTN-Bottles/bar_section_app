@@ -15,9 +15,11 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
       if (!checkoutId) {
         const savedToken = (await cookies()).get("reservation_payment_token")?.value;
         if (savedToken) {
-          const { data } = await adminClient().schema("sctn-dev").from("reservation_payments")
-            .select("stripe_session_id").eq("token", savedToken).single();
-          checkoutId = data?.stripe_session_id;
+          for (const table of ["reservation_payments", "logs_reservation_payments"]) {
+            const { data } = await adminClient().schema("sctn-dev").from(table)
+              .select("stripe_session_id").eq("token", savedToken).maybeSingle();
+            if (data?.stripe_session_id) { checkoutId = data.stripe_session_id; break; }
+          }
         }
       }
       if (checkoutId) paid = await reconcileCheckout(checkoutId);

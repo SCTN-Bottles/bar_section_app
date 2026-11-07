@@ -24,12 +24,20 @@ async function main() {
   let releases = 0;
   let stripeExpirations = 0;
   let failExpiration = false;
-  const db = { from(table) {
+  const db = { async rpc(name, args) {
+    assert.equal(name, "record_verified_reservation_payment");
+    if (payment.stripe_session_id !== args.p_session_id) return { error: { message: "Reservation payment not found." } };
+    if (args.p_currency !== "usd" || args.p_amount !== booking.deposit_amount * 100) return { error: { message: "Payment mismatch." } };
+    if (!["confirmed", "completed"].includes(booking.status)) return { error: { message: "Please contact the venue to confirm your paid reservation." } };
+    if (!payment.paid_at) { payment.paid_at = new Date().toISOString(); updates++; }
+    return { error: null };
+  }, from(table) {
     let patch;
     const query = {
       select() { return query; }, eq() { return query; }, is() { return query; },
       update(value) { patch = value; return query; },
       async single() { return { data: table === "bookings" ? booking : payment }; },
+      async maybeSingle() { return { data: table === "bookings" ? booking : payment }; },
       then(resolve, reject) {
         if (patch && table === "reservation_payments") { updates++; Object.assign(payment, patch); }
         if (patch && table === "bookings") { releases++; Object.assign(booking, patch); }
@@ -40,6 +48,7 @@ async function main() {
   } };
   const { reconcileCheckout, refreshReservationPayment } = load("lib/server/reservation-payments.ts", {
     "server-only": {},
+    "@/lib/booking-time": { formatBookingTime: () => "9:30 PM" },
     "@supabase/supabase-js": { createClient: () => ({ schema: () => db }) },
     stripe: class { constructor() { return { checkout: { sessions: {
       retrieve: async () => session,

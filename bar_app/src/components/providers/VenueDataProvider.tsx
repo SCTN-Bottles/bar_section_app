@@ -2,31 +2,21 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { reservations as seedReservations } from "@/data/reservations";
 import { getBeverageOptions } from "@/lib/beverages";
 import { getSections } from "@/lib/sections";
 import { getVenues } from "@/lib/venues";
-import { getDrinkSignError } from "@/lib/drink-sign";
-import { BeverageOption, Reservation, Section, Venue, venueAreas } from "@/types/venue";
-
-const reservationsStorageKey = "sctn-demo-reservations";
+import { BeverageOption, Section, Venue, venueAreas } from "@/types/venue";
 
 type VenueDataContextValue = {
   venues: Venue[];
-  reservations: Reservation[];
   hydrated: boolean;
   venueError: string | null;
   beverageError: string | null;
   sectionError: string | null;
   updateVenue: (venue: Venue) => boolean;
-  addReservation: (reservation: Omit<Reservation, "id" | "createdAt">) => void;
 };
 
 const VenueDataContext = createContext<VenueDataContextValue | null>(null);
-
-function cloneSeedReservations() {
-  return JSON.parse(JSON.stringify(seedReservations)) as Reservation[];
-}
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -67,36 +57,6 @@ function isBeverage(value: unknown): value is BeverageOption {
   );
 }
 
-function isReservation(value: unknown): value is Reservation {
-  if (!value || typeof value !== "object") return false;
-  const reservation = value as Reservation;
-  return (
-    isNonEmptyString(reservation.id) &&
-    isNonEmptyString(reservation.venueId) &&
-    isNonEmptyString(reservation.sectionId) &&
-    isNonEmptyString(reservation.sectionName) &&
-    venueAreas.includes(reservation.sectionArea) &&
-    isNonEmptyString(reservation.customerName) &&
-    isNonEmptyString(reservation.customerEmail) &&
-    Number.isInteger(reservation.guestCount) &&
-    reservation.guestCount > 0 &&
-    isNonEmptyString(reservation.reservationDate) &&
-    isNonEmptyString(reservation.reservationTime) &&
-    Array.isArray(reservation.beverages) &&
-    (reservation.drinkSignText === undefined || typeof reservation.drinkSignText === "string") &&
-    reservation.beverages.every((beverage) =>
-      isNonEmptyString(beverage.id) &&
-      isNonEmptyString(beverage.name) &&
-      (beverage.type === "bottle" || beverage.type === "keg") &&
-      isMoney(beverage.price) &&
-      Number.isInteger(beverage.quantity) &&
-      beverage.quantity > 0,
-    ) &&
-    isMoney(reservation.deposit) &&
-    isNonEmptyString(reservation.createdAt)
-  );
-}
-
 export function isValidVenue(value: unknown): value is Venue {
   if (!value || typeof value !== "object") return false;
   const venue = value as Venue;
@@ -124,7 +84,6 @@ export function isValidVenue(value: unknown): value is Venue {
 
 export default function VenueDataProvider({ children }: { children: React.ReactNode }) {
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [reservations, setReservations] = useState<Reservation[]>(cloneSeedReservations);
   const [hydrated, setHydrated] = useState(false);
   const [venueError, setVenueError] = useState<string | null>(null);
   const [beverageError, setBeverageError] = useState<string | null>(null);
@@ -134,19 +93,6 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
     let cancelled = false;
 
     async function hydrate() {
-      let localReservations = cloneSeedReservations();
-      try {
-        const storedReservations = window.localStorage.getItem(reservationsStorageKey);
-        if (storedReservations) {
-          const parsed: unknown = JSON.parse(storedReservations);
-          if (Array.isArray(parsed) && parsed.every(isReservation) && !cancelled) {
-            localReservations = parsed;
-          }
-        }
-      } catch {
-        window.localStorage.removeItem(reservationsStorageKey);
-      }
-
       try {
         const baseVenues = await getVenues();
         const loaded = await Promise.all(baseVenues.map(async (venue) => {
@@ -169,26 +115,7 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
           beverages: beverages.status === "fulfilled" ? beverages.value : [],
           sections: sections.status === "fulfilled" ? sections.value : [],
         }));
-        localReservations = localReservations.map((reservation) => {
-          if (reservation.venueId !== "venue-1") return reservation;
-          const venue = nextVenues.find((item) => item.venueName === "myhouse");
-          const section = venue?.sections.find((item) =>
-            item.area === reservation.sectionArea && item.name === reservation.sectionName,
-          );
-          return venue ? {
-            ...reservation,
-            venueId: venue.id,
-            sectionId: section?.id ?? reservation.sectionId,
-          } : reservation;
-        });
-        setReservations(localReservations);
-        setVenues(nextVenues.map((venue) => ({
-          ...venue,
-          sections: venue.sections.map((section) => localReservations.some(
-            (reservation) => reservation.id.startsWith("reservation-") &&
-              reservation.venueId === venue.id && reservation.sectionId === section.id,
-          ) ? { ...section, status: "sold" as const } : section),
-        })));
+        setVenues(nextVenues);
       } catch {
         if (!cancelled) setVenueError("Venues could not be loaded. Please refresh the page.");
       } finally {
@@ -198,29 +125,6 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
 
     void hydrate();
     return () => { cancelled = true; };
-  }, []);
-
-  const addReservation = useCallback((reservation: Omit<Reservation, "id" | "createdAt">) => {
-    const signError = getDrinkSignError(reservation.drinkSignText);
-    if (signError) throw new Error(signError);
-    const completeReservation: Reservation = {
-      ...reservation,
-      id: `reservation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    setReservations((current) => {
-      const next = [completeReservation, ...current];
-      window.localStorage.setItem(reservationsStorageKey, JSON.stringify(next));
-      return next;
-    });
-    setVenues((current) => {
-      const next = current.map((venue) => venue.id !== reservation.venueId ? venue : {
-        ...venue,
-        sections: venue.sections.map((section) => section.id === reservation.sectionId ? { ...section, status: "sold" as const } : section),
-      });
-      return next;
-    });
   }, []);
 
   const updateVenue = useCallback((venue: Venue) => {
@@ -233,8 +137,8 @@ export default function VenueDataProvider({ children }: { children: React.ReactN
   }, []);
 
   const value = useMemo(
-    () => ({ venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue, addReservation }),
-    [venues, reservations, hydrated, venueError, beverageError, sectionError, updateVenue, addReservation],
+    () => ({ venues, hydrated, venueError, beverageError, sectionError, updateVenue }),
+    [venues, hydrated, venueError, beverageError, sectionError, updateVenue],
   );
 
   return <VenueDataContext.Provider value={value}>{children}</VenueDataContext.Provider>;

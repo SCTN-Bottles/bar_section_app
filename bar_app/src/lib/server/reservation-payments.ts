@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { formatBookingTime } from "@/lib/booking-time";
 
 export function requiredEnv(name: string) {
   const value = process.env[name];
@@ -102,32 +103,86 @@ export async function prepareCheckout(id: string) {
 
 // Both the signed webhook and the return page reconcile the same verified session.
 // Conditional writes make concurrent deliveries and page refreshes safe.
-export async function reconcileCheckout(sessionId: string) {
+export async function reconcileCheckout(sessionId: string, requireConfirmationEmail = false) {
   const session = await stripeClient().checkout.sessions.retrieve(sessionId);
   const id = session.metadata?.reservation_id;
   if (!id) throw new Error("Reservation payment not found.");
   const db = adminClient().schema("sctn-dev");
-  const { data: payment, error: paymentError } = await db.from("reservation_payments")
-    .select("stripe_session_id,paid_at").eq("booking_id", id).single();
-  const { data: booking, error: bookingError } = await db.from("bookings")
-    .select("deposit_amount,status").eq("id", id).eq("record_type", "reservation").single();
-  if (paymentError || bookingError || !payment || !booking || payment.stripe_session_id !== session.id) {
-    throw new Error("Reservation payment not found.");
-  }
   if (session.payment_status !== "paid") return false;
-  if (session.currency !== "usd" || session.amount_total !== Math.round(Number(booking.deposit_amount) * 100)) {
-    throw new Error("Payment mismatch.");
-  }
-  if (booking.status !== "confirmed" && booking.status !== "completed") {
-    throw new Error("Please contact the venue to confirm your paid reservation.");
-  }
-  if (!payment.paid_at) {
-    const { error } = await db.from("reservation_payments")
-      .update({ paid_at: new Date().toISOString() }).eq("booking_id", id)
-      .eq("stripe_session_id", session.id).is("paid_at", null);
-    if (error) throw new Error("Could not record payment. Please retry.");
+  const { error } = await db.rpc("record_verified_reservation_payment", {
+    p_id: id, p_session_id: session.id, p_amount: session.amount_total, p_currency: session.currency,
+  });
+  if (error) throw new Error(error.message || "Could not record payment. Please retry.");
+  try {
+    await sendPaidReservationEmail(id);
+  } catch (error) {
+    // The webhook retries delivery. The return page must still acknowledge a saved payment.
+    if (requireConfirmationEmail) throw error;
   }
   return true;
+}
+
+export async function getReservationPaymentContext(id: string) {
+  const db = adminClient().schema("sctn-dev");
+  for (const [bookingsTable, paymentsTable] of [["bookings", "reservation_payments"], ["logs_bookings", "logs_reservation_payments"]]) {
+    const { data: booking, error } = await db.from(bookingsTable).select("*").eq("id", id).eq("record_type", "reservation").maybeSingle();
+    if (error) throw new Error("Could not load reservation.");
+    if (!booking) continue;
+    const { data: payment, error: paymentError } = await db.from(paymentsTable).select("*").eq("booking_id", id).maybeSingle();
+    if (paymentError) throw new Error("Could not load payment.");
+    // Archiving can commit between the two reads. Try the archived pair in that case.
+    if (!payment) continue;
+    return { booking, payment };
+  }
+  throw new Error("Reservation payment not found.");
+}
+
+export async function sendPaidReservationEmail(id: string) {
+  const { booking, payment } = await getReservationPaymentContext(id);
+  if (!payment.paid_at) throw new Error("Payment must be verified before sending confirmation.");
+  if (payment.paid_confirmation_email_sent_at) return;
+  const db = adminClient().schema("sctn-dev");
+  const { data: section, error: sectionError } = await db.from("sections").select("venue_id").eq("id", booking.section_id).single();
+  if (sectionError || !section) throw new Error("Could not load venue for confirmation.");
+  const { data: venue, error: venueError } = await db.from("venues")
+    .select("name,address,city,state")
+    .eq("id", section.venue_id).single();
+  if (venueError || !venue) throw new Error("Could not load venue confirmation details.");
+  const text = [
+    `Your payment has been received and your section reservation at ${venue.name} is confirmed.`,
+    `Reservation number: ${id}`,
+    `Section: ${booking.section_name || "Reserved section"}`,
+    `Date: ${booking.reservation_date}`,
+    `Time: ${formatBookingTime(booking.reservation_time)} (${booking.booking_slot})`,
+    `Guests: ${booking.guest_count}`,
+    `Deposit paid: $${Number(booking.deposit_amount).toFixed(2)}`,
+    venue.address ? `Venue address: ${[venue.address, venue.city, venue.state].filter(Boolean).join(", ")}` : "",
+    "",
+    "Band pickup",
+    "Please contact venue management for band pickup instructions.",
+    "",
+    "Where to enter",
+    "Please contact venue management for entry instructions.",
+    "",
+    "Keep this confirmation and your reservation number for check-in.",
+  ].join("\n");
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${requiredEnv("RESEND_API_KEY")}`, "Content-Type": "application/json", "Idempotency-Key": `reservation-${id}-paid` },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL || "SCTN <onboarding@resend.dev>",
+      to: [booking.customer_email], subject: "Payment received — your section is confirmed", text,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error("Payment received, but confirmation email delivery failed. Delivery will be retried.");
+  const sentAt = new Date().toISOString();
+  // Update both locations to tolerate a concurrent archive move without losing delivery tracking.
+  for (const table of ["reservation_payments", "logs_reservation_payments"]) {
+    const { error } = await db.from(table).update({ paid_confirmation_email_sent_at: sentAt })
+      .eq("booking_id", id).is("paid_confirmation_email_sent_at", null);
+    if (error) throw new Error("Confirmation sent, but tracking failed. Retry safely.");
+  }
 }
 
 export type ReservationPaymentState = {
@@ -159,5 +214,8 @@ export async function refreshReservationPayment(payment: ReservationPaymentState
   const { error } = await db.from("bookings").update({ status: "cancelled" })
     .eq("id", payment.booking_id).eq("record_type", "reservation").eq("status", "confirmed");
   if (error) throw new Error("Could not release expired reservation.");
+  const { error: archiveError } = await db.from("logs_bookings").update({ status: "cancelled" })
+    .eq("id", payment.booking_id).eq("record_type", "reservation").eq("status", "confirmed");
+  if (archiveError) throw new Error("Could not update expired reservation log.");
   return "expired";
 }
