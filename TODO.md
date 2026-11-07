@@ -10,3 +10,4 @@
 9. Make is so that there is only 1 confirm button for vendor page so that only sections and not drinks gets saved
 10. idempotency for payment 
 11. check security vulns before deploying
+12. make sure to change dev keys to prod keys in vercel environment variables
