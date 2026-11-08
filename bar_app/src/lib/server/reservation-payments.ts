@@ -156,7 +156,7 @@ export async function sendPaidReservationEmail(id: string) {
     `Date: ${booking.reservation_date}`,
     `Time: ${formatBookingTime(booking.reservation_time)} (${booking.booking_slot})`,
     `Guests: ${booking.guest_count}`,
-    `Deposit paid: $${Number(booking.deposit_amount).toFixed(2)}`,
+    `Deposit paid: $${Number(payment.amount_paid_at_checkout ?? booking.deposit_amount).toFixed(2)}`,
     venue.address ? `Venue address: ${[venue.address, venue.city, venue.state].filter(Boolean).join(", ")}` : "",
     "",
     "Band pickup",
