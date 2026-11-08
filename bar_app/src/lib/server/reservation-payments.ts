@@ -41,7 +41,7 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   }
   const link = approved ? `${siteUrl()}/pay?token=${encodeURIComponent(payment.token)}` : "";
   const text = approved
-    ? `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been approved.\nReservation number: ${id}\nPay your deposit within 1 minute after this email is sent to secure your section.\nOpen ${link} and enter your reservation number.\nYour section will be released if payment is not received by the deadline.`
+    ? `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been approved.\nReservation number: ${id}\nPay your deposit within 1 hour after this email is sent to secure your section.\nOpen ${link} and enter your reservation number.\nYour section will be released if payment is not received by the deadline.`
     : `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been submitted and is being reviewed.\nReservation number: ${id}\nIf approved, you will receive an email with a private payment link and a one-minute payment window after the email provider accepts the message.`;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -58,7 +58,7 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   const { error: saveError } = await db.from("reservation_payments").update(
     approved ? {
       payment_email_sent_at: sentAt.toISOString(),
-      payment_deadline: new Date(sentAt.getTime() + 60_000).toISOString(),
+      payment_deadline: new Date(sentAt.getTime() + 60 * 60_000).toISOString(),
     } : { confirmation_email_sent_at: sentAt.toISOString() },
   ).eq("booking_id", id).is(approved ? "payment_email_sent_at" : "confirmation_email_sent_at", null);
   if (saveError) throw new Error("Email sent, but delivery tracking failed. Retry safely.");
