@@ -1,5 +1,4 @@
 import { adminClient, errorResponse, requiredEnv, prepareCheckout } from "@/lib/server/reservation-payments";
-import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
@@ -12,13 +11,7 @@ export async function POST(request: Request) {
     const { data: booking } = await db.from("bookings").select("*").eq("id", payment.booking_id).single();
     if (!booking || booking.status !== "confirmed" || payment.paid_at) throw new Error("This reservation is unavailable or already paid.");
     if (Date.parse(payment.payment_deadline) <= Date.now()) throw new Error("This payment link has expired.");
-    const response = NextResponse.json({ url: await prepareCheckout(booking.id) });
-    // Existing Stripe sessions may still use the original return URL without a session ID.
-    response.cookies.set("reservation_payment_token", token, {
-      httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
-      path: "/pay", maxAge: 86400,
-    });
-    return response;
+    return Response.json({ url: await prepareCheckout(booking.id) });
   } catch (error) { return errorResponse(error); }
 }
 

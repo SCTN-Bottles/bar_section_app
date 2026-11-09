@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { adminClient, reconcileCheckout } from "@/lib/server/reservation-payments";
 import PaymentForm from "./PaymentForm";
 
@@ -11,18 +10,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   if (submitted || sessionId) {
     let paid = false;
     try {
-      let checkoutId = sessionId;
-      if (!checkoutId) {
-        const savedToken = (await cookies()).get("reservation_payment_token")?.value;
-        if (savedToken) {
-          for (const table of ["reservation_payments", "logs_reservation_payments"]) {
-            const { data } = await adminClient().schema("sctn-dev").from(table)
-              .select("stripe_session_id").eq("token", savedToken).maybeSingle();
-            if (data?.stripe_session_id) { checkoutId = data.stripe_session_id; break; }
-          }
-        }
-      }
-      if (checkoutId) paid = await reconcileCheckout(checkoutId);
+      if (sessionId) paid = await reconcileCheckout(sessionId);
     }
     catch { /* Never claim success without server verification and a saved payment. */ }
     return <main className="mx-auto max-w-xl px-6 py-16">

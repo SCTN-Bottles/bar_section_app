@@ -13,7 +13,9 @@ Add these server-only settings to `bar_app/.env.local` and the deployment enviro
 
 Configure Stripe to deliver `checkout.session.completed` and `checkout.session.expired` events to that webhook. Local testing requires Stripe CLI forwarding or an HTTPS tunnel. Restart Next.js after changing environment variables.
 
-`confirmation_email_sent_at` tracks the initial submission acknowledgement. `payment_email_sent_at` tracks the approval email containing the payment link. `paid_confirmation_email_sent_at` tracks the final confirmation sent after a verified deposit payment. These timestamps record acceptance by the email provider. `email_started_at` records the first approval-email preparation attempt. `payment_deadline` is set when the approval flow starts preparing checkout, and email retries preserve it.
+`confirmation_email_sent_at` tracks the initial submission acknowledgement. `payment_email_sent_at` tracks the approval email containing the payment link. `paid_confirmation_email_sent_at` tracks the final confirmation sent after a verified deposit payment. These timestamps record acceptance by the email provider. `payment_deadline` is set when the approval flow starts preparing checkout, and email retries preserve it.
+
+Deploy the application update before applying the migration that drops `email_started_at`. Earlier application versions still write that column during approval.
 
 After Stripe verifies a payment, the server records it before sending the final confirmation. The email includes venue/section, reservation number, date/time, guest count, paid deposit, and the venue address when available. Band pickup and entry text is hard-coded in `sendPaidReservationEmail` for now; it directs guests to contact venue management until exact instructions are supplied. No arrival-instructions editor or additional venue fields are added. Webhook retries repeat failed delivery with a stable Resend idempotency key; tracked successful emails are not resent. An email failure does not change the payment success shown on the return page. Do not run live email delivery tests without an intended recipient.
 

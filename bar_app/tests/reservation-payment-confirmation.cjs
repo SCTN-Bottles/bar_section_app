@@ -135,6 +135,11 @@ async function main() {
   } };
   let checkoutCreates = 0;
   let emailAttempts = 0;
+  const approvalTime = Date.now();
+  class ApprovalDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [approvalTime])); }
+    static now() { return approvalTime; }
+  }
   const checkout = { id: "cs_approved", status: "open", url: "https://checkout.stripe.test" };
   const approval = load("lib/server/reservation-payments.ts", {
     "server-only": {},
@@ -144,12 +149,12 @@ async function main() {
       create: async (params) => {
         checkoutCreates++;
         assert.equal(params.expires_at * 1000, Date.parse(approvalPayment.payment_deadline));
-        assert.equal(params.expires_at - Math.floor(Date.parse(approvalPayment.email_started_at) / 1000), 3600);
+        assert.equal(params.expires_at - Math.floor(approvalTime / 1000), 3600);
         return checkout;
       },
       retrieve: async () => checkout,
     } } }; } },
-  }, { fetch: async (_url, options) => {
+  }, { Date: ApprovalDate, fetch: async (_url, options) => {
     emailAttempts++;
     assert.equal(approvalPayment.stripe_session_id, checkout.id, "save checkout before sending the approval email");
     assert.match(JSON.parse(options.body).text, /\/pay\?token=private/);

@@ -35,7 +35,6 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   if (approved && !payment.payment_deadline) {
     const started = new Date();
     const { error: updateError } = await db.from("reservation_payments").update({
-      email_started_at: payment.email_started_at ?? started.toISOString(),
       payment_deadline: new Date(Math.floor(started.getTime() / 1000) * 1000 + 60 * 60_000).toISOString(),
     }).eq("booking_id", id).is("payment_deadline", null);
     if (updateError) throw new Error("Could not prepare approval email.");
