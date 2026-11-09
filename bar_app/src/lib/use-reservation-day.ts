@@ -18,6 +18,7 @@ export function useReservationDay(venueId: string, venueName: string, date: stri
     window.addEventListener("focus", refresh);
     const channel = supabase.channel(`availability-${venueId}-${date}-${slot}`)
       .on("broadcast", { event: "section_unavailable" }, refresh)
+      .on("broadcast", { event: "section_available" }, refresh)
       .subscribe((status) => {
         if (status === "SUBSCRIBED") refresh();
       });

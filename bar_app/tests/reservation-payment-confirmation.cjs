@@ -4,7 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 
-function load(relativePath, dependencies) {
+function load(relativePath, dependencies, globals = {}) {
   const filename = path.resolve(__dirname, "../src", relativePath);
   const code = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
@@ -12,7 +12,8 @@ function load(relativePath, dependencies) {
   const exports = {};
   vm.runInNewContext(code, { exports, process: { env: {
     NEXT_PUBLIC_SUPABASE_URL: "https://example.test", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test", SUPABASE_SERVICE_ROLE_KEY: "test", STRIPE_SECRET_KEY: "test",
-  } }, require: (name) => name in dependencies ? dependencies[name] : require(name), URL, Response });
+    STRIPE_WEBHOOK_SECRET: "test", RESEND_API_KEY: "test", APP_URL: "https://example.test",
+  } }, require: (name) => name in dependencies ? dependencies[name] : require(name), URL, Response, ...globals });
   return exports;
 }
 
@@ -25,6 +26,14 @@ async function main() {
   let stripeExpirations = 0;
   let failExpiration = false;
   const db = { async rpc(name, args) {
+    if (name === "release_expired_reservation") {
+      assert.equal(args.p_id, "booking");
+      assert.equal(args.p_session_id, payment.stripe_session_id);
+      if (payment.paid_at || booking.status !== "confirmed") return { data: false };
+      releases++;
+      booking.status = "cancelled";
+      return { data: true };
+    }
     assert.equal(name, "record_verified_reservation_payment");
     if (payment.stripe_session_id !== args.p_session_id) return { error: { message: "Reservation payment not found." } };
     if (args.p_currency !== "usd" || args.p_amount !== booking.deposit_amount * 100) return { error: { message: "Payment mismatch." } };
@@ -100,8 +109,59 @@ async function main() {
   assert.equal(await refreshReservationPayment(overdue), "unpaid", "processing payments must remain held");
   assert.equal(releases, 1);
   assert.equal(await refreshReservationPayment({ ...overdue, stripe_session_id: null, payment_deadline: null }), "unpaid");
+  payment.stripe_session_id = null;
   assert.equal(await refreshReservationPayment({ ...overdue, stripe_session_id: null }), "expired");
   assert.equal(releases, 2, "expired reservations without a Stripe session also release their section");
+  booking.status = "confirmed";
+  payment.stripe_session_id = session.id;
+  session.status = "expired";
+  assert.equal(await refreshReservationPayment(overdue), "expired");
+  assert.equal(booking.status, "cancelled", "Stripe auto-expiration releases an unpaid section");
+  assert.equal(stripeExpirations, 1, "an automatically expired session needs no manual closure");
+
+  const approvalBooking = { id: "approved", status: "confirmed", deposit_amount: 25 };
+  const approvalPayment = { token: "private", payment_deadline: null, stripe_session_id: null };
+  const approvalDb = { from(table) {
+    const row = table === "bookings" ? approvalBooking : approvalPayment;
+    let patch;
+    const query = {
+      select() { return query; }, eq() { return query; }, is() { return query; }, gt() { return query; },
+      update(value) { patch = value; return query; },
+      async single() { return { data: { ...row } }; },
+      async maybeSingle() { Object.assign(row, patch); return { data: { ...row } }; },
+      then(resolve, reject) { return query.maybeSingle().then(resolve, reject); },
+    };
+    return query;
+  } };
+  let checkoutCreates = 0;
+  let emailAttempts = 0;
+  const checkout = { id: "cs_approved", status: "open", url: "https://checkout.stripe.test" };
+  const approval = load("lib/server/reservation-payments.ts", {
+    "server-only": {},
+    "@/lib/booking-time": {},
+    "@supabase/supabase-js": { createClient: () => ({ schema: () => approvalDb }) },
+    stripe: class { constructor() { return { checkout: { sessions: {
+      create: async (params) => {
+        checkoutCreates++;
+        assert.equal(params.expires_at * 1000, Date.parse(approvalPayment.payment_deadline));
+        assert.equal(params.expires_at - Math.floor(Date.parse(approvalPayment.email_started_at) / 1000), 3600);
+        return checkout;
+      },
+      retrieve: async () => checkout,
+    } } }; } },
+  }, { fetch: async (_url, options) => {
+    emailAttempts++;
+    assert.equal(approvalPayment.stripe_session_id, checkout.id, "save checkout before sending the approval email");
+    assert.match(JSON.parse(options.body).text, /\/pay\?token=private/);
+    return { ok: emailAttempts > 1 };
+  } });
+  await assert.rejects(approval.sendReservationEmail("approved", true), /Email delivery failed/);
+  const approvalDeadline = approvalPayment.payment_deadline;
+  await approval.sendReservationEmail("approved", true);
+  assert.ok(approvalPayment.payment_email_sent_at);
+  assert.equal(approvalPayment.payment_deadline, approvalDeadline, "email retries preserve the original deadline");
+  assert.equal(await approval.prepareCheckout("approved"), checkout.url);
+  assert.equal(checkoutCreates, 1, "opening the payment link reuses the approval checkout");
 
   let assigned = false;
   let adminReads = 0;
@@ -120,6 +180,7 @@ async function main() {
       errorResponse: (error) => Response.json({ error: error.message }, { status: 400 }),
       adminClient: () => { adminReads++; return { schema: () => ({ from: () => ({ select: () => ({ in: async () => ({ data: listPayments }) }) }) }) }; },
       refreshReservationPayment: async (row) => row.booking_id === "expired" ? "expired" : "unpaid",
+      sendReservationReleaseEmail: async () => {},
     },
   });
   const request = () => new Request("https://example.test/api/reservations/pending?venueId=venue", { headers: { authorization: "Bearer test" } });

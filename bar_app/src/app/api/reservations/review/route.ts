@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { errorResponse, requiredEnv, sendReservationEmail } from "@/lib/server/reservation-payments";
+import { errorResponse, requiredEnv, sendReservationEmail, sendReservationReleaseEmail } from "@/lib/server/reservation-payments";
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       const { data, error } = await client.schema("sctn-dev").from("bookings")
         .update({ status }).eq("id", id).eq("status", "pending").select("id");
       if (error || !data?.length) throw new Error("Reservation has already been reviewed. Refresh and try again.");
-    } else if (booking.status !== "confirmed" || status !== "confirmed") {
+    } else if (booking.status !== status) {
       throw new Error("Reservation has already been reviewed.");
     }
     if (status === "confirmed") {
@@ -25,6 +25,12 @@ export async function POST(request: Request) {
         await sendReservationEmail(id, true);
       } catch (error) {
         return Response.json({ approved: true, warning: error instanceof Error ? error.message : "Email failed. Retry sending the approval email." });
+      }
+    } else {
+      try {
+        await sendReservationReleaseEmail(id, "declined");
+      } catch {
+        return Response.json({ success: true, warning: "Reservation declined. The customer email is queued for retry." });
       }
     }
     return Response.json({ success: true });

@@ -32,17 +32,19 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   if (paymentError || !payment) throw new Error("Email record not found.");
   if (approved ? payment.payment_email_sent_at : payment.confirmation_email_sent_at) return;
   const apiKey = requiredEnv("RESEND_API_KEY");
-  if (approved && !payment.email_started_at) {
+  if (approved && !payment.payment_deadline) {
     const started = new Date();
     const { error: updateError } = await db.from("reservation_payments").update({
-      email_started_at: started.toISOString(),
-    }).eq("booking_id", id).is("email_started_at", null);
+      email_started_at: payment.email_started_at ?? started.toISOString(),
+      payment_deadline: new Date(Math.floor(started.getTime() / 1000) * 1000 + 60 * 60_000).toISOString(),
+    }).eq("booking_id", id).is("payment_deadline", null);
     if (updateError) throw new Error("Could not prepare approval email.");
   }
+  if (approved) await prepareCheckout(id);
   const link = approved ? `${siteUrl()}/pay?token=${encodeURIComponent(payment.token)}` : "";
   const text = approved
-    ? `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been approved.\nReservation number: ${id}\nPay your deposit within 1 hour after this email is sent to secure your section.\nOpen ${link} and enter your reservation number.\nYour section will be released if payment is not received by the deadline.`
-    : `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been submitted and is being reviewed.\nReservation number: ${id}\nIf approved, you will receive an email with a private payment link and a one-minute payment window after the email provider accepts the message.`;
+    ? `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been approved.\nReservation number: ${id}\nYou have 1 hour from approval to pay your deposit and secure your section.\nOpen ${link} and enter your reservation number to view your deadline and pay.\nYour section will be released if payment is not received by the deadline.`
+    : `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been submitted and is being reviewed.\nReservation number: ${id}\nIf approved, you will receive an email with a private payment link and one hour to pay.`;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `reservation-${id}-${approved ? "approved" : "review"}` },
@@ -56,10 +58,7 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   if (!response.ok) throw new Error("Email delivery failed. Check the sender domain and recipient permissions in Resend.");
   const sentAt = new Date();
   const { error: saveError } = await db.from("reservation_payments").update(
-    approved ? {
-      payment_email_sent_at: sentAt.toISOString(),
-      payment_deadline: new Date(sentAt.getTime() + 60 * 60_000).toISOString(),
-    } : { confirmation_email_sent_at: sentAt.toISOString() },
+    approved ? { payment_email_sent_at: sentAt.toISOString() } : { confirmation_email_sent_at: sentAt.toISOString() },
   ).eq("booking_id", id).is(approved ? "payment_email_sent_at" : "confirmation_email_sent_at", null);
   if (saveError) throw new Error("Email sent, but delivery tracking failed. Retry safely.");
 }
@@ -82,11 +81,11 @@ export async function prepareCheckout(id: string) {
     if (session.status !== "open" || !session.url) throw new Error("This checkout is completed or expired.");
     return session.url;
   }
-  const expires = Math.floor(Date.parse(payment.payment_deadline) / 1000);
-  // Stripe requires Checkout sessions to be created at least 30 minutes ahead.
-  // The application deadline remains authoritative and refreshReservationPayment
-  // expires an open session as soon as that shorter window has elapsed.
-  const stripeExpires = Math.max(expires, Math.floor(Date.now() / 1000) + 1800);
+  const expires = Math.ceil(Date.parse(payment.payment_deadline) / 1000);
+  // Only previously emailed links can still need a Checkout session late in their window.
+  const stripeExpires = payment.payment_email_sent_at
+    ? Math.max(expires, Math.ceil(Date.now() / 1000) + 1805)
+    : expires;
   const amount = Math.round(Number(booking.deposit_amount) * 100);
   if (!Number.isSafeInteger(amount) || amount < 50) throw new Error("Please contact the venue to arrange this deposit.");
   const session = await stripe.checkout.sessions.create({
@@ -97,8 +96,13 @@ export async function prepareCheckout(id: string) {
     success_url: `${siteUrl()}/pay?submitted=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl()}/pay?token=${encodeURIComponent(token)}`,
   }, { idempotencyKey: `reservation-deposit-${booking.id}` });
-  const { error } = await db.from("reservation_payments").update({ stripe_session_id: session.id }).eq("booking_id", booking.id);
+  const { data: saved, error } = await db.from("reservation_payments").update({ stripe_session_id: session.id })
+    .eq("booking_id", booking.id).gt("payment_deadline", new Date().toISOString()).select("booking_id").maybeSingle();
   if (error) throw new Error("Could not save checkout. Please retry.");
+  if (!saved) {
+    await stripe.checkout.sessions.expire(session.id);
+    throw new Error("Payment deadline has expired.");
+  }
   return session.url;
 }
 
@@ -193,6 +197,44 @@ export type ReservationPaymentState = {
   payment_deadline: string | null;
 };
 
+export async function sendReservationReleaseEmail(id: string, reason?: "declined" | "expired") {
+  const db = adminClient().schema("sctn-dev");
+  let query = db.from("reservation_release_emails")
+    .select("reason,recipient,section_name,reservation_date")
+    .eq("booking_id", id).is("sent_at", null);
+  if (reason) query = query.eq("reason", reason);
+  const { data: email, error } = await query.maybeSingle();
+  if (error) throw new Error("Could not load reservation release email.");
+  if (!email) return;
+
+  const expired = email.reason === "expired";
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${requiredEnv("RESEND_API_KEY")}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `reservation-${id}-${email.reason}`,
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL || "SCTN <onboarding@resend.dev>",
+      to: [email.recipient],
+      subject: expired ? "Your section payment link expired" : "Your section reservation was declined",
+      text: [
+        expired
+          ? `The payment deadline for ${email.section_name} on ${email.reservation_date} passed before payment was received.`
+          : `The venue declined your request for ${email.section_name} on ${email.reservation_date}.`,
+        "Your reservation has been released. You can browse available sections and submit a new request.",
+        `Reservation number: ${id}`,
+      ].join("\n\n"),
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error("Could not send reservation release email.");
+  const { error: saveError } = await db.from("reservation_release_emails")
+    .update({ sent_at: new Date().toISOString() }).eq("booking_id", id).is("sent_at", null);
+  if (saveError) throw new Error("Could not record reservation release email.");
+}
+
 export async function refreshReservationPayment(payment: ReservationPaymentState): Promise<"paid" | "expired" | "unpaid"> {
   if (payment.paid_at) return "paid";
   const expired = Boolean(payment.payment_deadline && Date.parse(payment.payment_deadline) <= Date.now());
@@ -212,11 +254,10 @@ export async function refreshReservationPayment(payment: ReservationPaymentState
   }
   if (!expired) return "unpaid";
   const db = adminClient().schema("sctn-dev");
-  const { error } = await db.from("bookings").update({ status: "cancelled" })
-    .eq("id", payment.booking_id).eq("record_type", "reservation").eq("status", "confirmed");
+  const { data: released, error } = await db.rpc("release_expired_reservation", {
+    p_id: payment.booking_id,
+    p_session_id: payment.stripe_session_id,
+  });
   if (error) throw new Error("Could not release expired reservation.");
-  const { error: archiveError } = await db.from("logs_bookings").update({ status: "cancelled" })
-    .eq("id", payment.booking_id).eq("record_type", "reservation").eq("status", "confirmed");
-  if (archiveError) throw new Error("Could not update expired reservation log.");
-  return "expired";
+  return released ? "expired" : "unpaid";
 }

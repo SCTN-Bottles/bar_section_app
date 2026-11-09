@@ -1,4 +1,4 @@
-import { getReservationPaymentContext, reconcileCheckout, refreshReservationPayment, requiredEnv, stripeClient } from "@/lib/server/reservation-payments";
+import { getReservationPaymentContext, reconcileCheckout, refreshReservationPayment, requiredEnv, sendReservationReleaseEmail, stripeClient } from "@/lib/server/reservation-payments";
 
 export async function POST(request: Request) {
   const stripe = stripeClient();
@@ -18,7 +18,11 @@ export async function POST(request: Request) {
     try {
       const { payment } = await getReservationPaymentContext(id);
       if (payment.stripe_session_id !== session.id) return new Response("Payment mismatch", { status: 400 });
-      await refreshReservationPayment(payment);
+      const state = await refreshReservationPayment(payment);
+      if (state === "unpaid") return new Response("Retry expiration after deadline", { status: 503 });
+      if (state === "expired") {
+        await sendReservationReleaseEmail(id, "expired");
+      }
     }
     catch { return new Response("Retry expiration", { status: 500 }); }
   }

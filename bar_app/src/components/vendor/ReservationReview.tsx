@@ -76,7 +76,7 @@ export default function ReservationReview({ venueId }: { venueId: string }) {
 
   return <section className="mt-8 space-y-4">
     <h2 className="text-2xl font-semibold">Pending reservations</h2>
-    <p className="text-sm text-neutral-500">Requests awaiting review and approved reservations awaiting payment. Approved guests receive an email with a payment link and a 24-hour deadline.</p>
+    <p className="text-sm text-neutral-500">Requests awaiting review and approved reservations awaiting payment. Approved guests receive an email with a payment link and one hour to pay.</p>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {loading ? <p role="status">Loading requests…</p> : !requests.length && <p>No reservations are awaiting review or payment.</p>}
     {requests.map((request) => <article key={request.id} className="space-y-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5 [overflow-wrap:anywhere]">

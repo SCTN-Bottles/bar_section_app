@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { adminClient, errorResponse, refreshReservationPayment, requiredEnv } from "@/lib/server/reservation-payments";
+import { adminClient, errorResponse, refreshReservationPayment, requiredEnv, sendReservationReleaseEmail } from "@/lib/server/reservation-payments";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,9 @@ export async function GET(request: Request) {
       if (booking.status === "confirmed" && payment) {
         try {
           const state = await refreshReservationPayment(payment);
+          if (state === "expired") {
+            await sendReservationReleaseEmail(booking.id, "expired").catch(() => undefined);
+          }
           if (state === "paid" || state === "expired") return null;
         } catch {
           // Keep the reservation visible and held while Stripe cannot be checked.
