@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   dateKey, deleteScheduleDay, getScheduleDates, loadBookingSchedule, offsetDate, saveBookingSchedule, scheduleKey,
   validateSchedule, weekStart, type BookingSlot, type ScheduledSection,
@@ -17,7 +17,7 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(`${date}T12:00:00`));
 }
 
-export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersion = 0 }: { venue: Venue; disabled: boolean; menuRefreshVersion?: number }) {
+export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersion = 0, reservationRefreshVersion = 0 }: { venue: Venue; disabled: boolean; menuRefreshVersion?: number; reservationRefreshVersion?: number }) {
   const { confirm, confirmationDialog } = useConfirmation();
   const [week, setWeek] = useState(() => weekStart(dateKey(new Date())));
   const [days, setDays] = useState<number[]>(venue.bookingCalendar.availableWeekdays);
@@ -38,7 +38,12 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   const [weekLoading, setWeekLoading] = useState(true);
   const [weekError, setWeekError] = useState(false);
   const [weekRetry, setWeekRetry] = useState(0);
+  const dirtyRef = useRef(dirty);
+  const confirmedDatesRef = useRef(confirmedDates);
   const defaultDaysKey = venue.bookingCalendar.availableWeekdays.join(",");
+
+  useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+  useEffect(() => { confirmedDatesRef.current = confirmedDates; }, [confirmedDates]);
 
   useEffect(() => {
     if (disabled) return;
@@ -72,6 +77,31 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
     void loadWeek();
     return () => { cancelled = true; };
   }, [week, venue.id, venue.venueName, defaultDaysKey, disabled, weekRetry, menuRefreshVersion]);
+
+  useEffect(() => {
+    const dates = confirmedDatesRef.current;
+    if (!reservationRefreshVersion || !dates.length) return;
+    let cancelled = false;
+    async function refreshReservationHolds() {
+      try {
+        const latest = await loadBookingSchedule(venue.id, venue.venueName, dates);
+        if (cancelled) return;
+        setSections((current) => {
+          const drafts = new Map(current.filter((section) => dirtyRef.current.has(scheduleKey(section))).map((section) => [scheduleKey(section), section]));
+          return latest.sections.map((section) => {
+            const draft = drafts.get(scheduleKey(section));
+            return draft
+              ? { ...section, ...draft, reservedStatus: section.reservedStatus, reservationStatus: section.reservationStatus }
+              : section;
+          });
+        });
+      } catch {
+        if (!cancelled) setError("Reservation status could not be refreshed. Try reloading the schedule before changing availability.");
+      }
+    }
+    void refreshReservationHolds();
+    return () => { cancelled = true; };
+  }, [reservationRefreshVersion, venue.id, venue.venueName]);
 
   function toggleDay(day: number) {
     if (busy || weekLoading || weekError || menuSaving) return;
@@ -164,8 +194,8 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
       setSections((values) => values.filter((section) => selectedDates.includes(section.date)).map((section) => ({ ...section, name: section.name.trim(), description: section.description.trim(), saved: true })));
       setDirty(new Set());
       setMessage(removedDates.length ? `Changes confirmed. Settings deleted for ${removedDates.length} removed day${removedDates.length === 1 ? "" : "s"}.` : `Section settings saved for ${selectedDates.length} day${selectedDates.length === 1 ? "" : "s"}.`);
-    } catch {
-      setError("Changes could not be saved. Your edits are still here; please try again.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Changes could not be saved. Your edits are still here; please try again.");
     } finally {
       setBusy(null);
     }
@@ -224,7 +254,19 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
           <p className="mt-1 text-xs text-neutral-500">{current.saved ? "Loaded from saved booking settings" : "Starting from section defaults"}{dirty.has(scheduleKey(current)) ? " · Unsaved changes" : ""}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm text-neutral-500">Section name<input value={current.name} onChange={(event) => updateSection({ name: event.target.value })} className="input mt-1" /></label>
-            <label className="text-sm text-neutral-500">Availability<select value={current.status} disabled={current.reservedStatus !== undefined} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1 disabled:opacity-60"><option value="available">Available</option><option value="sold">Sold</option></select>{current.reservedStatus !== undefined && <span className="mt-2 block text-xs">Sold to an approved reservation for this date and time slot.</span>}</label>
+            {current.reservationStatus ? <div className="text-sm text-neutral-500">
+              <span className="block">Availability</span>
+              <p className="input mt-1" aria-readonly="true">
+                {current.reservationStatus === "pending" ? "Pending" : current.reservationStatus === "confirmed" ? "Approved · payment pending" : "Reserved"}
+              </p>
+              <span className="mt-2 block text-xs">
+                {current.reservationStatus === "pending"
+                  ? "Resolve this request in Pending reservations before changing availability."
+                  : current.reservationStatus === "confirmed"
+                    ? "This approved reservation holds the slot. If unpaid, it releases after cancellation or payment expiry."
+                    : "This completed reservation holds the slot."}
+              </span>
+            </div> : <label className="text-sm text-neutral-500">Availability<select value={current.status} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1"><option value="available">Available</option><option value="sold">Sold</option></select></label>}
             <label className="text-sm text-neutral-500">Capacity<input type="number" min="1" step="1" value={Number.isNaN(current.capacity) ? "" : current.capacity} onChange={(event) => updateSection({ capacity: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Reservation time<input type="time" value={current.time} onChange={(event) => updateSection({ time: event.target.value })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Minimum spend ($)<input type="number" min="0" step="0.01" value={Number.isNaN(current.minimumSpend) ? "" : current.minimumSpend} onChange={(event) => updateSection({ minimumSpend: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>

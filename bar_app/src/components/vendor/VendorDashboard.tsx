@@ -29,6 +29,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const [notice, setNotice] = useState("");
   const [drinkDefaultsOpened, setDrinkDefaultsOpened] = useState(false);
   const [menuRefreshVersion, setMenuRefreshVersion] = useState(0);
+  const [reservationRefreshVersion, setReservationRefreshVersion] = useState(0);
 
   async function logout() {
     const { error } = await logoutVendor();
@@ -130,7 +131,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
         {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
         {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
 
-        <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} menuRefreshVersion={menuRefreshVersion} />
+        <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} menuRefreshVersion={menuRefreshVersion} reservationRefreshVersion={reservationRefreshVersion} />
       </div>
       {defaultsOpened && <div id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
         <SectionDefaultsEditor venueId={session.venueId} venueName={session.venueName}
@@ -141,7 +142,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           onSaved={(beverages) => { if (venue) updateVenue({ ...venue, beverages }); setMenuRefreshVersion((value) => value + 1); }} />
       </div>}
 
-      {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} /></div>}
+      {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} onReservationChanged={() => setReservationRefreshVersion((value) => value + 1)} /></div>}
       {activeDashboardTab === "reservations" && (
         <ReservationHistory
           venueId={session.venueId}

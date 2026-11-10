@@ -12,7 +12,7 @@ type Request = {
   beverages: { name: string; quantity: number }[];
 };
 
-export default function ReservationReview({ venueId }: { venueId: string }) {
+export default function ReservationReview({ venueId, onReservationChanged }: { venueId: string; onReservationChanged?: () => void }) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -58,6 +58,7 @@ export default function ReservationReview({ venueId }: { venueId: string }) {
   }, [venueId, version]);
 
   async function review(id: string, status: "confirmed" | "cancelled") {
+    const wasPending = requests.some((request) => request.id === id && request.status === "pending");
     setBusy(id);
     setError("");
     try {
@@ -69,6 +70,7 @@ export default function ReservationReview({ venueId }: { venueId: string }) {
       });
       const result = await response.json();
       if (!response.ok || result.warning) setError(result.warning || result.error);
+      if (response.ok && wasPending) onReservationChanged?.();
     } catch { setError("Could not update the reservation. Please try again."); }
     finally { setBusy(""); }
     setVersion((value) => value + 1);

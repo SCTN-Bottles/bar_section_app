@@ -4,6 +4,7 @@ import type { Section, SectionStatus } from "@/types/venue";
 
 const devDb = supabase.schema("sctn-dev");
 export type BookingSlot = "day" | "night";
+export type ReservationHoldStatus = "pending" | "confirmed" | "completed";
 export type ScheduledSection = Section & {
   date: string;
   slot: BookingSlot;
@@ -11,6 +12,7 @@ export type ScheduledSection = Section & {
   saved: boolean;
   // Preserve manual availability when an approved reservation temporarily owns the slot.
   reservedStatus?: SectionStatus;
+  reservationStatus?: ReservationHoldStatus;
 };
 
 type ScheduleRow = {
@@ -24,6 +26,13 @@ type ScheduleRow = {
   status: SectionStatus;
   minimum_spend_amount: number | string;
   deposit_amount: number | string;
+};
+
+type ReservationRow = {
+  section_id: string;
+  reservation_date: string;
+  booking_slot: BookingSlot;
+  status: ReservationHoldStatus;
 };
 
 export function dateKey(date: Date): string {
@@ -83,14 +92,25 @@ export async function loadBookingSchedule(venueId: string, venueName: string, da
     .in("reservation_date", dates);
   if (error) throw error;
   const { data: reservations, error: reservationError } = await devDb.from("bookings")
-    .select("section_id,reservation_date,booking_slot")
-    .eq("record_type", "reservation").in("status", ["confirmed", "completed"])
+    .select("section_id,reservation_date,booking_slot,status")
+    .eq("record_type", "reservation").in("status", ["pending", "confirmed", "completed"])
     .in("section_id", sections.map((section) => section.id)).in("reservation_date", dates);
   if (reservationError) throw reservationError;
-  const sold = new Set((reservations ?? []).map((row) => `${row.reservation_date}:${row.booking_slot}:${row.section_id}`));
+  const reservationStatuses = new Map<string, ReservationHoldStatus>();
+  const statusPriority: Record<ReservationHoldStatus, number> = { pending: 3, confirmed: 2, completed: 1 };
+  for (const row of (reservations ?? []) as ReservationRow[]) {
+    const key = `${row.reservation_date}:${row.booking_slot}:${row.section_id}`;
+    const current = reservationStatuses.get(key);
+    if (!current || statusPriority[row.status] > statusPriority[current]) reservationStatuses.set(key, row.status);
+  }
   return {
     sections: mergeSchedule(sections, dates, slots, venueResult.data.booking_start_time, data as ScheduleRow[])
-      .map((section) => sold.has(scheduleKey(section)) ? { ...section, reservedStatus: section.status, status: "sold" as const } : section),
+      .map((section) => {
+        const reservationStatus = reservationStatuses.get(scheduleKey(section));
+        return reservationStatus
+          ? { ...section, reservedStatus: section.status, reservationStatus }
+          : section;
+      }),
     slots,
   };
 }
