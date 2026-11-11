@@ -71,7 +71,7 @@ async function main() {
     assert.ok(operations.some(([method, column, value]) => method === "gte" && column === "reservation_date" && value === "2026-11-10"));
     assert.ok(operations.some(([method, column, value]) => method === "lte" && column === "reservation_date" && value === "2026-11-11"));
     assert.ok(operations.some(([method, column, value]) => method === "in" && column === "record_type" && value.join() === "reservation,schedule"));
-    assert.ok(operations.some(([method, value]) => method === "select" && value.includes("sections!inner(venue_id)")));
+    assert.ok(operations.some(([method, value]) => method === "select" && value.includes("sections!inner(venue_id,area)")));
   }
   failed = true;
   await assert.rejects(loadVendorBookings("venue", "2026-11-10", "2026-11-10"), /could not be loaded/);

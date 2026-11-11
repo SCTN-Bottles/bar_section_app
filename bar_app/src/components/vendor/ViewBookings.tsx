@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatBookingTime } from "@/lib/booking-time";
+import { venueAreas, venueAreaLabels } from "@/types/venue";
 import { bookingDates, bookingToday, loadVendorBookings, validBookingDates, type VendorBooking } from "@/lib/vendor-bookings";
 
 const buttonClass = "rounded-md border border-neutral-300 px-4 py-3 text-sm font-semibold hover:border-primary disabled:opacity-50";
@@ -37,6 +38,10 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
   const dates = bookingDates(current?.bookings ?? []);
   const activeDate = dates.includes(selectedDate) ? selectedDate : dates[0];
   const visibleBookings = current?.bookings.filter((booking) => booking.reservation_date === activeDate) ?? [];
+  const areaGroups = [
+    ...venueAreas.map((area) => ({ area, label: venueAreaLabels[area], bookings: visibleBookings.filter((booking) => booking.sections?.area === area) })),
+    { area: "other", label: "Other sections", bookings: visibleBookings.filter((booking) => !booking.sections?.area || !venueAreas.includes(booking.sections.area)) },
+  ].filter((group) => group.bookings.length > 0);
 
   return <section id="bookings-panel" role="tabpanel" aria-labelledby="bookings-tab" className="mt-8 space-y-6 pb-12">
     <div>
@@ -65,8 +70,10 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
         <section id="view-booking-day-panel" role="tabpanel" aria-labelledby={`view-booking-day-${activeDate}`} className="space-y-3">
           <h3 className="text-lg font-semibold">{formatDate(activeDate)}</h3>
           {!visibleBookings.length && <p role="status" className="text-sm text-neutral-500">No sections or reservations for this day.</p>}
-          <div className="grid gap-4 lg:grid-cols-2">{visibleBookings.map((booking) => <article key={booking.id} className="space-y-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5 [overflow-wrap:anywhere]">
-            <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-lg font-semibold">{booking.section_name}</h4><span className="rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium">{statuses[booking.status] ?? booking.status}</span></div>
+          <div className="space-y-8">{areaGroups.map((group) => <section key={group.area} aria-labelledby={`booking-area-${group.area}`} className="space-y-4">
+            <h4 id={`booking-area-${group.area}`} className="border-b border-neutral-300 pb-3 text-xl font-semibold">{group.label}<span className="ml-2 text-sm font-normal text-neutral-500">({group.bookings.length})</span></h4>
+          <div className="grid gap-4 lg:grid-cols-2">{group.bookings.map((booking) => <article key={booking.id} className="space-y-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5 [overflow-wrap:anywhere]">
+            <div className="flex flex-wrap items-start justify-between gap-2"><h5 className="text-lg font-semibold">{booking.section_name}</h5><span className="rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium">{statuses[booking.status] ?? booking.status}</span></div>
             <p className="text-sm text-neutral-500">{formatBookingTime(booking.reservation_time.slice(0, 5))} · {booking.booking_slot === "day" ? "Daytime" : "Nighttime"}</p>
             {booking.record_type === "reservation" && <div><p className="font-medium">{booking.customer_name || "Guest details not recorded"}</p>{booking.customer_email && <p className="text-sm text-neutral-500">{booking.customer_email}</p>}</div>}
             <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -80,6 +87,7 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
               <p className="text-xs text-neutral-500">Reservation number: {booking.id}</p>
             </>}
           </article>)}</div>
+          </section>)}</div>
         </section>
         </>}
       </>}

@@ -1,8 +1,10 @@
 import { supabase } from "@/lib/supabase";
+import type { VenueArea } from "@/types/venue";
 
 export type VendorBooking = {
   id: string;
   section_id: string;
+  sections: { area: VenueArea } | null;
   record_type: "reservation" | "schedule";
   customer_name: string | null;
   customer_email: string | null;
@@ -40,14 +42,17 @@ export async function loadVendorBookings(venueId: string, start: string, end: st
   const rows: VendorBooking[] = [];
   for (let offset = 0; ; offset += 200) {
     const { data, error } = await supabase.schema("sctn-dev").from("bookings")
-      .select("id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,guest_count,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id)")
+      .select("id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,guest_count,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id,area)")
       .eq("sections.venue_id", venueId)
       .in("record_type", ["reservation", "schedule"])
       .gte("reservation_date", start).lte("reservation_date", end)
       .order("reservation_date").order("reservation_time").order("id")
       .range(offset, offset + 199);
     if (error) throw new Error("Bookings could not be loaded. Please try again.");
-    rows.push(...(data ?? []) as VendorBooking[]);
+    rows.push(...(data ?? []).map((row) => ({
+      ...row,
+      sections: (Array.isArray(row.sections) ? row.sections[0] : row.sections) ?? null,
+    })));
     if (!data || data.length < 200) break;
   }
   const reserved = new Set(rows.filter((row) => row.record_type === "reservation" && ["pending", "confirmed", "completed"].includes(row.status))
