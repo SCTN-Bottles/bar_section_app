@@ -31,6 +31,18 @@ export function validBookingDates(start: string, end: string) {
   return valid(start) && valid(end) && start >= bookingToday() && start <= end;
 }
 
+export function bookingDates(start: string, end: string): string[] {
+  if (!validBookingDates(start, end)) return [];
+  const dates: string[] = [];
+  const date = new Date(`${start}T12:00:00Z`);
+  const last = Date.parse(`${end}T12:00:00Z`);
+  while (date.getTime() <= last) {
+    dates.push(date.toISOString().slice(0, 10));
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+  return dates;
+}
+
 export async function loadVendorBookings(venueId: string, start: string, end: string): Promise<VendorBooking[]> {
   if (!venueId || !validBookingDates(start, end)) throw new Error("Choose a valid start and end date from today onward. The end date must be on or after the start date.");
   const rows: VendorBooking[] = [];
@@ -38,7 +50,7 @@ export async function loadVendorBookings(venueId: string, start: string, end: st
     const { data, error } = await supabase.schema("sctn-dev").from("bookings")
       .select("id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,guest_count,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id)")
       .eq("sections.venue_id", venueId)
-      .or("record_type.eq.reservation,and(record_type.eq.schedule,status.eq.sold)")
+      .in("record_type", ["reservation", "schedule"])
       .gte("reservation_date", start).lte("reservation_date", end)
       .order("reservation_date").order("reservation_time").order("id")
       .range(offset, offset + 199);
