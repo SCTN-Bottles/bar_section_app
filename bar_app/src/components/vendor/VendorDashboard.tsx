@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useVenueData } from "@/components/providers/VenueDataProvider";
 import ReservationHistory from "@/components/vendor/ReservationHistory";
 import ReservationReview from "@/components/vendor/ReservationReview";
+import ViewBookings from "@/components/vendor/ViewBookings";
 import DrinkMenuEditor from "@/components/vendor/DrinkMenuEditor";
 import WeeklyBookingEditor from "@/components/vendor/WeeklyBookingEditor";
 import SectionDefaultsEditor from "@/components/vendor/SectionDefaultsEditor";
@@ -24,7 +25,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const { venues, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
   const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
-  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations" | "review">("management");
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations" | "review" | "bookings">("management");
   const [defaultsOpened, setDefaultsOpened] = useState(false);
   const [notice, setNotice] = useState("");
   const [drinkDefaultsOpened, setDrinkDefaultsOpened] = useState(false);
@@ -80,6 +81,11 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
       </div>
 
       <div className="mt-7 flex flex-wrap gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
+        <button id="bookings-tab" type="button" role="tab" aria-selected={activeDashboardTab === "bookings"} aria-controls="bookings-panel"
+          onClick={() => setActiveDashboardTab("bookings")}
+          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "bookings" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
+          View Bookings
+        </button>
         <button
           id="review-tab"
           type="button"
@@ -143,6 +149,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
       </div>}
 
       {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} onReservationChanged={() => setReservationRefreshVersion((value) => value + 1)} /></div>}
+      {activeDashboardTab === "bookings" && <ViewBookings venueId={session.venueId} />}
       {activeDashboardTab === "reservations" && (
         <ReservationHistory
           venueId={session.venueId}
