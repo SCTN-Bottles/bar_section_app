@@ -25,7 +25,7 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const { venues, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
   const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
-  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations" | "review" | "bookings">("management");
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations" | "review" | "bookings">("bookings");
   const [defaultsOpened, setDefaultsOpened] = useState(false);
   const [notice, setNotice] = useState("");
   const [drinkDefaultsOpened, setDrinkDefaultsOpened] = useState(false);
