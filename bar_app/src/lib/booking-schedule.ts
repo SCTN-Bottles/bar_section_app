@@ -4,7 +4,7 @@ import type { Section, SectionStatus } from "@/types/venue";
 
 const devDb = supabase.schema("sctn-dev");
 export type BookingSlot = "day" | "night";
-export type ReservationHoldStatus = "pending" | "confirmed" | "completed";
+export type ReservationHoldStatus = "pending" | "confirmed" | "sold";
 export type ScheduledSection = Section & {
   date: string;
   slot: BookingSlot;
@@ -22,17 +22,11 @@ type ScheduleRow = {
   reservation_time: string;
   section_name: string;
   section_description: string;
-  guest_count: number;
-  status: SectionStatus;
+  section_capacity: number;
+  reservation_id: string | null;
+  status: SectionStatus | ReservationHoldStatus;
   minimum_spend_amount: number | string;
   deposit_amount: number | string;
-};
-
-type ReservationRow = {
-  section_id: string;
-  reservation_date: string;
-  booking_slot: BookingSlot;
-  status: ReservationHoldStatus;
 };
 
 export function dateKey(date: Date): string {
@@ -61,12 +55,15 @@ export function mergeSchedule(
   const existing = new Map(rows.map((row) => [`${row.reservation_date}:${row.booking_slot}:${row.section_id}`, row]));
   return dates.flatMap((date) => slots.flatMap((slot) => sections.map((section) => {
     const row = existing.get(`${date}:${slot}:${section.id}`);
+    const status: SectionStatus = row ? row.status === "sold" ? "sold" : "available" : section.status;
+    const reservationStatus = row?.reservation_id ? row.status as ReservationHoldStatus : undefined;
     return {
       ...section, date, slot, time: row?.reservation_time.slice(0, 5) ?? time.slice(0, 5), saved: Boolean(row),
       name: row?.section_name ?? section.name,
       description: row?.section_description ?? section.description,
-      capacity: row?.guest_count ?? section.capacity,
-      status: row?.status ?? section.status,
+      capacity: row?.section_capacity ?? section.capacity,
+      status,
+      ...(reservationStatus ? { reservedStatus: status, reservationStatus } : {}),
       minimumSpend: Number(row?.minimum_spend_amount ?? section.minimumSpend),
       deposit: Number(row?.deposit_amount ?? section.deposit),
     };
@@ -86,31 +83,12 @@ export async function loadBookingSchedule(venueId: string, venueName: string, da
   }
   if (!sections.length) return { sections: [], slots };
   const { data, error } = await devDb.from("bookings")
-    .select("section_id, reservation_date, booking_slot, reservation_time, section_name, section_description, guest_count, status, minimum_spend_amount, deposit_amount")
-    .eq("record_type", "schedule")
+    .select("section_id, reservation_date, booking_slot, reservation_time, section_name, section_description, section_capacity, reservation_id, status, minimum_spend_amount, deposit_amount")
     .in("section_id", sections.map((section) => section.id))
     .in("reservation_date", dates);
   if (error) throw error;
-  const { data: reservations, error: reservationError } = await devDb.from("bookings")
-    .select("section_id,reservation_date,booking_slot,status")
-    .eq("record_type", "reservation").in("status", ["pending", "confirmed", "completed"])
-    .in("section_id", sections.map((section) => section.id)).in("reservation_date", dates);
-  if (reservationError) throw reservationError;
-  const reservationStatuses = new Map<string, ReservationHoldStatus>();
-  const statusPriority: Record<ReservationHoldStatus, number> = { pending: 3, confirmed: 2, completed: 1 };
-  for (const row of (reservations ?? []) as ReservationRow[]) {
-    const key = `${row.reservation_date}:${row.booking_slot}:${row.section_id}`;
-    const current = reservationStatuses.get(key);
-    if (!current || statusPriority[row.status] > statusPriority[current]) reservationStatuses.set(key, row.status);
-  }
   return {
-    sections: mergeSchedule(sections, dates, slots, venueResult.data.booking_start_time, data as ScheduleRow[])
-      .map((section) => {
-        const reservationStatus = reservationStatuses.get(scheduleKey(section));
-        return reservationStatus
-          ? { ...section, reservedStatus: section.status, reservationStatus }
-          : section;
-      }),
+    sections: mergeSchedule(sections, dates, slots, venueResult.data.booking_start_time, data as ScheduleRow[]),
     slots,
   };
 }
@@ -133,7 +111,7 @@ export async function saveBookingSchedule(sections: ScheduledSection[]) {
     reservation_time: section.time,
     section_name: section.name.trim(),
     section_description: section.description.trim(),
-    guest_count: section.capacity,
+    section_capacity: section.capacity,
     status: section.reservedStatus ?? section.status,
     minimum_spend_amount: section.minimumSpend,
     deposit_amount: section.deposit,

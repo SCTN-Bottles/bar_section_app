@@ -37,7 +37,7 @@ async function main() {
     assert.equal(name, "record_verified_reservation_payment");
     if (payment.stripe_session_id !== args.p_session_id) return { error: { message: "Reservation payment not found." } };
     if (args.p_currency !== "usd" || args.p_amount !== booking.deposit_amount * 100) return { error: { message: "Payment mismatch." } };
-    if (!["confirmed", "completed"].includes(booking.status)) return { error: { message: "Please contact the venue to confirm your paid reservation." } };
+    if (!["confirmed", "sold"].includes(booking.status)) return { error: { message: "Please contact the venue to confirm your paid reservation." } };
     if (!payment.paid_at) { payment.paid_at = new Date().toISOString(); updates++; }
     return { error: null };
   }, from(table) {
@@ -45,8 +45,8 @@ async function main() {
     const query = {
       select() { return query; }, eq() { return query; }, is() { return query; },
       update(value) { patch = value; return query; },
-      async single() { return { data: table === "bookings" ? booking : payment }; },
-      async maybeSingle() { return { data: table === "bookings" ? booking : payment }; },
+      async single() { return { data: table === "reservation_attempts" ? booking : payment }; },
+      async maybeSingle() { return { data: table === "reservation_attempts" ? booking : payment }; },
       then(resolve, reject) {
         if (patch && table === "reservation_payments") { updates++; Object.assign(payment, patch); }
         if (patch && table === "bookings") { releases++; Object.assign(booking, patch); }
@@ -122,7 +122,7 @@ async function main() {
   const approvalBooking = { id: "approved", status: "confirmed", deposit_amount: 25 };
   const approvalPayment = { token: "private", payment_deadline: null, stripe_session_id: null };
   const approvalDb = { from(table) {
-    const row = table === "bookings" ? approvalBooking : approvalPayment;
+    const row = table === "reservation_attempts" ? approvalBooking : approvalPayment;
     let patch;
     const query = {
       select() { return query; }, eq() { return query; }, is() { return query; }, gt() { return query; },
@@ -198,15 +198,14 @@ async function main() {
   let savedSettings;
   const scheduleDb = {
     from(table) {
-      let recordType;
       const query = {
         select() { return query; },
-        eq(key, value) { if (key === "record_type") recordType = value; return query; },
+        eq() { return query; },
         in() { return query; },
         async single() { return { data: { booking_slots: ["day", "night"], booking_start_time: "20:00" } }; },
         then(resolve, reject) {
-          const data = table === "bookings" && recordType === "reservation"
-            ? [{ section_id: "section", reservation_date: "2027-01-03", booking_slot: "night" }] : [];
+          const data = table === "bookings"
+            ? [{ section_id: "section", reservation_date: "2027-01-03", booking_slot: "night",reservation_time:"21:00",section_name:"A",section_description:"Section",section_capacity:10,minimum_spend_amount:100,deposit_amount:25,status:"pending",reservation_id:"attempt" }] : [];
           return Promise.resolve({ data, error: null }).then(resolve, reject);
         },
       };
@@ -219,8 +218,8 @@ async function main() {
     "@/lib/supabase": { supabase: { schema: () => scheduleDb } },
   });
   const { sections } = await schedule.loadBookingSchedule("venue", "test-bar", ["2027-01-03", "2027-01-04"]);
-  assert.equal(sections.find((row) => row.date === "2027-01-03" && row.slot === "night").status, "sold");
-  assert.equal(sections.filter((row) => row.status === "available").length, 3, "other dates and slots remain available");
+  assert.equal(sections.find((row) => row.date === "2027-01-03" && row.slot === "night").reservationStatus, "pending");
+  assert.equal(sections.filter((row) => !row.reservationStatus).length, 3, "other dates and slots remain available");
   await schedule.saveBookingSchedule(sections);
   assert.ok(savedSettings.every((row) => row.status === "available"), "reservation holds must not overwrite manual availability when saving unrelated edits");
 
@@ -230,7 +229,7 @@ async function main() {
     "next/link": ({ href, children, ...props }) => React.createElement("a", { href, ...props }, children),
     "@/lib/booking-time": { formatBookingTime: () => "9:30 PM" },
   }).default;
-  const receipt = { id: "booking", venueName: "Test bar", sectionName: "Section A", date: "January 3, 2027", time: "21:30", guestCount: 8, customerEmail: "guest@example.test", minimumSpend: 100, deposit: 25, drinkSignText: "Happy birthday", beverages: [] };
+  const receipt = { id: "booking", venueName: "Test bar", sectionName: "Section A", date: "January 3, 2027", time: "21:30", capacity: 10, customerEmail: "guest@example.test", minimumSpend: 100, deposit: 25, drinkSignText: "Happy birthday", beverages: [] };
   const html = renderToStaticMarkup(React.createElement(Confirmation, { receipt }));
   assert.match(html, /Section summary/);
   assert.match(html, /Section A/);
@@ -238,6 +237,10 @@ async function main() {
   assert.match(html, /management confirms your section/);
   assert.match(html, /href="\/"/);
   assert.doesNotMatch(html, /<form/);
+  assert.match(html, /Section capacity/);
+  const CheckoutForm = load("components/checkout/DemoCheckoutForm.tsx", {}).default;
+  const form = renderToStaticMarkup(React.createElement(CheckoutForm, {onComplete:async()=>{}}));
+  assert.doesNotMatch(form, /Number of guests|name="guests"/);
   const warning = renderToStaticMarkup(React.createElement(Confirmation, { receipt: { ...receipt, emailWarning: "Email delivery failed." } }));
   assert.match(warning, /could not confirm email delivery/);
   assert.doesNotMatch(warning, /A confirmation email has been sent/);

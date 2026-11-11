@@ -257,6 +257,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
           </button>)}
         </div>
         {current && <div id="booking-section-panel" role="tabpanel" aria-labelledby={`section-tab-${current.id}`} className="rounded-lg border border-neutral-300 bg-neutral-100 p-4">
+          <fieldset disabled={Boolean(current.reservationStatus)}>
           <h3 className="text-lg font-semibold">{current.name} · {formatDate(current.date)}</h3>
           <p className="mt-1 text-xs text-neutral-500">{current.saved ? "Loaded from saved booking settings" : "Starting from section defaults"}{dirty.has(scheduleKey(current)) ? " · Unsaved changes" : ""}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -271,7 +272,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
                   ? "Resolve this request in Pending reservations before changing availability."
                   : current.reservationStatus === "confirmed"
                     ? "This approved reservation holds the slot. If unpaid, it releases after cancellation or payment expiry."
-                    : "This completed reservation holds the slot."}
+                    : "This paid reservation holds the slot."}
               </span>
             </div> : <label className="text-sm text-neutral-500">Availability<select value={current.status} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1"><option value="available">Available</option><option value="sold">Sold</option></select></label>}
             <label className="text-sm text-neutral-500">Capacity<input type="number" min="1" step="1" value={Number.isNaN(current.capacity) ? "" : current.capacity} onChange={(event) => updateSection({ capacity: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
@@ -280,6 +281,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
             <label className="text-sm text-neutral-500">Deposit ($)<input type="number" min="0" step="0.01" value={Number.isNaN(current.deposit) ? "" : current.deposit} onChange={(event) => updateSection({ deposit: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
           </div>
           <label className="mt-4 block text-sm text-neutral-500">Description<textarea value={current.description} onChange={(event) => updateSection({ description: event.target.value })} className="input mt-1 min-h-24" /></label>
+          </fieldset>
         </div>}
       </div>
     </fieldset>}

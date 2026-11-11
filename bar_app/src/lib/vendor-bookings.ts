@@ -3,6 +3,7 @@ import type { VenueArea } from "@/types/venue";
 
 export type VendorBooking = {
   id: string;
+  reservation_id: string | null;
   section_id: string;
   sections: { area: VenueArea } | null;
   record_type: "reservation" | "schedule";
@@ -12,12 +13,12 @@ export type VendorBooking = {
   reservation_date: string;
   reservation_time: string;
   booking_slot: string;
-  guest_count: number;
+  section_capacity: number;
   deposit_amount: number;
   minimum_spend_amount: number;
   drink_sign_text: string | null;
   status: string;
-  beverages: { name: string; quantity: number }[];
+  beverages: { name: string; quantity: number }[] | null;
 };
 
 export function bookingToday(now = new Date()) {
@@ -42,7 +43,7 @@ export async function loadVendorBookings(venueId: string, start: string, end: st
   const rows: VendorBooking[] = [];
   for (let offset = 0; ; offset += 200) {
     const { data, error } = await supabase.schema("sctn-dev").from("bookings")
-      .select("id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,guest_count,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id,area)")
+      .select("id,reservation_id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,section_capacity,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id,area)")
       .eq("sections.venue_id", venueId)
       .in("record_type", ["reservation", "schedule"])
       .gte("reservation_date", start).lte("reservation_date", end)
@@ -55,8 +56,6 @@ export async function loadVendorBookings(venueId: string, start: string, end: st
     })));
     if (!data || data.length < 200) break;
   }
-  const reserved = new Set(rows.filter((row) => row.record_type === "reservation" && ["pending", "confirmed", "completed"].includes(row.status))
-    .map((row) => `${row.section_id}:${row.reservation_date}:${row.booking_slot}`));
-  return rows.filter((row) => row.record_type !== "schedule" || !reserved.has(`${row.section_id}:${row.reservation_date}:${row.booking_slot}`))
+  return rows
     .sort((a, b) => a.reservation_date.localeCompare(b.reservation_date) || a.reservation_time.localeCompare(b.reservation_time) || a.id.localeCompare(b.id));
 }

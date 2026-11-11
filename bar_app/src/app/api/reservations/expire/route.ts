@@ -14,10 +14,8 @@ export async function GET(request: Request) {
   const db = adminClient().schema("sctn-dev");
   const now = new Date().toISOString();
   const due = await Promise.all([
-    db.from("reservation_payments").select("booking_id,stripe_session_id,paid_at,payment_deadline,bookings!inner(status)")
-      .eq("bookings.status", "confirmed").is("paid_at", null).lte("payment_deadline", now).order("payment_deadline").limit(25),
-    db.from("logs_reservation_payments").select("booking_id,stripe_session_id,paid_at,payment_deadline,logs_bookings!inner(status)")
-      .eq("logs_bookings.status", "confirmed").is("paid_at", null).lte("payment_deadline", now).order("payment_deadline").limit(25),
+    db.from("reservation_payments").select("booking_id,stripe_session_id,paid_at,payment_deadline,reservation_attempts!inner(status)")
+      .eq("reservation_attempts.status", "confirmed").is("paid_at", null).lte("payment_deadline", now).order("payment_deadline").limit(25),
   ]);
   let failures = 0;
   for (const batch of due) {

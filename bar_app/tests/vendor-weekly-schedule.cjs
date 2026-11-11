@@ -97,7 +97,7 @@ async function main() {
           const rows = request.postDataJSON().p_settings;
           writes.push(rows);
           for (const row of rows) {
-            assert.ok(Number.isInteger(row.guest_count) && row.guest_count > 0);
+            assert.ok(Number.isInteger(row.section_capacity) && row.section_capacity > 0);
             assert.ok(["available", "sold"].includes(row.status));
             assert.equal(row.section_capacity, undefined);
             assert.equal(row.section_status, undefined);
@@ -115,6 +115,7 @@ async function main() {
     });
 
     await page.goto(`${process.env.TEST_BASE_URL || "http://localhost:3000"}/vendor`);
+    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
     assert.equal(await page.getByRole("heading", { name: "Drink menu", exact: true }).count(), 0);
     await page.getByLabel("Week starting Sunday").fill("2026-12-30");
@@ -163,6 +164,7 @@ async function main() {
     await page.getByText("Sections and drink menus saved for 2 days.", { exact: true }).waitFor();
     assert.equal(stored.size, 8);
     await page.reload();
+    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
     await page.getByLabel("Week starting Sunday").fill("2026-12-27");
     await page.getByRole("button", { name: "Confirm days", exact: true }).click();
@@ -200,6 +202,7 @@ async function main() {
     assert.equal(defaults[1].capacity, 18);
     assert.equal(writes.length, bookingWriteCount);
     await page.reload();
+    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
     await page.getByRole("tab", { name: "Update Section Defaults", exact: true }).click();
     await defaultsPanel.getByLabel("Minimum spend ($)", { exact: true }).waitFor();
     assert.equal(await defaultsPanel.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "175.25");
@@ -251,6 +254,7 @@ async function main() {
     assert.equal(menuDefaults[0].name, "New default keg");
     assert.equal(dayMenus.get("2027-01-03").beverages[0].price, 90.25);
     await page.reload();
+    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
     await page.getByLabel("Week starting Sunday").fill("2027-01-03");
     await page.getByRole("button", { name: "Confirm days", exact: true }).click();
@@ -330,7 +334,7 @@ async function main() {
     // Saved Tuesday is outside the venue's default weekdays and must load automatically.
     const savedDate="2027-02-02";
     for(const slot of ["day","night"]) for(const section of defaults) {
-      stored.set(savedDate+":"+slot+":"+section.id,{section_id:section.id,reservation_date:savedDate,booking_slot:slot,reservation_time:"21:30",section_name:section.name,section_description:section.description,guest_count:18,status:"available",minimum_spend_amount:777,deposit_amount:80});
+      stored.set(savedDate+":"+slot+":"+section.id,{section_id:section.id,reservation_date:savedDate,booking_slot:slot,reservation_time:"21:30",section_name:section.name,section_description:section.description,section_capacity:18,status:"available",minimum_spend_amount:777,deposit_amount:80});
     }
     dayMenus.set(savedDate,{venue_id:venue.id,reservation_date:savedDate,beverages:[{...menuDefaults[0],price:88}]});
     await page.getByLabel("Week starting Sunday").fill("2027-01-31");

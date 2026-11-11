@@ -30,7 +30,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
       // This dynamic server page evaluates expiration for each request.
       // eslint-disable-next-line react-hooks/purity
       if (payment?.payment_email_sent_at && !payment.paid_at && Date.parse(payment.payment_deadline) > Date.now()) {
-        const { data: booking } = await db.from("bookings").select("status").eq("id", payment.booking_id).single();
+        const { data: booking } = await db.from("reservation_attempts").select("status").eq("id", payment.booking_id).single();
         if (booking?.status === "confirmed") deadline = payment.payment_deadline;
       }
     }

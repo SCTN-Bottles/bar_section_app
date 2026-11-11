@@ -128,7 +128,6 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
             <h1 className="mt-1 text-3xl font-semibold">Reserve {section.name}</h1>
             <div className="mt-6">
           <DemoCheckoutForm
-            maxGuests={section.capacity}
             onComplete={async (details) => {
 
               const warning = await submitReservation(submissionId, {
@@ -138,7 +137,6 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
                 sectionArea: section.area,
                 customerName: details.customerName,
                 customerEmail: details.customerEmail,
-                guestCount: details.guestCount,
                 reservationDate: date ?? new Date().toISOString().slice(0, 10),
                 reservationTime,
                 beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
@@ -147,7 +145,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
               }, bookingSlot);
               setReceipt({
                 id: submissionId, venueName: activeVenue.name, sectionName: section.name,
-                date: reservationDate, time: reservationTime, guestCount: details.guestCount,
+                date: reservationDate, time: reservationTime, capacity: section.capacity,
                 customerEmail: details.customerEmail, minimumSpend: section.minimumSpend,
                 deposit: section.deposit, drinkSignText,
                 beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),

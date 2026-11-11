@@ -75,14 +75,14 @@ export default function ReservationHistory({ venueId }: { venueId: string }) {
       {loading ? <p role="status" className="px-5 py-8 text-neutral-500">Loading reservation history…</p> : error ? <div className="space-y-3 px-5 py-8"><p role="alert">{error}</p><button type="button" onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Retry loading history</button></div> : data?.reservations.length ? <div className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="bg-neutral-100 text-neutral-500"><tr>
-            {["Date", "Guest", "Section", "Drink sign", "Guests / capacity", "Deposit", "Status"].map((label) => <th key={label} className="px-5 py-3 font-medium">{label}</th>)}
+            {["Date", "Guest", "Section", "Drink sign", "Capacity", "Deposit", "Status"].map((label) => <th key={label} className="px-5 py-3 font-medium">{label}</th>)}
           </tr></thead>
           <tbody>{data.reservations.map((reservation) => <tr key={reservation.booking_id} className="border-t border-neutral-300">
             <td className="whitespace-nowrap px-5 py-4">{formatDate(reservation.reservation_date)}<span className="block text-xs text-neutral-500">{formatBookingTime(reservation.reservation_time)} · {reservation.booking_slot}</span></td>
             <td className="px-5 py-4 [overflow-wrap:anywhere]"><span className="block font-medium">{reservation.customer_name || "Guest details not recorded"}</span><span className="block text-xs text-neutral-500">{reservation.customer_email}</span></td>
             <td className="px-5 py-4">{reservation.section_name}<span className="block text-xs text-neutral-500">{venueAreaLabels[reservation.section_area as VenueArea] ?? reservation.section_area}</span></td>
             <td className="min-w-40 max-w-64 whitespace-pre-wrap px-5 py-4 [overflow-wrap:anywhere]">{reservation.drink_sign_text || "—"}</td>
-            <td className="px-5 py-4">{reservation.guest_count}{reservation.record_type === "schedule" ? " capacity" : " guests"}</td>
+            <td className="px-5 py-4">{reservation.section_capacity}</td>
             <td className="px-5 py-4">${Number(reservation.deposit_amount).toFixed(2)}</td>
             <td className="px-5 py-4">{reservation.paid_at ? "Paid" : "Marked sold"}</td>
           </tr>)}</tbody>

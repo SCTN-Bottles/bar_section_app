@@ -6,12 +6,10 @@ import {
 } from "react";
 
 type DemoCheckoutFormProps = {
-  maxGuests: number;
-  onComplete: (details: { customerName: string; customerEmail: string; guestCount: number }) => Promise<void>;
+  onComplete: (details: { customerName: string; customerEmail: string }) => Promise<void>;
 };
 
 export default function DemoCheckoutForm({
-  maxGuests,
   onComplete,
 }: DemoCheckoutFormProps) {
 
@@ -35,7 +33,6 @@ export default function DemoCheckoutForm({
       await onComplete({
         customerName: String(data.get("name") ?? "").trim(),
         customerEmail: String(data.get("email") ?? "").trim(),
-        guestCount: Number(data.get("guests")),
       });
       setSubmitted(true);
     } catch (error) {
@@ -105,29 +102,6 @@ export default function DemoCheckoutForm({
           type="email"
           required
           placeholder="you@example.com"
-          className="w-full rounded-md border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-primary"
-        />
-
-      </div>
-
-
-      <div>
-
-        <label
-          htmlFor="guests"
-          className="mb-2 block text-sm font-medium"
-        >
-          Number of guests
-        </label>
-
-        <input
-          id="guests"
-          name="guests"
-          type="number"
-          min={1}
-          max={maxGuests}
-          required
-          placeholder="8"
           className="w-full rounded-md border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-primary"
         />
 

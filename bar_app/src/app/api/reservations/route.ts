@@ -7,7 +7,7 @@ export async function POST(request: Request) {
       p_id: id, p_venue_id: reservation.venueId, p_section_id: reservation.sectionId,
       p_date: reservation.reservationDate, p_slot: slot,
       p_name: reservation.customerName, p_email: reservation.customerEmail,
-      p_guests: reservation.guestCount, p_sign: reservation.drinkSignText ?? "",
+      p_sign: reservation.drinkSignText ?? "",
       p_beverages: reservation.beverages,
     });
     if (error) throw new Error(error.message);

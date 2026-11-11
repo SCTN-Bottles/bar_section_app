@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 type Request = {
   id: string; customer_name: string; customer_email: string; section_name: string;
   reservation_date: string; reservation_time: string; booking_slot: string;
-  guest_count: number; deposit_amount: number; minimum_spend_amount: number;
+  section_capacity: number; deposit_amount: number; minimum_spend_amount: number;
   drink_sign_text: string; status: string;
   payment_deadline: string | null;
   beverages: { name: string; quantity: number }[];
@@ -86,7 +86,7 @@ export default function ReservationReview({ venueId, onReservationChanged }: { v
       <p className="text-sm text-neutral-500">{request.status === "confirmed" ? "Approved · Awaiting payment · Section held" : "Pending management review"}</p>
       {request.status === "confirmed" && request.payment_deadline && <p className="text-sm text-neutral-500">Payment due by {new Date(request.payment_deadline).toLocaleString()}.</p>}
       <p>{request.customer_name} · {request.customer_email}</p>
-      <p>{request.reservation_date} · {request.booking_slot} · {request.reservation_time} · {request.guest_count} guests</p>
+      <p>{request.reservation_date} · {request.booking_slot} · {request.reservation_time} · Capacity {request.section_capacity}</p>
       <p>Deposit ${request.deposit_amount} · Minimum spend ${request.minimum_spend_amount}</p>
       <p className="whitespace-pre-wrap">Drink sign: {request.drink_sign_text || "None"}</p>
       <ul>{request.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul>

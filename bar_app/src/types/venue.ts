@@ -68,7 +68,6 @@ export type Reservation = {
   sectionArea: VenueArea;
   customerName: string;
   customerEmail: string;
-  guestCount: number;
   reservationDate: string;
   reservationTime: string;
   beverages: ReservationBeverage[];

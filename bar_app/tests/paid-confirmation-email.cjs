@@ -5,7 +5,7 @@ const vm = require("node:vm");
 const ts = require("typescript");
 
 async function main() {
-  const booking = { id: "booking", section_id: "section", section_name: "A1", reservation_date: "2027-01-03", reservation_time: "21:30", booking_slot: "night", guest_count: 8, deposit_amount: 25, customer_email: "guest@example.test" };
+  const booking = { id: "booking", section_id: "section", section_name: "A1", reservation_date: "2027-01-03", reservation_time: "21:30", booking_slot: "night", section_capacity: 12, deposit_amount: 25, customer_email: "guest@example.test" };
   const payment = { booking_id: booking.id, paid_at: null, paid_confirmation_email_sent_at: null };
   const venue = { name: "Test venue", address: "1 Test St", city: "Chicago", state: "IL" };
   let archived = false;
@@ -23,10 +23,8 @@ async function main() {
     from(table) {
       let patch;
       function row() {
-        if (table === "bookings") return archived ? null : booking;
-        if (table === "logs_bookings") return archived ? booking : null;
-        if (table === "reservation_payments") return archived ? null : payment;
-        if (table === "logs_reservation_payments") return archived ? payment : null;
+        if (table === "reservation_attempts") return booking;
+        if (table === "reservation_payments") return payment;
         if (table === "sections") return { venue_id: "venue" };
         if (table === "venues") return venue;
         throw new Error(`Unexpected table ${table}`);
@@ -76,6 +74,7 @@ async function main() {
   assert.match(sent[0].body.text, /contact venue management for band pickup instructions/);
   assert.match(sent[0].body.text, /contact venue management for entry instructions/);
   assert.match(sent[0].body.text, /Deposit paid: \$25.00/);
+  assert.match(sent[0].body.text, /Section capacity: 12/);
   assert.equal(sent[0].key, "reservation-booking-paid");
   assert.ok(payment.paid_confirmation_email_sent_at);
   await exports.reconcileCheckout("session", true);

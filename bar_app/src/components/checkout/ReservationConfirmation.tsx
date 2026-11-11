@@ -7,7 +7,7 @@ export type ReservationReceipt = {
   sectionName: string;
   date: string;
   time: string;
-  guestCount: number;
+  capacity: number;
   customerEmail: string;
   minimumSpend: number;
   deposit: number;
@@ -25,7 +25,7 @@ export default function ReservationConfirmation({ receipt }: { receipt: Reservat
         {[
           ["Venue", receipt.venueName], ["Section", receipt.sectionName],
           ["Date", receipt.date], ["Time", formatBookingTime(receipt.time)],
-          ["Guests", String(receipt.guestCount)], ["Minimum spend", `$${receipt.minimumSpend}`],
+          ["Section capacity", String(receipt.capacity)], ["Minimum spend", `$${receipt.minimumSpend}`],
           ["Deposit due after approval", `$${receipt.deposit}`],
         ].map(([label, value]) => <div key={label} className="flex justify-between gap-4"><dt className="text-neutral-500">{label}</dt><dd className="text-right">{value}</dd></div>)}
       </dl>

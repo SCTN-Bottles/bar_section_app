@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { errorResponse, requiredEnv, sendReservationEmail, sendReservationReleaseEmail } from "@/lib/server/reservation-payments";
+import { adminClient, errorResponse, requiredEnv, sendReservationEmail, sendReservationReleaseEmail } from "@/lib/server/reservation-payments";
 
 export async function POST(request: Request) {
   try {
@@ -11,15 +11,12 @@ export async function POST(request: Request) {
     if (!user) return Response.json({ error: "Please sign in." }, { status: 401 });
     const { id, status } = await request.json();
     if (!["confirmed", "cancelled"].includes(status)) throw new Error("Invalid decision.");
-    const { data: booking } = await client.schema("sctn-dev").from("bookings").select("id,status").eq("id", id).eq("record_type", "reservation").single();
-    if (!booking) return Response.json({ error: "Reservation unavailable." }, { status: 403 });
-    if (booking.status === "pending") {
-      const { data, error } = await client.schema("sctn-dev").from("bookings")
-        .update({ status }).eq("id", id).eq("status", "pending").select("id");
-      if (error || !data?.length) throw new Error("Reservation has already been reviewed. Refresh and try again.");
-    } else if (booking.status !== status) {
-      throw new Error("Reservation has already been reviewed.");
-    }
+    // The service-only RPC verifies the authenticated manager's venue assignment
+    // and transitions the attempt and its inventory row together under row locks.
+    const { error } = await adminClient().schema("sctn-dev").rpc("review_section_reservation", {
+      p_id: id, p_status: status, p_manager_id: user.id,
+    });
+    if (error) throw new Error(error.message || "Reservation could not be reviewed. Refresh and try again.");
     if (status === "confirmed") {
       try {
         await sendReservationEmail(id, true);

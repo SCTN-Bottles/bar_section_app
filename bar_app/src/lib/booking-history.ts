@@ -8,7 +8,7 @@ export type BookingHistoryRow = {
   section_area: string;
   customer_name: string | null;
   customer_email: string | null;
-  guest_count: number;
+  section_capacity: number;
   deposit_amount: number;
   minimum_spend_amount: number;
   drink_sign_text: string | null;

@@ -13,10 +13,8 @@ const reservation = (id, date = "2026-11-10", status = "confirmed") => ({
 });
 const live = Array.from({ length: 200 }, (_, i) => reservation(`booking-${String(i).padStart(3, "0")}`));
 live.push({ ...reservation("manual"), record_type: "schedule", status: "sold" });
-live.push({ ...reservation("duplicate"), section_id: "booking-000", record_type: "schedule", status: "sold" });
 live.push({ ...reservation("available"), record_type: "schedule", status: "available" });
-live.push({ ...reservation("held"), section_id: "booking-001", record_type: "schedule", status: "available" });
-live.push(reservation("cancelled", "2026-11-11", "cancelled"));
+live.push({ ...reservation("future", "2026-11-11"), record_type:"schedule",status:"available" });
 const exportsObject = {};
 vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, {
   exports: exportsObject,
@@ -59,13 +57,11 @@ async function main() {
   assert.equal(queries.length, 0, "Invalid ranges must not issue a query");
   const bookings = await loadVendorBookings("venue", "2026-11-10", "2026-11-11");
   assert.equal(queries.length, 2, "Read all pages of current bookings only");
-  assert.equal(bookings.length, 203, "Keep available sections and hide schedule slots with active reservations");
+  assert.equal(bookings.length, 203, "Show each inventory row, including available sections");
   assert.equal(bookings[0].id, "available");
   assert.ok(bookings.some((booking) => booking.id === "manual"));
   assert.ok(bookings.some((booking) => booking.id === "available" && booking.status === "available"));
-  assert.ok(!bookings.some((booking) => booking.id === "held"), "Reserved sections must not also appear available");
-  assert.ok(bookings.some((booking) => booking.status === "cancelled"));
-  assert.ok(!bookings.some((booking) => booking.id === "duplicate"));
+  assert.ok(bookings.some((booking) => booking.id === "future"));
   for (const { operations } of queries) {
     assert.ok(operations.some(([method, column, value]) => method === "eq" && column === "sections.venue_id" && value === "venue"));
     assert.ok(operations.some(([method, column, value]) => method === "gte" && column === "reservation_date" && value === "2026-11-10"));

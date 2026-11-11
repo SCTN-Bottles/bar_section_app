@@ -6,7 +6,7 @@ import { venueAreas, venueAreaLabels } from "@/types/venue";
 import { bookingDates, bookingToday, loadVendorBookings, validBookingDates, type VendorBooking } from "@/lib/vendor-bookings";
 
 const buttonClass = "rounded-md border border-neutral-300 px-4 py-3 text-sm font-semibold hover:border-primary disabled:opacity-50";
-const statuses: Record<string, string> = { available: "Available", pending: "Pending review", confirmed: "Approved", completed: "Completed", cancelled: "Cancelled", sold: "Marked sold" };
+const statuses: Record<string, string> = { available: "Available", pending: "Pending review", confirmed: "Approved · Payment pending", sold: "Sold" };
 const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value));
 
 function formatDate(date: string) {
@@ -99,14 +99,14 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
             <p className="text-sm text-neutral-500">{formatBookingTime(booking.reservation_time.slice(0, 5))} · {booking.booking_slot === "day" ? "Daytime" : "Nighttime"}</p>
             {booking.record_type === "reservation" && <div><p className="font-medium">{booking.customer_name || "Guest details not recorded"}</p>{booking.customer_email && <p className="text-sm text-neutral-500">{booking.customer_email}</p>}</div>}
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-neutral-500">{booking.record_type === "schedule" ? "Capacity" : "Guests"}</dt><dd>{booking.guest_count}</dd></div>
+              <div><dt className="text-neutral-500">Capacity</dt><dd>{booking.section_capacity}</dd></div>
               <div><dt className="text-neutral-500">Deposit</dt><dd>{money(booking.deposit_amount)}</dd></div>
               <div><dt className="text-neutral-500">Minimum spend</dt><dd>{money(booking.minimum_spend_amount)}</dd></div>
             </dl>
             {booking.record_type === "reservation" && <>
               <p className="whitespace-pre-wrap text-sm">Drink sign: {booking.drink_sign_text || "None"}</p>
               <div className="text-sm"><p className="text-neutral-500">Drink requests</p>{booking.beverages?.length ? <ul>{booking.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul> : <p>None</p>}</div>
-              <p className="text-xs text-neutral-500">Reservation number: {booking.id}</p>
+              <p className="text-xs text-neutral-500">Reservation number: {booking.reservation_id}</p>
             </>}
           </article>)}</div>
           </section>)}
