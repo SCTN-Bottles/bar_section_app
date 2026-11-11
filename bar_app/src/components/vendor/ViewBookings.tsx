@@ -34,7 +34,7 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
 
   const loading = valid && result?.key !== key;
   const current = valid && result?.key === key ? result : null;
-  const dates = bookingDates(start, end);
+  const dates = bookingDates(current?.bookings ?? []);
   const activeDate = dates.includes(selectedDate) ? selectedDate : dates[0];
   const visibleBookings = current?.bookings.filter((booking) => booking.reservation_date === activeDate) ?? [];
 
@@ -53,6 +53,8 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
     <div aria-busy={loading} className="space-y-6">
       {loading && <p role="status" className="text-sm text-neutral-500">Loading bookings…</p>}
       {current?.error ? <div className="space-y-3"><p role="alert" className="text-red-700">{current.error}</p><button type="button" onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Retry loading bookings</button></div> : current && <>
+        {!dates.length && <p role="status" className="text-sm text-neutral-500">No sections or reservations for the selected dates.</p>}
+        {dates.length > 0 && <>
         <div role="tablist" aria-label="Booking days" className="flex flex-wrap gap-2">
           {dates.map((date) => <button key={date} id={`view-booking-day-${date}`} type="button" role="tab"
             aria-selected={activeDate === date} aria-controls="view-booking-day-panel" onClick={() => setSelectedDate(date)}
@@ -79,6 +81,7 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
             </>}
           </article>)}</div>
         </section>
+        </>}
       </>}
     </div>
   </section>;

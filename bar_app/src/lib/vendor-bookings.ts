@@ -31,16 +31,8 @@ export function validBookingDates(start: string, end: string) {
   return valid(start) && valid(end) && start >= bookingToday() && start <= end;
 }
 
-export function bookingDates(start: string, end: string): string[] {
-  if (!validBookingDates(start, end)) return [];
-  const dates: string[] = [];
-  const date = new Date(`${start}T12:00:00Z`);
-  const last = Date.parse(`${end}T12:00:00Z`);
-  while (date.getTime() <= last) {
-    dates.push(date.toISOString().slice(0, 10));
-    date.setUTCDate(date.getUTCDate() + 1);
-  }
-  return dates;
+export function bookingDates(bookings: Pick<VendorBooking, "reservation_date">[]): string[] {
+  return [...new Set(bookings.map((booking) => booking.reservation_date))].sort();
 }
 
 export async function loadVendorBookings(venueId: string, start: string, end: string): Promise<VendorBooking[]> {

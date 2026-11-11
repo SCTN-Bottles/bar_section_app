@@ -47,9 +47,8 @@ vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.Mo
 
 async function main() {
   const { bookingDates, bookingToday, validBookingDates, loadVendorBookings } = exportsObject;
-  assert.deepEqual(Array.from(bookingDates("2026-11-10", "2026-11-12")), ["2026-11-10", "2026-11-11", "2026-11-12"], "Day tabs include empty days in the range");
-  assert.deepEqual(Array.from(bookingDates("2026-11-10", "2026-11-10")), ["2026-11-10"]);
-  assert.deepEqual(Array.from(bookingDates("2026-11-09", "2026-11-10")), []);
+  assert.deepEqual(Array.from(bookingDates([reservation("later", "2026-11-12"), reservation("first"), reservation("same-day")])), ["2026-11-10", "2026-11-12"], "Day tabs omit empty days and sort populated days without duplicates");
+  assert.deepEqual(Array.from(bookingDates([])), []);
   assert.equal(bookingToday(new Date("2026-11-11T03:00:00Z")), "2026-11-10", "Today uses Chicago time rather than UTC");
   assert.ok(validBookingDates("2026-11-10", "2026-11-10"));
   assert.ok(validBookingDates("2028-02-29", "2028-03-01"));
