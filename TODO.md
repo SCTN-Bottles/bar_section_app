@@ -9,3 +9,5 @@
 8. make sure to change dev keys to prod keys in vercel environment variables
 9. add rate limiting for vendor login and reservation submission
 10. playwright for UI testing
+11. Consolidate the tabs in the vendor portal
+12. Add graph capabilities to the booking history
