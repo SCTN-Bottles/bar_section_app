@@ -6,7 +6,7 @@ import {
   validateSchedule, weekStart, type BookingSlot, type ScheduledSection,
 } from "@/lib/booking-schedule";
 import { venueAreaLabels, type Venue } from "@/types/venue";
-import DrinkMenuEditor from "@/components/vendor/DrinkMenuEditor";
+import DrinkMenuEditor, { type DrinkMenuEditorHandle } from "@/components/vendor/DrinkMenuEditor";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 
 const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -27,6 +27,8 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const [menuDirty, setMenuDirty] = useState(false);
   const [menuSaving, setMenuSaving] = useState(false);
+  const [menuReady, setMenuReady] = useState(false);
+  const menuEditorRef = useRef<DrinkMenuEditorHandle>(null);
   const [confirmationVersion, setConfirmationVersion] = useState(0);
   const [activeDate, setActiveDate] = useState("");
   const [activeSection, setActiveSection] = useState("");
@@ -171,7 +173,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   }
 
   async function confirmChanges() {
-    if (busy || menuSaving || !canConfirmChanges || (!sections.length && !removedDates.length)) return;
+    if (busy || menuSaving || !canConfirmChanges || (!confirmedDates.length && !removedDates.length)) return;
     const retainedSections = sections.filter((section) => selectedDates.includes(section.date));
     const invalid = validateSchedule(retainedSections);
     if (invalid) {
@@ -181,11 +183,16 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
       setError(`Check the name, description, capacity, prices, and time for ${invalid.name || "this section"} on ${formatDate(invalid.date)}.`);
       return;
     }
+    if (selectedDates.length && !menuEditorRef.current?.validate(selectedDates)) return;
     setBusy("saving");
     setError("");
     setMessage("");
     try {
       if (retainedSections.length) await saveBookingSchedule(retainedSections);
+      if (selectedDates.length && !await menuEditorRef.current?.save(selectedDates)) {
+        setError("Section settings were saved, but drink menus could not be saved. Your edits are still here; click Save changes to retry.");
+        return;
+      }
       for (const date of removedDates) await deleteScheduleDay(venue.id, date);
       setKnownDates(selectedDates);
       setConfirmedDates(selectedDates);
@@ -193,7 +200,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
       if (!selectedDates.length) setMenuDirty(false);
       setSections((values) => values.filter((section) => selectedDates.includes(section.date)).map((section) => ({ ...section, name: section.name.trim(), description: section.description.trim(), saved: true })));
       setDirty(new Set());
-      setMessage(removedDates.length ? `Changes confirmed. Settings deleted for ${removedDates.length} removed day${removedDates.length === 1 ? "" : "s"}.` : `Section settings saved for ${selectedDates.length} day${selectedDates.length === 1 ? "" : "s"}.`);
+      setMessage(removedDates.length ? `Changes saved. Settings deleted for ${removedDates.length} removed day${removedDates.length === 1 ? "" : "s"}.` : `Sections and drink menus saved for ${selectedDates.length} day${selectedDates.length === 1 ? "" : "s"}.`);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Changes could not be saved. Your edits are still here; please try again.");
     } finally {
@@ -204,7 +211,7 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
   return <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
     {confirmationDialog}
     <h2 id="schedule-heading" className="text-2xl font-semibold">Booking schedule</h2>
-    <p className="mt-2 text-sm text-neutral-500">Saved days load automatically. Confirm newly selected days to edit them. Unselecting a day marks its section and drink settings for deletion when you click Confirm changes. Customer reservations are kept.</p>
+    <p className="mt-2 text-sm text-neutral-500">Saved days load automatically. Confirm newly selected days to edit them. Unselecting a day marks its section and drink settings for deletion when you click Save changes. Customer reservations are kept.</p>
     {weekLoading && <p role="status" className="mt-3 text-sm">Checking saved days…</p>}
     {weekError && <p role="alert" className="mt-3 text-sm text-red-700">Saved days could not be loaded. <button type="button" onClick={() => setWeekRetry((value) => value + 1)} className="underline">Retry loading week</button></p>}
     <fieldset disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError} className="mt-5 space-y-5 disabled:opacity-60">
@@ -276,15 +283,15 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
         </div>}
       </div>
     </fieldset>}
-    {removedDates.length > 0 && <p role="status" className="mt-5 text-sm">Pending deletion: {removedDates.map(formatDate).join(", ")}. Click Confirm changes to delete these days, or select them again to keep them.</p>}
-    {(selectionConfirmed || removedDates.length > 0) && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-300 pt-5">
-      <p className="text-sm text-neutral-500">Saves selected sections and deletes days marked for removal. * Unsaved changes.</p>
-      <button type="button" disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError || !canConfirmChanges} onClick={confirmChanges} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary disabled:opacity-50">{busy === "saving" ? "Saving…" : "Confirm changes"}</button>
-    </div>}
+    {removedDates.length > 0 && <p role="status" className="mt-5 text-sm">Pending deletion: {removedDates.map(formatDate).join(", ")}. Click Save changes to delete these days, or select them again to keep them.</p>}
     {confirmedDates.length > 0 && <fieldset disabled={Boolean(busy) || disabled} hidden={!selectionConfirmed} className="mt-8">
-      <DrinkMenuEditor venueId={venue.id} venueName={venue.venueName} dates={confirmedDates}
+      <DrinkMenuEditor ref={menuEditorRef} combinedSave onReadyChange={setMenuReady} venueId={venue.id} venueName={venue.venueName} dates={confirmedDates}
         refreshVersion={`${menuRefreshVersion}:${confirmationVersion}`}
         activeDate={activeDate} onSelectDate={setActiveDate} onDirtyChange={setMenuDirty} onSavingChange={setMenuSaving} />
     </fieldset>}
+    {(selectionConfirmed || removedDates.length > 0) && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-300 pt-5">
+      <p className="text-sm text-neutral-500">Saves sections and drink menus for all confirmed days and deletes days marked for removal. * Unsaved changes.</p>
+      <button type="button" disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError || !canConfirmChanges || (selectedDates.length > 0 && !menuReady)} onClick={confirmChanges} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary disabled:opacity-50">{busy === "saving" ? "Saving…" : "Save changes"}</button>
+    </div>}
   </section>;
 }

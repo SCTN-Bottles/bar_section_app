@@ -123,6 +123,13 @@ async function main() {
     await page.getByText("Starting from section defaults").waitFor();
     const dayTabs = page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab");
     assert.equal(await dayTabs.count(), 2);
+    assert.equal(await page.getByRole("button", { name: "Save changes", exact: true }).count(), 1);
+    assert.equal(await page.getByRole("button", { name: "Save drink changes", exact: true }).count(), 0);
+    assert.ok(await page.evaluate(() => {
+      const menu = document.querySelector('[aria-label="Daily drink menu editor"]');
+      const save = [...document.querySelectorAll("button")].find((button) => button.textContent === "Save changes");
+      return Boolean(menu && save && (menu.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING));
+    }), "The combined save button must appear after the drink menu");
     assert.equal(await page.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "100");
     await page.getByLabel("Minimum spend ($)", { exact: true }).fill("325.5");
     await page.getByLabel("Deposit ($)", { exact: true }).fill("80.25");
@@ -134,7 +141,7 @@ async function main() {
     assert.equal(await page.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "100");
     await page.getByLabel("Capacity", { exact: true }).fill("0");
     await dayTabs.nth(0).click();
-    await page.getByRole("button", { name: "Confirm changes", exact: true }).click();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Check the name" }).waitFor();
     assert.equal(await page.getByLabel("Capacity", { exact: true }).inputValue(), "0");
     assert.equal(writes.length, 0);
@@ -144,16 +151,16 @@ async function main() {
     await page.getByRole("tab", { name: "Add or Update Sections" }).click();
     assert.equal(await page.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "325.5");
     failNextSave = true;
-    await page.getByRole("button", { name: "Confirm changes", exact: true }).click();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Changes could not be saved" }).waitFor();
     assert.equal(await page.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "325.5");
-    await page.getByRole("button", { name: "Confirm changes", exact: true }).click();
-    await page.getByText("Section settings saved for 2 days.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await page.getByText("Sections and drink menus saved for 2 days.", { exact: true }).waitFor();
     assert.equal(writes[0].length, 8); // Two dates, two sections, two slots.
     assert.equal(stored.size, 8);
     await page.getByLabel("Minimum spend ($)", { exact: true }).fill("400");
-    await page.getByRole("button", { name: "Confirm changes", exact: true }).click();
-    await page.getByText("Section settings saved for 2 days.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await page.getByText("Sections and drink menus saved for 2 days.", { exact: true }).waitFor();
     assert.equal(stored.size, 8);
     await page.reload();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
@@ -212,13 +219,21 @@ async function main() {
     await dailyMenu.getByRole("button", { name: "Remove House bottle", exact: true }).click();
     await management.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(0).click();
     assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "90.25");
-    failMenuSave = true;
-    await dailyMenu.getByRole("button", { name: "Save drink changes", exact: true }).click();
+    const savedMenuCount = dayMenus.size;
+    const sectionWriteCount = writes.length;
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("-1");
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await dailyMenu.getByRole("alert").waitFor();
-    assert.equal(dayMenus.size, 0);
-    await dailyMenu.getByRole("button", { name: "Save drink changes", exact: true }).click();
-    await dailyMenu.getByText("Drink menus saved for 2 selected days.", { exact: true }).waitFor();
-    assert.equal(dayMenus.size, 2);
+    assert.equal(writes.length, sectionWriteCount, "Invalid drinks must prevent section writes too");
+    await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("90.25");
+    failMenuSave = true;
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await dailyMenu.getByRole("alert").waitFor();
+    assert.equal(dayMenus.size, savedMenuCount);
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await page.getByText("Sections and drink menus saved for 2 days.", { exact: true }).waitFor();
+    assert.equal(dayMenus.size, savedMenuCount + 2);
+    assert.ok(writes.length > sectionWriteCount, "The combined button must save sections along with menus");
     assert.equal(dayMenus.get("2027-01-03").beverages[0].price, 90.25);
     assert.deepEqual(dayMenus.get("2027-01-04").beverages, []);
     assert.equal(menuDefaults[0].price, 60);
@@ -256,8 +271,8 @@ async function main() {
     await dailyMenu.getByLabel("Drink name", { exact: true }).waitFor();
     assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "New default keg");
     assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "House bottle");
-    await dailyMenu.getByRole("button", { name: "Save drink changes", exact: true }).click();
-    await dailyMenu.getByText("Drink menus saved for 2 selected days.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await page.getByText("Sections and drink menus saved for 2 days.", { exact: true }).waitFor();
     assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "New default keg");
 
     // Unsaved days drop deleted defaults even when their prices were edited locally.
@@ -285,7 +300,7 @@ async function main() {
     await dailyMenu.getByLabel("Price ($)", { exact: true }).waitFor();
     assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "80");
     await dailyMenu.getByRole("button", { name: "Use latest drink defaults", exact: true }).click();
-    await dailyMenu.getByText("Latest drink defaults loaded for 2027-01-10. Click Save drink changes to apply them.", { exact: true }).waitFor();
+    await dailyMenu.getByText("Latest drink defaults loaded for 2027-01-10. Click Save changes to apply them.", { exact: true }).waitFor();
     assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "Replacement bottle");
     assert.equal(dayMenus.has("2027-01-10"), false);
     assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "New default keg");
@@ -346,13 +361,13 @@ async function main() {
     assert.ok(dayMenus.has(savedDate),"Confirm days must not delete menus");
     await tuesday.click();
     failDelete=true;
-    await page.getByRole("button",{name:"Confirm changes",exact:true}).click();
+    await page.getByRole("button",{name:"Save changes",exact:true}).click();
     await page.getByRole("alert").filter({hasText:"Changes could not be saved"}).waitFor();
     assert.equal(await tuesday.getAttribute("aria-pressed"),"false");
     assert.ok(dayMenus.has(savedDate),"Failed confirmation must retain saved data");
     await page.getByText(/Pending deletion:/).waitFor();
-    await page.getByRole("button",{name:"Confirm changes",exact:true}).click();
-    await page.getByText("Changes confirmed. Settings deleted for 1 removed day.",{exact:true}).waitFor();
+    await page.getByRole("button",{name:"Save changes",exact:true}).click();
+    await page.getByText("Changes saved. Settings deleted for 1 removed day.",{exact:true}).waitFor();
     assert.equal(await tuesday.getAttribute("aria-pressed"),"false");
     assert.equal(dayMenus.has(savedDate),false);
     assert.equal([...stored.values()].some(row=>row.reservation_date===savedDate),false);

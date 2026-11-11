@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { getBeverageOptions, saveBeverageOptions } from "@/lib/beverages";
 import { getDailyDrinkMenus, saveDailyDrinkMenus, validDrinkMenu, type DailyDrinkMenu } from "@/lib/drink-menus";
 import type { BeverageOption } from "@/types/venue";
 import { useConfirmation } from "@/components/ui/use-confirmation";
+
+export type DrinkMenuEditorHandle = {
+  validate: (dates: string[]) => boolean;
+  save: (dates: string[]) => Promise<boolean>;
+};
 
 type Props = {
   venueId: string; venueName: string; dates?: string[]; activeDate?: string;
@@ -13,6 +18,9 @@ type Props = {
   onDirtyChange?: (dirty: boolean) => void;
   onSavingChange?: (saving: boolean) => void;
   onSaved?: (beverages: BeverageOption[]) => void;
+  ref?: Ref<DrinkMenuEditorHandle>;
+  combinedSave?: boolean;
+  onReadyChange?: (ready: boolean) => void;
 };
 
 function sameDrinks(first: BeverageOption[], second: BeverageOption[]) {
@@ -41,7 +49,7 @@ function refreshDraft(defaults: BeverageOption[], baseline: BeverageOption[], dr
   return [...drinks, ...draft.filter((drink) => !previous.has(drink.id) && !defaults.some((item) => item.id === drink.id))];
 }
 
-export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate, refreshVersion = "", onSelectDate, onDirtyChange, onSavingChange, onSaved }: Props) {
+export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate, refreshVersion = "", onSelectDate, onDirtyChange, onSavingChange, onSaved, ref, combinedSave = false, onReadyChange }: Props) {
   const { confirm, confirmationDialog } = useConfirmation();
   const isDefault = dates === undefined;
   const datesKey = dates?.join(",") ?? "defaults";
@@ -97,6 +105,9 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
 
   useEffect(() => { onDirtyChange?.(dirty.size > 0); }, [dirty, onDirtyChange]);
   useEffect(() => { onSavingChange?.(saving); }, [saving, onSavingChange]);
+  const ready = !loading && !saving && loadedKey === requestKey;
+  useEffect(() => { onReadyChange?.(ready); }, [ready, onReadyChange]);
+  useImperativeHandle(ref, () => ({ validate, save }));
 
   function change(beverages: BeverageOption[]) {
     if (!current) return;
@@ -105,14 +116,21 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
     setError(""); setNotice("");
   }
 
-  async function save() {
-    if (loading || saving || loadedKey !== requestKey) return;
-    const invalid = menus.find((menu) => !validDrinkMenu(menu.beverages));
+  function validate(selectedDates?: string[]) {
+    if (!ready) return false;
+    const invalid = menus.find((menu) => (!selectedDates || selectedDates.includes(menu.date)) && !validDrinkMenu(menu.beverages));
     if (invalid) {
       onSelectDate?.(invalid.date);
       setError("Check all drink names and non-negative prices before saving.");
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function save(selectedDates?: string[]) {
+    if (!validate(selectedDates)) return false;
+    const selectedMenus = menus.filter((menu) => !selectedDates || selectedDates.includes(menu.date));
+    if (!selectedMenus.length) return true;
     setSaving(true); setError(""); setNotice("");
     try {
       if (isDefault) {
@@ -121,13 +139,14 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
         setMenus([{ date: "defaults", beverages, saved: true }]);
         onSaved?.(beverages);
       } else {
-        await saveDailyDrinkMenus(venueId, menus);
-        baselineRef.current = menus.map((menu) => ({ ...menu, saved: true }));
-        setMenus((values) => values.map((menu) => ({ ...menu, saved: true })));
+        await saveDailyDrinkMenus(venueId, selectedMenus);
+        baselineRef.current = menus.map((menu) => selectedMenus.includes(menu) ? { ...menu, saved: true } : menu);
+        setMenus((values) => values.map((menu) => selectedMenus.some((selected) => selected.date === menu.date) ? { ...menu, saved: true } : menu));
       }
-      setDirty(new Set());
-      setNotice(isDefault ? "Drink menu defaults saved." : `Drink menus saved for ${menus.length} selected day${menus.length === 1 ? "" : "s"}.`);
-    } catch { setError("Drink changes could not be saved. Your edits are still here; please try again."); }
+      setDirty((values) => new Set([...values].filter((date) => !selectedMenus.some((menu) => menu.date === date))));
+      if (!combinedSave) setNotice(isDefault ? "Drink menu defaults saved." : `Drink menus saved for ${selectedMenus.length} selected day${selectedMenus.length === 1 ? "" : "s"}.`);
+      return true;
+    } catch { setError("Drink changes could not be saved. Your edits are still here; please try again."); return false; }
     finally { setSaving(false); }
   }
 
@@ -138,7 +157,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
     try {
       const beverages = await getBeverageOptions(venueName);
       change(beverages);
-      setNotice(`Latest drink defaults loaded for ${current.date}. Click Save drink changes to apply them.`);
+      setNotice(`Latest drink defaults loaded for ${current.date}. Click ${combinedSave ? "Save changes" : "Save drink changes"} to apply them.`);
     } catch { setError("Drink defaults could not be loaded. Your current menu has been kept."); }
     finally { setSaving(false); }
   }
@@ -146,7 +165,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
   return <section aria-label={isDefault ? "Default drink menu editor" : "Daily drink menu editor"} className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
     {confirmationDialog}
     <h2 className="text-2xl font-semibold">{isDefault ? "Update Drink Menu Defaults" : "Drink menu"}</h2>
-    <p className="mt-2 text-sm text-neutral-500">{isDefault ? "Add, remove, or edit the default drinks used for dates without a saved menu." : `Editing ${current?.date ?? activeDate}. Save drink changes saves the menus for all confirmed days.`}</p>
+    <p className="mt-2 text-sm text-neutral-500">{isDefault ? "Add, remove, or edit the default drinks used for dates without a saved menu." : `Editing ${current?.date ?? activeDate}. ${combinedSave ? "Save changes below saves sections and drink menus" : "Save drink changes saves the menus"} for all confirmed days.`}</p>
     {loading && <p role="status" className="mt-4 text-sm">Loading drink menu…</p>}
     {error && <div className="mt-4"><p role="alert" className="text-sm text-red-700">{error}</p>{loadedKey !== requestKey && <button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-2 rounded-md border px-4 py-2">Retry loading menu</button>}</div>}
     {notice && <p role="status" className="mt-4 text-sm">{notice}</p>}
@@ -162,7 +181,7 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
       {!current.beverages.length && <p className="text-sm text-neutral-500">No drinks on this menu. Add a drink, or save an empty menu.</p>}
       <div className="flex flex-wrap justify-between gap-3">
         <button type="button" onClick={() => change([...current.beverages, { id: crypto.randomUUID(), name: "", type: "bottle", price: 0 }])} className="rounded-md border border-neutral-300 px-4 py-3 text-sm font-semibold">Add drink</button>
-        <button type="button" onClick={save} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary">{saving ? "Saving…" : isDefault ? "Save drink menu defaults" : "Save drink changes"}</button>
+        {!combinedSave && <button type="button" onClick={() => void save()} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary">{saving ? "Saving…" : isDefault ? "Save drink menu defaults" : "Save drink changes"}</button>}
       </div>
     </fieldset>}
   </section>;
