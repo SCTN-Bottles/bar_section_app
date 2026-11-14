@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 
 async function main() {
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const browser = await chromium.launch({ ...(process.env.TEST_BROWSER_PATH ? { executablePath: process.env.TEST_BROWSER_PATH } : { channel: "msedge" }), headless: true });
   try {
     const page = await browser.newPage();
     const errors = [];
@@ -13,7 +13,7 @@ async function main() {
     const drink = { id: "11111111-1111-4111-8111-111111111111", name: "Default bottle", type: "bottle", price: 60 };
     const calls = [];
     let failNextRead = false;
-    await page.route("https://*.supabase.co/**", async (route) => {
+    await page.route(process.env.TEST_SUPABASE_PATTERN || "https://*.supabase.co/**", async (route) => {
       const request = route.request();
       const url = new URL(request.url());
       let data;
@@ -51,9 +51,24 @@ async function main() {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Reserve section", exact: true }).click();
     await ageDialog.getByRole("button", { name: "I’m 21 or older", exact: true }).click();
+    await page.getByRole("heading", { name: "Additional bands", exact: true }).waitFor();
+    assert.equal(await page.getByLabel("Number of additional bands").count(), 0);
+    assert.equal(await page.getByRole("button", { name: "Continue to drinks", exact: true }).isEnabled(), false);
+    await page.getByRole("button", { name: "Yes", exact: true }).click();
+    const bandsInput = page.getByLabel("Number of additional bands");
+    assert.equal(await bandsInput.inputValue(), "1");
+    await bandsInput.fill("6");
+    assert.equal(await page.getByRole("button", { name: "Continue to drinks", exact: true }).isEnabled(), false);
+    await bandsInput.fill("5");
+    await page.getByText("Up to 23 guests", { exact: true }).waitFor();
+    await page.getByText("$180.25", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "No", exact: true }).click();
+    assert.equal(await bandsInput.count(), 0);
+    await page.getByRole("button", { name: "Continue to drinks", exact: true }).click();
     await page.getByText("Sunday bottle", { exact: true }).waitFor();
     await page.getByText("$99.25 per bottle", { exact: true }).waitFor();
     assert.equal(await page.getByText("Default bottle", { exact: true }).count(), 0);
+    await page.getByRole("button", { name: "Back to bands" }).click();
     await page.getByRole("button", { name: "Back to sections" }).click();
     await page.getByRole("button", { name: "Daytime", exact: true }).click();
     await page.getByText("No sections are available in this area for the selected date.", { exact: true }).waitFor();
@@ -72,6 +87,10 @@ async function main() {
     await page.getByText("$610.25", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Reserve section", exact: true }).click();
     await ageDialog.getByRole("button", { name: "I’m 21 or older", exact: true }).click();
+    await page.getByRole("heading", { name: "Additional bands", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "No", exact: true }).getAttribute("aria-pressed"), "false");
+    await page.getByRole("button", { name: "No", exact: true }).click();
+    await page.getByRole("button", { name: "Continue to drinks", exact: true }).click();
     assert.equal(await page.getByText("Sunday bottle", { exact: true }).count(), 0);
     assert.ok(await page.getByRole("button", { name: "Continue to drink sign", exact: true }).isEnabled());
     await page.getByRole("button", { name: "Continue to drink sign", exact: true }).click();
@@ -89,14 +108,24 @@ async function main() {
     await signInput.waitFor();
     assert.equal(await page.getByRole("button", { name: "Continue to agreement" }).isEnabled(), false);
     // Direct checkout must also reload the selected date's prices instead of trusting URL values.
-    await page.goto(`${base}/myhouse/checkout/${section.id}?date=2027-01-03&slot=night&time=01:00&addons=${drink.id}:1`);
+    await page.goto(`${base}/myhouse/checkout/${section.id}?date=2027-01-03&slot=night&additional_bands=5&bandsChoice=yes&time=01:00&addons=${drink.id}:1`);
     await page.getByRole("heading", { name: "Reserve Sunday A1", exact: true }).waitFor();
     await page.getByText("1× Sunday bottle", { exact: true }).waitFor();
     await page.getByText("$99.25", { exact: true }).first().waitFor();
     await page.getByText("$510.5", { exact: true }).waitFor();
     await page.getByText("9:30 PM", { exact: true }).waitFor();
+    await page.getByText("Up to 23 guests", { exact: true }).waitFor();
+    await page.getByText("$180.25", { exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to drink sign" }).click();
+    await page.getByRole("button", { name: "Back to drinks" }).click();
+    await page.getByRole("button", { name: "Back to bands" }).click();
+    assert.equal(await page.getByLabel("Number of additional bands").inputValue(), "5");
+    await page.goto(`${base}/myhouse/checkout/${section.id}?date=2027-01-03&additional_bands=6`);
+    await page.getByRole("alert").filter({ hasText: "0 to 5 additional bands" }).waitFor();
+    await page.getByRole("link", { name: "Edit additional bands" }).click();
+    await page.getByRole("heading", { name: "Additional bands", exact: true }).waitFor();
     assert.deepEqual(errors, []);
-    console.log("PASS: dated sections/drinks, availability, date switching, load error retry, empty menus, and direct checkout prices");
+    console.log("PASS: dated sections/drinks, availability, date switching, load error retry, empty menus, conditional band selection, input limits, band totals, navigation preservation, and direct checkout prices");
   } finally { await browser.close(); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

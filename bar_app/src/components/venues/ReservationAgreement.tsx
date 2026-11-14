@@ -15,7 +15,7 @@ export default function ReservationAgreement({ onBack, checkoutHref }: Reservati
       </button>
 
       <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 4 of 5</p>
+        <p className="text-sm text-neutral-500">Step 5 of 6</p>
         <h1 className="mt-1 text-3xl font-semibold">Reservation agreement</h1>
       </div>
 
@@ -25,7 +25,7 @@ export default function ReservationAgreement({ onBack, checkoutHref }: Reservati
         <p className="mt-4">This placeholder agreement outlines the terms for reserving a section at the venue. A final, venue-approved agreement will be provided before launch.</p>
 
         <h3 className="mt-5 font-semibold text-foreground">Reservation terms</h3>
-        <p className="mt-1">The reservation holder is responsible for their guests and for meeting the section&apos;s required minimum spend. The stated deposit is required to confirm the reservation.</p>
+        <p className="mt-1">The reservation holder is responsible for their guests and for meeting the section&apos;s required minimum spend. The stated deposit and any additional bands are paid together after approval to confirm the reservation. Additional bands do not count toward the drink minimum.</p>
 
         <h3 className="mt-5 font-semibold text-foreground">Damages and conduct</h3>
         <p className="mt-1">The reservation holder may be responsible for repair or replacement costs for damage caused by their party. The venue may end a reservation for unsafe, unlawful, or disruptive behavior.</p>

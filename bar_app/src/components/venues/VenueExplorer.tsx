@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import BeverageSelection, {
   BeverageQuantities,
 } from "@/components/venues/BeverageSelection";
+import AdditionalBandsSelection, { type BandChoice } from "@/components/venues/AdditionalBandsSelection";
+import { parseAdditionalBands } from "@/lib/additional-bands";
 import BookingCalendar from "@/components/venues/BookingCalendar";
 import DrinkSignCustomization from "@/components/venues/DrinkSignCustomization";
 import ReservationAgreement from "@/components/venues/ReservationAgreement";
@@ -31,10 +33,12 @@ type VenueExplorerProps = {
     addons?: string;
     signText?: string;
     restart?: string;
+    additional_bands?: string;
+    bandsChoice?: string;
   };
 };
 
-type ReservationStep = "sections" | "drinks" | "sign" | "agreement";
+type ReservationStep = "sections" | "bands" | "drinks" | "sign" | "agreement";
 
 function isBookableDate(value: string | undefined, availableWeekdays: number[]) {
   if (!value) {
@@ -102,9 +106,20 @@ export default function VenueExplorer({
   const [selectedSectionId, setSelectedSectionId] = useState(
     initialSection?.id ?? "",
   );
+  const initialBands = parseAdditionalBands(initialReservation?.additional_bands);
+  const [bandChoice, setBandChoice] = useState<BandChoice>(initialSection && initialBands !== null
+    ? initialReservation?.bandsChoice === "yes" || (initialBands > 0) ? "yes" : initialReservation?.bandsChoice === "no" ? "no" : null
+    : null);
+  const [bandQuantity, setBandQuantity] = useState(String(initialBands ?? 0));
+  const additionalBands = bandChoice === "yes" ? Number(bandQuantity) : 0;
+  function resetBands() { setBandChoice(null); setBandQuantity("0"); }
+  function chooseSection(id: string) {
+    if (id !== selectedSectionId) resetBands();
+    setSelectedSectionId(id);
+  }
   const [reservationStep, setReservationStep] = useState<ReservationStep>(
-    initialSection && (initialReservation?.step === "drinks" || initialReservation?.step === "sign" || initialReservation?.step === "agreement")
-      ? initialReservation.step
+    initialSection && (initialReservation?.step === "bands" || initialReservation?.step === "drinks" || initialReservation?.step === "sign" || initialReservation?.step === "agreement")
+      ? initialBands === null ? "bands" : initialReservation.step
       : "sections",
   );
   const [beverageQuantities, setBeverageQuantities] = useState<BeverageQuantities>(
@@ -157,11 +172,13 @@ export default function VenueExplorer({
     }
   }
   function changeArea(area: VenueArea) {
+    if (area !== activeArea) resetBands();
     setActiveArea(area);
     setSelectedSectionId(getFirstAvailableSectionId(area));
   }
 
   function chooseBookingDate(date: string) {
+    resetBands();
     setBookingDate(date);
     setSelectedSectionId(getFirstAvailableSectionId(activeArea));
     setBeverageQuantities({});
@@ -170,6 +187,7 @@ export default function VenueExplorer({
   }
 
   function changeBookingDate() {
+    resetBands();
     setBookingDate(null);
     setSelectedSectionId("");
     setBeverageQuantities({});
@@ -216,9 +234,18 @@ export default function VenueExplorer({
     time: bookingTime,
     slot: bookingSlot,
     addons,
+    additional_bands: String(additionalBands),
+    bandsChoice: bandChoice ?? "",
   });
   const signText = normalizeDrinkSignText(drinkSignText);
   if (signText) checkoutQuery.set("signText", signText);
+
+  if (reservationStep === "bands" && selectedSection) {
+    return <AdditionalBandsSelection section={selectedSection} choice={bandChoice} quantity={bandQuantity}
+      onChoice={(choice) => { if (choice !== bandChoice) { setBandChoice(choice); setBandQuantity(choice === "yes" ? "1" : "0"); } }}
+      onQuantity={setBandQuantity} onBack={() => setReservationStep("sections")}
+      onContinue={() => void continueReservation("drinks")} />;
+  }
 
   if (reservationStep === "drinks" && selectedSection) {
     return (
@@ -227,9 +254,10 @@ export default function VenueExplorer({
         section={selectedSection}
         bookingDate={bookingDate}
         bookingTime={bookingTime}
+        additionalBands={additionalBands}
         quantities={activeBeverageQuantities}
         onChangeQuantities={setBeverageQuantities}
-        onBack={() => setReservationStep("sections")}
+        onBack={() => setReservationStep("bands")}
         onContinue={() => void continueReservation("sign")}
       />
     );
@@ -274,7 +302,7 @@ export default function VenueExplorer({
         </button>
       </div>
 
-      {availableSlots.length > 1 && <div className="mb-6 flex gap-2" aria-label="Reservation period">{availableSlots.map((slot) => <button key={slot} type="button" aria-pressed={bookingSlot === slot} onClick={() => { setBookingSlot(slot); setSelectedSectionId(""); setBeverageQuantities({}); setReservationStep("sections"); }} className={`rounded-md border px-4 py-2 ${bookingSlot === slot ? "bg-primary text-on-primary" : "border-neutral-300"}`}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</div>}
+      {availableSlots.length > 1 && <div className="mb-6 flex gap-2" aria-label="Reservation period">{availableSlots.map((slot) => <button key={slot} type="button" aria-pressed={bookingSlot === slot} onClick={() => { resetBands(); setBookingSlot(slot); setSelectedSectionId(""); setBeverageQuantities({}); setReservationStep("sections"); }} className={`rounded-md border px-4 py-2 ${bookingSlot === slot ? "bg-primary text-on-primary" : "border-neutral-300"}`}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</div>}
       {!hasSections ? (
         <p role="status" className="rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-8 text-center text-neutral-600">
           {availableSlots.length > 1
@@ -322,7 +350,7 @@ export default function VenueExplorer({
               area={activeArea}
               sections={activeSections}
               selectedSectionId={selectedSection?.id ?? ""}
-              onSelectSection={setSelectedSectionId}
+              onSelectSection={chooseSection}
             />
 
             <div>
@@ -337,7 +365,7 @@ export default function VenueExplorer({
                   section={selectedSection}
                   bookingDate={bookingDate}
                   bookingTime={bookingTime}
-                  onReserve={() => void continueReservation("drinks")}
+                  onReserve={() => void continueReservation("bands")}
                 />
               )}
             </div>

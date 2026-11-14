@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     if (assignmentError || !assignment) return Response.json({ error: "Venue access unavailable." }, { status: 403 });
     // Read bookings under the vendor's RLS. Payment tokens remain server-only.
     const { data: bookings, error } = await db.from("reservation_attempts")
-      .select("id,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,section_capacity,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id)")
+      .select("id,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,section_capacity,additional_bands,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id)")
       .eq("sections.venue_id", venueId).eq("record_type", "reservation")
       .in("status", ["pending", "confirmed"]).order("created_at");
     if (error) throw new Error("Could not load reservations.");

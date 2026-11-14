@@ -14,6 +14,8 @@ type VenuePageProps = {
     section?: string;
     step?: string;
     addons?: string;
+    additional_bands?: string;
+    bandsChoice?: string;
     signText?: string;
     restart?: string;
   }>;

@@ -24,6 +24,6 @@ export default function PaymentForm({ token }: { token: string }) {
       <input name="reservationNumber" required className="mt-2 w-full rounded border p-3" autoComplete="off" />
     </label>
     {error && <p role="alert" className="text-red-700">{error}</p>}
-    <button disabled={busy} className="rounded bg-primary px-5 py-3 text-on-primary">{busy ? "Opening checkout…" : "Pay deposit with Stripe"}</button>
+    <button disabled={busy} className="rounded bg-primary px-5 py-3 text-on-primary">{busy ? "Opening checkout…" : "Pay deposit and bands with Stripe"}</button>
   </form>;
 }

@@ -5,8 +5,8 @@ const vm = require("node:vm");
 const ts = require("typescript");
 
 async function main() {
-  const booking = { id: "booking", section_id: "section", section_name: "A1", reservation_date: "2027-01-03", reservation_time: "21:30", booking_slot: "night", section_capacity: 12, deposit_amount: 25, customer_email: "guest@example.test" };
-  const payment = { booking_id: booking.id, paid_at: null, paid_confirmation_email_sent_at: null };
+  const booking = { id: "booking", section_id: "section", section_name: "A1", reservation_date: "2027-01-03", reservation_time: "21:30", booking_slot: "night", section_capacity: 12, additional_bands: 2, deposit_amount: 25, customer_email: "guest@example.test" };
+  const payment = { booking_id: booking.id, amount_paid_at_checkout: 65, paid_at: null, paid_confirmation_email_sent_at: null };
   const venue = { name: "Test venue", address: "1 Test St", city: "Chicago", state: "IL" };
   let archived = false;
   let failEmail = false;
@@ -46,10 +46,15 @@ async function main() {
     exports, URL, AbortSignal,
     process: { env: { NEXT_PUBLIC_SUPABASE_URL: "https://example.test", SUPABASE_SERVICE_ROLE_KEY: "test", STRIPE_SECRET_KEY: "test", RESEND_API_KEY: "test" } },
     require(name) {
+      if (name === "@/lib/additional-bands") {
+        const helper = { exports: {} };
+        vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.resolve(__dirname, "../src/lib/additional-bands.ts"), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: helper.exports });
+        return helper.exports;
+      }
       if (name === "server-only") return {};
       if (name === "@/lib/booking-time") return { formatBookingTime: () => "9:30 PM" };
       if (name === "@supabase/supabase-js") return { createClient: () => ({ schema: () => db }) };
-      if (name === "stripe") return class { constructor() { return { checkout: { sessions: { retrieve: async () => ({ id: "session", metadata: { reservation_id: booking.id }, payment_status: sessionPaid ? "paid" : "unpaid", currency: "usd", amount_total: 2500 }) } } }; } };
+      if (name === "stripe") return class { constructor() { return { checkout: { sessions: { retrieve: async () => ({ id: "session", metadata: { reservation_id: booking.id }, payment_status: sessionPaid ? "paid" : "unpaid", currency: "usd", amount_total: 6500 }) } } }; } };
       return require(name);
     },
     async fetch(_url, options) {
@@ -75,6 +80,9 @@ async function main() {
   assert.match(sent[0].body.text, /contact venue management for entry instructions/);
   assert.match(sent[0].body.text, /Deposit paid: \$25.00/);
   assert.match(sent[0].body.text, /Section capacity: 12/);
+  assert.match(sent[0].body.text, /Additional bands: 2 × \$20 = \$40/);
+  assert.match(sent[0].body.text, /Total guest allowance: 14/);
+  assert.match(sent[0].body.text, /Total paid: \$65.00/);
   assert.equal(sent[0].key, "reservation-booking-paid");
   assert.ok(payment.paid_confirmation_email_sent_at);
   await exports.reconcileCheckout("session", true);

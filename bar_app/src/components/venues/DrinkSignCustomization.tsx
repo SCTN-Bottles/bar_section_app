@@ -23,7 +23,7 @@ export default function DrinkSignCustomization({
       </button>
 
       <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 3 of 5</p>
+        <p className="text-sm text-neutral-500">Step 4 of 6</p>
         <h1 className="mt-1 text-3xl font-semibold">Customize your drink sign</h1>
         <p className="mt-2 text-sm leading-6 text-neutral-500">
           Give your celebration a personal touch. Add the message you&apos;d like on your drink sign.

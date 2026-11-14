@@ -16,7 +16,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
     return <main className="mx-auto max-w-xl px-6 py-16">
       <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
         <h1 className="text-2xl font-semibold">{paid ? "Payment successful" : "Payment confirmation unavailable"}</h1>
-        <p role="status" className="mt-4">{paid ? "Your deposit has been received. Your reservation is confirmed and your section is secured." : "We could not confirm your payment yet. Refresh this page to check again, or contact the venue if Stripe shows a successful payment. Please do not pay again."}</p>
+        <p role="status" className="mt-4">{paid ? "Your payment has been received. Your reservation is confirmed and your section is secured." : "We could not confirm your payment yet. Refresh this page to check again, or contact the venue if Stripe shows a successful payment. Please do not pay again."}</p>
         {!paid && sessionId && <Link href={`/pay?submitted=1&session_id=${encodeURIComponent(sessionId)}`} className="mt-6 inline-block underline">Check payment status again</Link>}
         <Link href="/" className="mt-6 block rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent">Back to home</Link>
       </div>
@@ -38,7 +38,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   return <main className="mx-auto max-w-xl px-6 py-16">
     <h1 className="text-2xl font-semibold">Reservation payment</h1>
     {deadline && token ? <>
-      <p className="mt-4">Enter the reservation number from your email to pay your deposit.</p>
+      <p className="mt-4">Enter the reservation number from your email to pay your deposit and any additional bands.</p>
       <p className="mt-2">Payment is due by {new Date(deadline).toUTCString()}.</p>
       <PaymentForm token={token} />
     </> : <p className="mt-4">This payment link is unavailable, expired, or already paid. Please contact the venue.</p>}

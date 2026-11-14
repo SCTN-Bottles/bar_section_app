@@ -1,3 +1,4 @@
+import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import Link from "next/link";
 import { formatBookingTime } from "@/lib/booking-time";
 
@@ -11,12 +12,14 @@ export type ReservationReceipt = {
   customerEmail: string;
   minimumSpend: number;
   deposit: number;
+  additional_bands: number;
   drinkSignText: string;
   beverages: { id: string; name: string; quantity: number; price: number }[];
   emailWarning?: string;
 };
 
 export default function ReservationConfirmation({ receipt }: { receipt: ReservationReceipt }) {
+  const bands = receipt.additional_bands ?? 0;
   return <main className="mx-auto max-w-2xl px-6 py-16">
     <section className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
       <h1 className="text-3xl font-semibold">Reservation submitted</h1>
@@ -26,7 +29,10 @@ export default function ReservationConfirmation({ receipt }: { receipt: Reservat
           ["Venue", receipt.venueName], ["Section", receipt.sectionName],
           ["Date", receipt.date], ["Time", formatBookingTime(receipt.time)],
           ["Section capacity", String(receipt.capacity)], ["Minimum spend", `$${receipt.minimumSpend}`],
+          ["Additional bands", `${bands} × $${ADDITIONAL_BAND_PRICE} = $${bands * ADDITIONAL_BAND_PRICE}`],
+          ["Total guest allowance", `Up to ${receipt.capacity + bands} guests`],
           ["Deposit due after approval", `$${receipt.deposit}`],
+          ["Total due after approval", `$${receipt.deposit + bands * ADDITIONAL_BAND_PRICE}`],
         ].map(([label, value]) => <div key={label} className="flex justify-between gap-4"><dt className="text-neutral-500">{label}</dt><dd className="text-right">{value}</dd></div>)}
       </dl>
       <div className="mt-5 border-t border-neutral-300 pt-4">
@@ -38,7 +44,7 @@ export default function ReservationConfirmation({ receipt }: { receipt: Reservat
       <p className="mt-5 break-all text-sm text-neutral-500">Reservation number: {receipt.id}</p>
       <div className="mt-6 border-t border-neutral-300 pt-5">
         {receipt.emailWarning ? <p role="alert">Your reservation was submitted, but we could not confirm email delivery. {receipt.emailWarning}</p> : <p role="status" className="[overflow-wrap:anywhere]">A confirmation email has been sent to {receipt.customerEmail}.</p>}
-        <p className="mt-3">If management confirms your section, you will receive a payment link via email to pay your deposit.</p>
+        <p className="mt-3">If management confirms your section, you will receive a payment link via email to pay your deposit and any additional bands. Bands do not count toward the drink minimum.</p>
         <Link href="/" className="mt-6 block rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent">Back to home</Link>
       </div>
     </section>

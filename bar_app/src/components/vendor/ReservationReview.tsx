@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { supabase } from "@/lib/supabase";
 
 type Request = {
   id: string; customer_name: string; customer_email: string; section_name: string;
   reservation_date: string; reservation_time: string; booking_slot: string;
-  section_capacity: number; deposit_amount: number; minimum_spend_amount: number;
+  additional_bands: number; section_capacity: number; deposit_amount: number; minimum_spend_amount: number;
   drink_sign_text: string; status: string;
   payment_deadline: string | null;
   beverages: { name: string; quantity: number }[];
@@ -87,6 +88,8 @@ export default function ReservationReview({ venueId, onReservationChanged }: { v
       {request.status === "confirmed" && request.payment_deadline && <p className="text-sm text-neutral-500">Payment due by {new Date(request.payment_deadline).toLocaleString()}.</p>}
       <p>{request.customer_name} · {request.customer_email}</p>
       <p>{request.reservation_date} · {request.booking_slot} · {request.reservation_time} · Capacity {request.section_capacity}</p>
+      <p>Additional bands: {request.additional_bands ?? 0} · Band charge ${((request.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)} · Total guest allowance {request.section_capacity + (request.additional_bands ?? 0)}</p>
+      <p>Total due after approval ${(Number(request.deposit_amount) + (request.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</p>
       <p>Deposit ${request.deposit_amount} · Minimum spend ${request.minimum_spend_amount}</p>
       <p className="whitespace-pre-wrap">Drink sign: {request.drink_sign_text || "None"}</p>
       <ul>{request.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul>

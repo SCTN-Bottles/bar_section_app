@@ -70,6 +70,7 @@ export type Reservation = {
   customerEmail: string;
   reservationDate: string;
   reservationTime: string;
+  additional_bands: number;
   beverages: ReservationBeverage[];
   drinkSignText?: string;
   deposit: number;

@@ -14,6 +14,7 @@ export type VendorBooking = {
   reservation_time: string;
   booking_slot: string;
   section_capacity: number;
+  additional_bands: number;
   deposit_amount: number;
   minimum_spend_amount: number;
   drink_sign_text: string | null;
@@ -43,7 +44,7 @@ export async function loadVendorBookings(venueId: string, start: string, end: st
   const rows: VendorBooking[] = [];
   for (let offset = 0; ; offset += 200) {
     const { data, error } = await supabase.schema("sctn-dev").from("bookings")
-      .select("id,reservation_id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,section_capacity,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id,area)")
+      .select("id,reservation_id,section_id,record_type,customer_name,customer_email,section_name,reservation_date,reservation_time,booking_slot,section_capacity,additional_bands,deposit_amount,minimum_spend_amount,drink_sign_text,status,beverages,sections!inner(venue_id,area)")
       .eq("sections.venue_id", venueId)
       .in("record_type", ["reservation", "schedule"])
       .gte("reservation_date", start).lte("reservation_date", end)

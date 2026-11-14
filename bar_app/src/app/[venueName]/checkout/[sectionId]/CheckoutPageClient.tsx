@@ -1,5 +1,6 @@
 "use client";
 
+import { ADDITIONAL_BAND_PRICE, parseAdditionalBands } from "@/lib/additional-bands";
 import Link from "next/link";
 import { submitReservation } from "@/lib/reservations";
 import { useState } from "react";
@@ -20,6 +21,8 @@ type CheckoutPageClientProps = {
   time?: string;
   slot?: string;
   addons?: string;
+  additional_bands?: string;
+  bandsChoice?: string;
   signText?: string;
 };
 
@@ -51,7 +54,7 @@ function getSelectedBeverages(value: string | undefined, beverages: BeverageOpti
   }, []);
 }
 
-export default function CheckoutPageClient({ initialVenue, sectionId, date, time, slot, addons, signText }: CheckoutPageClientProps) {
+export default function CheckoutPageClient({ initialVenue, sectionId, date, time, slot, addons, additional_bands, bandsChoice, signText }: CheckoutPageClientProps) {
   const { venue, hydrated, venueError, beverageError, sectionError } = useVenueByName(initialVenue.venueName);
   const [submissionId] = useState(() => crypto.randomUUID());
   const [receipt, setReceipt] = useState<ReservationReceipt | null>(null);
@@ -61,6 +64,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
   const day = useReservationDay(baseVenue.id, baseVenue.venueName, date ?? null, bookingSlot);
   const activeVenue = day.data ? { ...baseVenue, ...day.data } : baseVenue;
   const section = activeVenue.sections.find((item) => item.id === sectionId);
+  const additionalBands = parseAdditionalBands(additional_bands);
   const drinkSignText = normalizeDrinkSignText(signText);
   const backQuery = new URLSearchParams({
     date: date ?? "",
@@ -69,11 +73,18 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
     section: sectionId,
     step: "sign",
   });
+  if (additional_bands !== undefined) backQuery.set("additional_bands", additional_bands);
+  if (bandsChoice) backQuery.set("bandsChoice", bandsChoice);
   if (addons) backQuery.set("addons", addons);
   if (drinkSignText) backQuery.set("signText", drinkSignText);
   const signError = getDrinkSignError(signText);
 
   if (receipt) return <><VenueHeader venue={baseVenue} /><ReservationConfirmation receipt={receipt} /></>;
+
+  if (additionalBands === null) {
+    backQuery.set("step", "bands");
+    return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16"><p role="alert">Enter a whole number from 0 to 5 additional bands.</p><Link className="underline" href={`/${activeVenue.venueName}?${backQuery.toString()}`}>Edit additional bands</Link></main>;
+  }
 
   if (signError) return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16">
     <h1 className="text-2xl font-semibold">Update your drink sign</h1>
@@ -124,7 +135,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
         <div className="grid items-start gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
             <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink sign</Link>
-            <p className="mt-6 text-sm text-neutral-500">Step 5 of 5</p>
+            <p className="mt-6 text-sm text-neutral-500">Step 6 of 6</p>
             <h1 className="mt-1 text-3xl font-semibold">Reserve {section.name}</h1>
             <div className="mt-6">
           <DemoCheckoutForm
@@ -141,12 +152,14 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
                 reservationTime,
                 beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
                 drinkSignText: drinkSignText || undefined,
+                additional_bands: additionalBands,
                 deposit: section.deposit,
               }, bookingSlot);
               setReceipt({
                 id: submissionId, venueName: activeVenue.name, sectionName: section.name,
                 date: reservationDate, time: reservationTime, capacity: section.capacity,
                 customerEmail: details.customerEmail, minimumSpend: section.minimumSpend,
+                additional_bands: additionalBands,
                 deposit: section.deposit, drinkSignText,
                 beverages: selectedBeverages.map(({ beverage, quantity }) => ({ ...beverage, quantity })),
                 emailWarning: warning,
@@ -163,7 +176,9 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
               <SummaryRow label="Section" value={section.name} />
               <SummaryRow label="Date" value={reservationDate} />
               <SummaryRow label="Time" value={formatBookingTime(reservationTime)} />
-              <SummaryRow label="Capacity" value={`Up to ${section.capacity} guests`} />
+              <SummaryRow label="Base capacity" value={`Up to ${section.capacity} guests`} />
+              <SummaryRow label="Additional bands" value={`${additionalBands} × $${ADDITIONAL_BAND_PRICE} = $${additionalBands * ADDITIONAL_BAND_PRICE}`} />
+              <SummaryRow label="Total guest allowance" value={`Up to ${section.capacity + additionalBands} guests`} />
               <SummaryRow label="Minimum spend" value={`$${section.minimumSpend}`} />
               <div className="border-t border-neutral-300 pt-4">
                 <p className="text-neutral-500">Drink sign message</p>
@@ -181,7 +196,7 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
                   </div>
                 ) : <p className="mt-2 text-sm">None selected</p>}
               </div>
-              <div className="border-t border-neutral-300 pt-4"><div className="flex justify-between text-lg font-semibold"><span>Deposit</span><span>${section.deposit}</span></div></div>
+              <div className="border-t border-neutral-300 pt-4"><div className="flex justify-between text-lg font-semibold"><span>Deposit due after approval</span><span>${section.deposit}</span></div><div className="mt-3 flex justify-between text-lg font-semibold"><span>Total due after approval</span><span>${section.deposit + additionalBands * ADDITIONAL_BAND_PRICE}</span></div><p className="mt-2 text-sm text-neutral-500">Includes additional bands. Bands do not count toward the drink minimum.</p></div>
             </div>
           </aside>
         </div>

@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { ADDITIONAL_BAND_PRICE, isValidAdditionalBands } from "@/lib/additional-bands";
 import { formatBookingTime } from "@/lib/booking-time";
 
 export function requiredEnv(name: string) {
@@ -42,9 +43,11 @@ export async function sendReservationEmail(id: string, approved: boolean) {
   }
   if (approved) await prepareCheckout(id);
   const link = approved ? `${siteUrl()}/pay?token=${encodeURIComponent(payment.token)}` : "";
-  const text = approved
-    ? `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been approved.\nReservation number: ${id}\nYou have 1 hour from approval to pay your deposit and secure your section.\nOpen ${link} and enter your reservation number to view your deadline and pay.\nYour section will be released if payment is not received by the deadline.`
-    : `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been submitted and is being reviewed.\nReservation number: ${id}\nIf approved, you will receive an email with a private payment link and one hour to pay.`;
+  const bands = booking.additional_bands ?? 0;
+  const summary = `\nBase capacity: ${booking.section_capacity}\nAdditional bands: ${bands} × $${ADDITIONAL_BAND_PRICE} = $${bands * ADDITIONAL_BAND_PRICE}\nTotal guest allowance: ${Number(booking.section_capacity) + bands}\nDeposit: $${Number(booking.deposit_amount).toFixed(2)}\nTotal due after approval: $${(Number(booking.deposit_amount) + bands * ADDITIONAL_BAND_PRICE).toFixed(2)}\nBands do not count toward the drink minimum.`;
+  const text = (approved
+    ? `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been approved.\nReservation number: ${id}\nYou have 1 hour from approval to pay your deposit and any additional bands to secure your section.\nOpen ${link} and enter your reservation number to view your deadline and pay.\nYour section will be released if payment is not received by the deadline.`
+    : `Your reservation for ${booking.section_name} on ${booking.reservation_date} has been submitted and is being reviewed.\nReservation number: ${id}\nIf approved, you will receive an email with a private payment link and one hour to pay.`) + summary;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `reservation-${id}-${approved ? "approved" : "review"}` },
@@ -86,13 +89,19 @@ export async function prepareCheckout(id: string) {
   const stripeExpires = payment.payment_email_sent_at
     ? Math.max(expires, Math.ceil(Date.now() / 1000) + 1805)
     : expires;
-  const amount = Math.round(Number(booking.deposit_amount) * 100);
-  if (!Number.isSafeInteger(amount) || amount < 50) throw new Error("Please contact the venue to arrange this deposit.");
+  const bands = booking.additional_bands ?? 0;
+  if (!isValidAdditionalBands(bands)) throw new Error("Invalid additional bands.");
+  const depositAmount = Math.round(Number(booking.deposit_amount) * 100);
+  const amount = depositAmount + bands * ADDITIONAL_BAND_PRICE * 100;
+  if (!Number.isSafeInteger(depositAmount) || depositAmount < 0 || !Number.isSafeInteger(amount) || amount < 50) throw new Error("Please contact the venue to arrange this deposit.");
   const session = await stripe.checkout.sessions.create({
     mode: "payment", allowed_payment_method_types: ["card"], expires_at: stripeExpires,
     customer_email: booking.customer_email, client_reference_id: booking.id,
     metadata: { reservation_id: booking.id },
-    line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: amount, product_data: { name: "Section reservation deposit" } } }],
+    line_items: [
+      ...(depositAmount > 0 ? [{ quantity: 1, price_data: { currency: "usd", unit_amount: depositAmount, product_data: { name: "Section reservation deposit" } } }] : []),
+      ...(bands > 0 ? [{ quantity: bands, price_data: { currency: "usd", unit_amount: ADDITIONAL_BAND_PRICE * 100, product_data: { name: "Additional section band" } } }] : []),
+    ],
     success_url: `${siteUrl()}/pay?submitted=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl()}/pay?token=${encodeURIComponent(token)}`,
   }, { idempotencyKey: `reservation-deposit-${booking.id}` });
@@ -155,7 +164,11 @@ export async function sendPaidReservationEmail(id: string) {
     `Date: ${booking.reservation_date}`,
     `Time: ${formatBookingTime(booking.reservation_time)} (${booking.booking_slot})`,
     `Section capacity: ${booking.section_capacity}`,
-    `Deposit paid: $${Number(payment.amount_paid_at_checkout ?? booking.deposit_amount).toFixed(2)}`,
+    `Additional bands: ${booking.additional_bands ?? 0} × $${ADDITIONAL_BAND_PRICE} = $${(booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE}`,
+    `Total guest allowance: ${Number(booking.section_capacity) + (booking.additional_bands ?? 0)}`,
+    `Deposit paid: $${Number(booking.deposit_amount).toFixed(2)}`,
+    `Total paid: $${Number(payment.amount_paid_at_checkout ?? (Number(booking.deposit_amount) + (booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)).toFixed(2)}`,
+    "Bands do not count toward the drink minimum.",
     venue.address ? `Venue address: ${[venue.address, venue.city, venue.state].filter(Boolean).join(", ")}` : "",
     "",
     "Band pickup",

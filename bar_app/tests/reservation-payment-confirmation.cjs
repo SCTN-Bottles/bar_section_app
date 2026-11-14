@@ -13,7 +13,7 @@ function load(relativePath, dependencies, globals = {}) {
   vm.runInNewContext(code, { exports, process: { env: {
     NEXT_PUBLIC_SUPABASE_URL: "https://example.test", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test", SUPABASE_SERVICE_ROLE_KEY: "test", STRIPE_SECRET_KEY: "test",
     STRIPE_WEBHOOK_SECRET: "test", RESEND_API_KEY: "test", APP_URL: "https://example.test",
-  } }, require: (name) => name in dependencies ? dependencies[name] : require(name), URL, Response, ...globals });
+  } }, require: (name) => name in dependencies ? dependencies[name] : name === "@/lib/additional-bands" ? load("lib/additional-bands.ts", {}) : require(name), URL, Response, ...globals });
   return exports;
 }
 
@@ -229,7 +229,7 @@ async function main() {
     "next/link": ({ href, children, ...props }) => React.createElement("a", { href, ...props }, children),
     "@/lib/booking-time": { formatBookingTime: () => "9:30 PM" },
   }).default;
-  const receipt = { id: "booking", venueName: "Test bar", sectionName: "Section A", date: "January 3, 2027", time: "21:30", capacity: 10, customerEmail: "guest@example.test", minimumSpend: 100, deposit: 25, drinkSignText: "Happy birthday", beverages: [] };
+  const receipt = { id: "booking", venueName: "Test bar", sectionName: "Section A", date: "January 3, 2027", time: "21:30", capacity: 10, additional_bands: 2, customerEmail: "guest@example.test", minimumSpend: 100, deposit: 25, drinkSignText: "Happy birthday", beverages: [] };
   const html = renderToStaticMarkup(React.createElement(Confirmation, { receipt }));
   assert.match(html, /Section summary/);
   assert.match(html, /Section A/);
@@ -238,6 +238,9 @@ async function main() {
   assert.match(html, /href="\/"/);
   assert.doesNotMatch(html, /<form/);
   assert.match(html, /Section capacity/);
+  assert.match(html, /2 × \$20 = \$40/);
+  assert.match(html, /Up to 12 guests/);
+  assert.match(html, /\$65/);
   const CheckoutForm = load("components/checkout/DemoCheckoutForm.tsx", {}).default;
   const form = renderToStaticMarkup(React.createElement(CheckoutForm, {onComplete:async()=>{}}));
   assert.doesNotMatch(form, /Number of guests|name="guests"/);

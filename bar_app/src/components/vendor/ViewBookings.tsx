@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { formatBookingTime } from "@/lib/booking-time";
 import { venueAreas, venueAreaLabels } from "@/types/venue";
 import { bookingDates, bookingToday, loadVendorBookings, validBookingDates, type VendorBooking } from "@/lib/vendor-bookings";
@@ -104,6 +105,8 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
               <div><dt className="text-neutral-500">Minimum spend</dt><dd>{money(booking.minimum_spend_amount)}</dd></div>
             </dl>
             {booking.record_type === "reservation" && <>
+              <p className="text-sm">Additional bands: {booking.additional_bands ?? 0} · Band charge {money((booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)}</p>
+              <p className="text-sm">Total guest allowance: {booking.section_capacity + (booking.additional_bands ?? 0)} · Deposit + bands: {money(Number(booking.deposit_amount) + (booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)}</p>
               <p className="whitespace-pre-wrap text-sm">Drink sign: {booking.drink_sign_text || "None"}</p>
               <div className="text-sm"><p className="text-neutral-500">Drink requests</p>{booking.beverages?.length ? <ul>{booking.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul> : <p>None</p>}</div>
               <p className="text-xs text-neutral-500">Reservation number: {booking.reservation_id}</p>

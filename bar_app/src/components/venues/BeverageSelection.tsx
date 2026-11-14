@@ -1,5 +1,6 @@
 "use client";
 
+import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { formatBookingTime } from "@/lib/booking-time";
 import { BeverageOption, Section } from "@/types/venue";
 
@@ -10,6 +11,7 @@ type BeverageSelectionProps = {
   section: Section;
   bookingDate: string;
   bookingTime: string;
+  additionalBands?: number;
   quantities: BeverageQuantities;
   onChangeQuantities: (quantities: BeverageQuantities) => void;
   onBack: () => void;
@@ -30,6 +32,7 @@ export default function BeverageSelection({
   section,
   bookingDate,
   bookingTime,
+  additionalBands = 0,
   quantities,
   onChangeQuantities,
   onBack,
@@ -120,7 +123,7 @@ export default function BeverageSelection({
         onClick={onBack}
         className="text-sm text-neutral-500 hover:text-foreground"
       >
-        ← Back to sections
+        ← Back to bands
       </button>
 
       <div className="mt-6 rounded-lg border border-neutral-300 bg-neutral-100 p-4">
@@ -132,7 +135,7 @@ export default function BeverageSelection({
       </div>
 
       <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 2 of 5</p>
+        <p className="text-sm text-neutral-500">Step 3 of 6</p>
         <h1 className="mt-1 text-3xl font-semibold">Bottles & kegs</h1>
         <p className="mt-2 text-sm text-neutral-500">
           {beverages.length ? "Choose at least one item, then personalize your drink sign." : "No drinks are offered for this date. Continue to personalize your drink sign."}
@@ -160,9 +163,11 @@ export default function BeverageSelection({
           </span>
         </div>
         <div className="flex justify-between gap-4 text-sm">
-          <span className="text-neutral-500">Deposit due today</span>
+          <span className="text-neutral-500">Deposit due after approval</span>
           <span>{formatCurrency(section.deposit)}</span>
         </div>
+        <div className="flex justify-between gap-4 text-sm"><span>Additional bands ({additionalBands})</span><span>{formatCurrency(additionalBands * ADDITIONAL_BAND_PRICE)}</span></div>
+        <div className="flex justify-between gap-4 font-semibold"><span>Total due after approval</span><span>{formatCurrency(section.deposit + additionalBands * ADDITIONAL_BAND_PRICE)}</span></div>
       </div>
 
       {selectedCount > 0 || beverages.length === 0 ? (

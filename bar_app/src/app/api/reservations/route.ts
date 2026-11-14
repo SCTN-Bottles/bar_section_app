@@ -1,14 +1,18 @@
+import { isValidAdditionalBands } from "@/lib/additional-bands";
 import { adminClient, errorResponse, sendReservationEmail } from "@/lib/server/reservation-payments";
 
 export async function POST(request: Request) {
   try {
     const { id, reservation, slot } = await request.json();
+    const additionalBands = reservation.additional_bands === undefined ? 0 : reservation.additional_bands;
+    if (!isValidAdditionalBands(additionalBands)) throw new Error("Enter a whole number from 0 to 5 additional bands.");
     const { error } = await adminClient().schema("sctn-dev").rpc("submit_reservation", {
       p_id: id, p_venue_id: reservation.venueId, p_section_id: reservation.sectionId,
       p_date: reservation.reservationDate, p_slot: slot,
       p_name: reservation.customerName, p_email: reservation.customerEmail,
       p_sign: reservation.drinkSignText ?? "",
       p_beverages: reservation.beverages,
+      p_additional_bands: additionalBands,
     });
     if (error) throw new Error(error.message);
     try {
