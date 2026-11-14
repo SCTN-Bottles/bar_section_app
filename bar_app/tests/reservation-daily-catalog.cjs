@@ -53,18 +53,17 @@ async function main() {
     await ageDialog.getByRole("button", { name: "I’m 21 or older", exact: true }).click();
     await page.getByRole("heading", { name: "Additional bands", exact: true }).waitFor();
     assert.equal(await page.getByLabel("Number of additional bands").count(), 0);
-    assert.equal(await page.getByRole("button", { name: "Continue to drinks", exact: true }).isEnabled(), false);
+    assert.equal(await page.getByRole("button", { name: "Confirm bands", exact: true }).count(), 0);
     await page.getByRole("button", { name: "Yes", exact: true }).click();
     const bandsInput = page.getByLabel("Number of additional bands");
     assert.equal(await bandsInput.inputValue(), "1");
     await bandsInput.fill("6");
-    assert.equal(await page.getByRole("button", { name: "Continue to drinks", exact: true }).isEnabled(), false);
+    assert.equal(await page.getByRole("button", { name: "Confirm bands", exact: true }).isEnabled(), false);
     await bandsInput.fill("5");
     await page.getByText("Up to 23 guests", { exact: true }).waitFor();
     await page.getByText("$180.25", { exact: true }).waitFor();
     await page.getByRole("button", { name: "No", exact: true }).click();
     assert.equal(await bandsInput.count(), 0);
-    await page.getByRole("button", { name: "Continue to drinks", exact: true }).click();
     await page.getByText("Sunday bottle", { exact: true }).waitFor();
     await page.getByText("$99.25 per bottle", { exact: true }).waitFor();
     assert.equal(await page.getByText("Default bottle", { exact: true }).count(), 0);
@@ -90,7 +89,6 @@ async function main() {
     await page.getByRole("heading", { name: "Additional bands", exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "No", exact: true }).getAttribute("aria-pressed"), "false");
     await page.getByRole("button", { name: "No", exact: true }).click();
-    await page.getByRole("button", { name: "Continue to drinks", exact: true }).click();
     assert.equal(await page.getByText("Sunday bottle", { exact: true }).count(), 0);
     assert.ok(await page.getByRole("button", { name: "Continue to drink sign", exact: true }).isEnabled());
     await page.getByRole("button", { name: "Continue to drink sign", exact: true }).click();

@@ -242,7 +242,13 @@ export default function VenueExplorer({
 
   if (reservationStep === "bands" && selectedSection) {
     return <AdditionalBandsSelection section={selectedSection} choice={bandChoice} quantity={bandQuantity}
-      onChoice={(choice) => { if (choice !== bandChoice) { setBandChoice(choice); setBandQuantity(choice === "yes" ? "1" : "0"); } }}
+      onChoice={(choice) => {
+        if (choice !== bandChoice) {
+          setBandChoice(choice);
+          setBandQuantity(choice === "yes" ? "1" : "0");
+        }
+        if (choice === "no") void continueReservation("drinks");
+      }}
       onQuantity={setBandQuantity} onBack={() => setReservationStep("sections")}
       onContinue={() => void continueReservation("drinks")} />;
   }

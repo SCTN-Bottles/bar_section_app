@@ -25,7 +25,7 @@ export default function AdditionalBandsSelection({ section, choice, quantity, on
     <p className="mt-4">Would you like to purchase additional bands to allow more people in your section?</p>
     <p className="mt-2 text-sm text-neutral-500">{section.name} includes up to {section.capacity} guests. Each additional band admits one more guest.</p>
     <div className="mt-6 flex gap-3" role="group" aria-label="Purchase additional bands">
-      {(["yes", "no"] as const).map((answer) => <button key={answer} type="button" aria-pressed={choice === answer} onClick={() => onChoice(answer)} className={`rounded-md border px-6 py-3 font-medium ${choice === answer ? "border-primary bg-primary text-on-primary" : "border-neutral-300 hover:border-primary"}`}>{answer === "yes" ? "Yes" : "No"}</button>)}
+      {(["yes", "no"] as const).map((answer) => <button key={answer} type="button" aria-pressed={choice === answer} onClick={() => onChoice(answer)} className="rounded-md border border-primary bg-primary px-6 py-3 font-medium text-on-primary hover:bg-accent">{answer === "yes" ? "Yes" : "No"}</button>)}
     </div>
     {choice === "yes" && <div className="mt-6">
       <label htmlFor="additional-bands" className="block font-medium">Number of additional bands</label>
@@ -33,11 +33,11 @@ export default function AdditionalBandsSelection({ section, choice, quantity, on
       <p id="additional-bands-help" className="mt-2 text-sm text-neutral-500">Enter a whole number from 0 to {MAX_ADDITIONAL_BANDS}. ${ADDITIONAL_BAND_PRICE} per band, paid with your deposit after approval. Bands do not count toward the drink minimum.</p>
       {!valid && <p role="alert" className="mt-2 text-sm text-red-700">Enter a whole number from 0 to {MAX_ADDITIONAL_BANDS}.</p>}
     </div>}
-    {valid && <dl aria-live="polite" className="mt-6 space-y-3 border-t border-neutral-300 pt-5">
+    {choice === "yes" && valid && <dl aria-live="polite" className="mt-6 space-y-3 border-t border-neutral-300 pt-5">
       <div className="flex justify-between"><dt>Additional bands ({count})</dt><dd>${count * ADDITIONAL_BAND_PRICE}</dd></div>
       <div className="flex justify-between"><dt>Total guest allowance</dt><dd>Up to {section.capacity + count} guests</dd></div>
       <div className="flex justify-between font-semibold"><dt>Due after approval</dt><dd>${section.deposit + count * ADDITIONAL_BAND_PRICE}</dd></div>
     </dl>}
-    <button type="button" disabled={!valid} onClick={onContinue} className="mt-6 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent disabled:opacity-50">Continue to drinks</button>
+    {choice === "yes" && <button type="button" disabled={!valid} onClick={onContinue} className="mt-6 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent disabled:opacity-50">Confirm bands</button>}
   </div>;
 }

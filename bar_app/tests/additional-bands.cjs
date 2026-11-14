@@ -34,7 +34,10 @@ async function main() {
   for (const [choice, quantity, inputVisible, enabled] of [[null,"0",false,false],["no","0",false,true],["yes","1",true,true],["yes","0",true,true],["yes","5",true,true],["yes","",true,false],["yes","6",true,false],["yes","1.5",true,false]]) {
     const tree = BandSelection({ ...props, choice, quantity });
     assert.equal(nodes(tree).some((node) => node.type === "input"), inputVisible);
-    assert.equal(!nodes(tree).find((node) => node.type === "button" && node.props.children === "Continue to drinks").props.disabled, enabled);
+    const confirm = nodes(tree).find((node) => node.type === "button" && node.props.children === "Confirm bands");
+    assert.equal(Boolean(confirm), choice === "yes");
+    if (confirm) assert.equal(!confirm.props.disabled, enabled);
+    for (const answer of ["Yes", "No"]) assert.match(nodes(tree).find((node) => node.type === "button" && node.props.children === answer).props.className, /bg-primary.*text-on-primary/);
   }
   const yesHtml = renderToStaticMarkup(React.createElement(BandSelection, { ...props, choice: "yes", quantity: "5" }));
   assert.match(yesHtml, /Up to 15 guests/); assert.match(yesHtml, /\$125/);
@@ -67,7 +70,9 @@ async function main() {
   assert.equal(find("BeverageSelection").props.additionalBands, 5);
   find("BeverageSelection").props.onBack();
   assert.equal(find("AdditionalBandsSelection").props.quantity, "5");
-  find("AdditionalBandsSelection").props.onChoice("no");
+  find("AdditionalBandsSelection").props.onChoice("no"); await flush();
+  assert.equal(find("BeverageSelection").props.additionalBands, 0);
+  find("BeverageSelection").props.onBack();
   assert.equal(find("AdditionalBandsSelection").props.quantity, "0");
   find("AdditionalBandsSelection").props.onChoice("yes");
   assert.equal(find("AdditionalBandsSelection").props.quantity, "1");
