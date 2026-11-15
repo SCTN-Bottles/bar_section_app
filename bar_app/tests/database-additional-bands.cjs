@@ -28,7 +28,9 @@ async function main() {
     `);
     const migration = fs.readdirSync(path.join(root, "supabase/migrations")).find((name) => name.endsWith("_additional_reservation_bands.sql"));
     await db.exec(fs.readFileSync(path.join(root, "supabase/migrations", migration), "utf8"));
+    await db.exec(fs.readFileSync(path.join(root, "supabase/migrations/20261114030000_booking_history_section_status.sql"), "utf8"));
     await db.exec(fs.readFileSync(path.join(root, "supabase/tests/additional_bands.sql"), "utf8"));
+    await db.exec(fs.readFileSync(path.join(root, "supabase/tests/booking_history_status.sql"), "utf8"));
     const { rows } = await db.query('select count(*)::integer as count from "sctn-dev".venues');
     if (rows[0].count !== 0) throw new Error("Fixtures did not roll back");
     console.log("PASS: bands migration, constraints, defaults, retries, release/reuse, full payment verification, archiving/history, and RPC grants");

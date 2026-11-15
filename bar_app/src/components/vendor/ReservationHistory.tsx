@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { supabase } from "@/lib/supabase";
 import { formatBookingTime } from "@/lib/booking-time";
-import type { BookingHistoryPage } from "@/lib/booking-history";
+import { bookingHistoryStatus, type BookingHistoryPage } from "@/lib/booking-history";
 import { venueAreaLabels, type VenueArea } from "@/types/venue";
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -48,7 +48,7 @@ export default function ReservationHistory({ venueId }: { venueId: string }) {
   return <section id="reservations-panel" role="tabpanel" aria-labelledby="reservations-tab" className="mt-8 space-y-6 pb-12">
     <div>
       <h2 className="text-2xl font-semibold">Reservation history</h2>
-      <p className="mt-2 text-sm text-neutral-500">Past paid reservations and sections marked sold, newest first.</p>
+      <p className="mt-2 text-sm text-neutral-500">Past sections marked Reserved or Unreserved, newest first.</p>
     </div>
     <section className="overflow-hidden rounded-xl border border-neutral-300 bg-neutral-50" aria-busy={loading}>
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-300 px-5 py-4">
@@ -88,10 +88,10 @@ export default function ReservationHistory({ venueId }: { venueId: string }) {
             <td className="px-5 py-4">{reservation.section_capacity + (reservation.additional_bands ?? 0)}</td>
             <td className="px-5 py-4">${Number(reservation.deposit_amount).toFixed(2)}</td>
             <td className="px-5 py-4">${(Number(reservation.deposit_amount) + (reservation.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</td>
-            <td className="px-5 py-4">{reservation.paid_at ? "Paid" : "Marked sold"}</td>
+            <td className="px-5 py-4">{bookingHistoryStatus(reservation.status)}</td>
           </tr>)}</tbody>
         </table>
-      </div> : <p className="px-5 py-8 text-sm text-neutral-500">{month || year ? "No reservations match the selected month and year." : "No past sold reservations have been recorded yet."}</p>}
+      </div> : <p className="px-5 py-8 text-sm text-neutral-500">{month || year ? "No reservations match the selected month and year." : "No past sections or reservations have been recorded yet."}</p>}
       {data && data.total > 0 && <div className="flex items-center justify-between gap-4 border-t border-neutral-300 px-5 py-4 text-sm">
         <span className="text-neutral-500">Page {data.page} of {totalPages}</span>
         <div className="flex gap-2">

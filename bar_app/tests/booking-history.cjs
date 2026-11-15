@@ -19,6 +19,9 @@ async function main() {
   for (const invalid of ["month=13", "month=-1", "year=abc", "page=0", "page=1.5", "page=1000000"]) {
     assert.throws(() => filters.parseHistoryFilters(new URLSearchParams(invalid)), /Invalid history/);
   }
+  for (const [status, label] of [["sold", "Reserved"], ["available", "Unreserved"], ["pending", "Unreserved"], ["confirmed", "Unreserved"], ["cancelled", "Unreserved"], ["declined", "Unreserved"], ["future-status", "Unreserved"]]) {
+    assert.equal(filters.bookingHistoryStatus(status), label);
+  }
   let user = { id: "manager" };
   let assigned = true;
   let archiveCalls = 0;

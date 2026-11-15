@@ -14,6 +14,7 @@ export type BookingHistoryRow = {
   minimum_spend_amount: number;
   drink_sign_text: string | null;
   paid_at: string | null;
+  status: string;
 };
 
 export type BookingHistoryPage = {
@@ -31,4 +32,8 @@ export function parseHistoryFilters(params: URLSearchParams) {
   if (yearText && !/^[1-9]\d{3}$/.test(yearText)) throw new Error("Invalid history year.");
   if (monthText && !/^(?:[1-9]|1[0-2])$/.test(monthText)) throw new Error("Invalid history month.");
   return { page: Number(pageText), year: yearText ? Number(yearText) : null, month: monthText ? Number(monthText) : null };
+}
+
+export function bookingHistoryStatus(status: string): "Reserved" | "Unreserved" {
+  return status === "sold" ? "Reserved" : "Unreserved";
 }
