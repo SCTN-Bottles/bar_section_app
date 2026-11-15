@@ -120,7 +120,7 @@ async function main() {
     await page.goto(`${process.env.TEST_BASE_URL || "http://localhost:3000"}/vendor`);
     const mainTabs = page.getByRole("tablist", { name: "Vendor portal views", exact: true });
     await mainTabs.waitFor();
-    assert.deepEqual(await mainTabs.getByRole("tab").allTextContents().then((labels) => labels.map((label) => label.trim())), ["Reservations", "Reports", "Sections", "Drink Menu"]);
+    assert.deepEqual(await mainTabs.getByRole("tab").allTextContents().then((labels) => labels.map((label) => label.trim())), ["Reservations", "Sections", "Drink Menu", "Reports"]);
     await page.getByRole("tab", { name: "Bookings", exact: true }).waitFor();
     assert.equal(await page.getByRole("tab", { name: "Bookings", exact: true }).getAttribute("aria-selected"), "true");
     await mainTabs.getByRole("tab", { name: "Reports", exact: true }).click();
@@ -131,8 +131,8 @@ async function main() {
     assert.equal(await page.getByRole("tab", { name: "Reservation Analytics", exact: true }).getAttribute("aria-selected"), "true");
     await page.getByRole("tab", { name: "Reservation Analytics", exact: true }).press("Home");
     assert.equal(await page.getByRole("tab", { name: "Reservation History", exact: true }).getAttribute("aria-selected"), "true");
-    await mainTabs.getByRole("tab", { name: "Reports", exact: true }).focus();
-    await mainTabs.getByRole("tab", { name: "Reports", exact: true }).press("ArrowRight");
+    await mainTabs.getByRole("tab", { name: "Reservations", exact: true }).focus();
+    await mainTabs.getByRole("tab", { name: "Reservations", exact: true }).press("ArrowRight");
     assert.equal(await mainTabs.getByRole("tab", { name: "Sections", exact: true }).getAttribute("aria-selected"), "true");
     if (process.env.NAVIGATION_ONLY === "1") {
       await page.getByRole("tab", { name: "Section Defaults", exact: true }).click();

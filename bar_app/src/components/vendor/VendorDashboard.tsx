@@ -21,9 +21,9 @@ type DashboardGroup = "reservations" | "reports" | "sections" | "drinks";
 
 const dashboardGroups: { id: DashboardGroup; label: string; tabs: { id: DashboardTab; label: string }[] }[] = [
   { id: "reservations", label: "Reservations", tabs: [{ id: "bookings", label: "Bookings" }, { id: "review", label: "Pending Reservations" }] },
-  { id: "reports", label: "Reports", tabs: [{ id: "reservations", label: "Reservation History" }, { id: "analytics", label: "Reservation Analytics" }] },
   { id: "sections", label: "Sections", tabs: [{ id: "management", label: "Manage Sections" }, { id: "defaults", label: "Section Defaults" }] },
   { id: "drinks", label: "Drink Menu", tabs: [{ id: "drink-defaults", label: "Drink Menu Defaults" }] },
+  { id: "reports", label: "Reports", tabs: [{ id: "reservations", label: "Reservation History" }, { id: "analytics", label: "Reservation Analytics" }] },
 ];
 
 function PortalTabs<T extends string>({ label, tabs, activeTab, onSelect, secondary = false, idPrefix = "" }: {
