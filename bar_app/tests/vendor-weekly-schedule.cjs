@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 
 async function main() {
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || "msedge", headless: true });
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
     const page = await context.newPage();
@@ -106,8 +106,11 @@ async function main() {
             stored.set(`${row.reservation_date}:${row.booking_slot}:${row.section_id}`, row);
           }
           data = rows.map((_, index) => ({ id: `saved-${index}` }));
+        } else if (url.searchParams.get("record_type") === "in.(reservation,schedule)") {
+          assert.equal(url.searchParams.get("sections.venue_id"), `eq.${venue.id}`);
+          data = [];
         } else {
-          assert.equal(url.searchParams.get("record_type"), "eq.schedule");
+          assert.ok(url.searchParams.get("section_id")?.startsWith("in.("));
           data = [...stored.values()].filter((row) => url.searchParams.get("reservation_date").includes(row.reservation_date));
         }
       } else throw new Error(`Unexpected Supabase request: ${request.method()} ${url.pathname}`);
@@ -115,7 +118,42 @@ async function main() {
     });
 
     await page.goto(`${process.env.TEST_BASE_URL || "http://localhost:3000"}/vendor`);
-    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
+    const mainTabs = page.getByRole("tablist", { name: "Vendor portal views", exact: true });
+    await mainTabs.waitFor();
+    assert.deepEqual(await mainTabs.getByRole("tab").allTextContents().then((labels) => labels.map((label) => label.trim())), ["Reservations", "Reports", "Sections", "Drink Menu"]);
+    await page.getByRole("tab", { name: "Bookings", exact: true }).waitFor();
+    assert.equal(await page.getByRole("tab", { name: "Bookings", exact: true }).getAttribute("aria-selected"), "true");
+    await mainTabs.getByRole("tab", { name: "Reports", exact: true }).click();
+    await page.getByRole("tab", { name: "Reservation Analytics", exact: true }).click();
+    await page.getByText("Coming soon: charts and trends for your venue’s reservations.").waitFor();
+    await mainTabs.getByRole("tab", { name: "Reservations", exact: true }).click();
+    await mainTabs.getByRole("tab", { name: "Reports", exact: true }).click();
+    assert.equal(await page.getByRole("tab", { name: "Reservation Analytics", exact: true }).getAttribute("aria-selected"), "true");
+    await page.getByRole("tab", { name: "Reservation Analytics", exact: true }).press("Home");
+    assert.equal(await page.getByRole("tab", { name: "Reservation History", exact: true }).getAttribute("aria-selected"), "true");
+    await mainTabs.getByRole("tab", { name: "Reports", exact: true }).focus();
+    await mainTabs.getByRole("tab", { name: "Reports", exact: true }).press("ArrowRight");
+    assert.equal(await mainTabs.getByRole("tab", { name: "Sections", exact: true }).getAttribute("aria-selected"), "true");
+    if (process.env.NAVIGATION_ONLY === "1") {
+      await page.getByRole("tab", { name: "Section Defaults", exact: true }).click();
+      await page.locator("#defaults-panel").getByLabel("Minimum spend ($)", { exact: true }).waitFor();
+      await page.locator("#defaults-panel").getByLabel("Minimum spend ($)", { exact: true }).fill("175.25");
+      await mainTabs.getByRole("tab", { name: "Drink Menu", exact: true }).click();
+      await page.locator("#drink-defaults-panel").waitFor();
+      assert.equal(await page.getByRole("tablist", { name: "Drink Menu views", exact: true }).count(), 0);
+      await mainTabs.getByRole("tab", { name: "Sections", exact: true }).click();
+      assert.equal(await page.getByRole("tab", { name: "Section Defaults", exact: true }).getAttribute("aria-selected"), "true");
+      assert.equal(await page.locator("#defaults-panel").getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "175.25");
+      await page.setViewportSize({ width: 390, height: 844 });
+      await mainTabs.getByRole("tab", { name: "Reports", exact: true }).click();
+      await page.getByRole("tab", { name: "Reservation Analytics", exact: true }).click();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Mobile navigation must not overflow the page");
+      assert.deepEqual(errors, []);
+      console.log("PASS: grouped navigation, default bookings, analytics placeholder, keyboard controls, remembered subtabs, preserved edits, direct drink editor, mobile layout");
+      return;
+    }
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
     assert.equal(await page.getByRole("heading", { name: "Drink menu", exact: true }).count(), 0);
     await page.getByLabel("Week starting Sunday").fill("2026-12-30");
@@ -148,8 +186,10 @@ async function main() {
     assert.equal(writes.length, 0);
     await page.getByLabel("Capacity", { exact: true }).fill("15");
     await dayTabs.nth(0).click();
-    await page.getByRole("tab", { name: "Reservation history" }).click();
-    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await page.getByRole("tab", { name: "Reports", exact: true }).click();
+    await page.getByRole("tab", { name: "Reservation History", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     assert.equal(await page.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "325.5");
     failNextSave = true;
     await page.getByRole("button", { name: "Save changes", exact: true }).click();
@@ -164,7 +204,8 @@ async function main() {
     await page.getByText("Sections and drink menus saved for 2 days.", { exact: true }).waitFor();
     assert.equal(stored.size, 8);
     await page.reload();
-    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
     await page.getByLabel("Week starting Sunday").fill("2026-12-27");
     await page.getByRole("button", { name: "Confirm days", exact: true }).click();
@@ -178,7 +219,8 @@ async function main() {
       await page.locator("#booking-section-panel").scrollIntoViewIfNeeded();
       await page.screenshot({ path: process.env.TEST_SCREENSHOT_PATH });
     }
-    await page.getByRole("tab", { name: "Update Section Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Section Defaults", exact: true }).click();
     const defaultsPanel = page.locator("#defaults-panel");
     await defaultsPanel.getByLabel("Minimum spend ($)", { exact: true }).waitFor();
     assert.equal(await defaultsPanel.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "100");
@@ -191,8 +233,10 @@ async function main() {
     assert.equal(defaultWrites.length, 0);
     assert.equal(await defaultsPanel.getByLabel("Capacity", { exact: true }).inputValue(), "0");
     await defaultsPanel.getByLabel("Capacity", { exact: true }).fill("18");
-    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
-    await page.getByRole("tab", { name: "Update Section Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Section Defaults", exact: true }).click();
     assert.equal(await defaultsPanel.getByLabel("Capacity", { exact: true }).inputValue(), "18");
     const bookingWriteCount = writes.length;
     await defaultsPanel.getByRole("button", { name: "Save section defaults", exact: true }).click();
@@ -202,11 +246,14 @@ async function main() {
     assert.equal(defaults[1].capacity, 18);
     assert.equal(writes.length, bookingWriteCount);
     await page.reload();
-    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
-    await page.getByRole("tab", { name: "Update Section Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Section Defaults", exact: true }).click();
     await defaultsPanel.getByLabel("Minimum spend ($)", { exact: true }).waitFor();
     assert.equal(await defaultsPanel.getByLabel("Minimum spend ($)", { exact: true }).inputValue(), "175.25");
-    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     const management = page.locator("#management-panel");
     await management.getByLabel("Week starting Sunday").fill("2027-01-03");
     await management.getByRole("button", { name: "Confirm days", exact: true }).click();
@@ -240,7 +287,7 @@ async function main() {
     assert.equal(dayMenus.get("2027-01-03").beverages[0].price, 90.25);
     assert.deepEqual(dayMenus.get("2027-01-04").beverages, []);
     assert.equal(menuDefaults[0].price, 60);
-    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Drink Menu", exact: true }).click();
     const drinkDefaults = page.getByRole("region", { name: "Default drink menu editor", exact: true });
     await drinkDefaults.getByLabel("Price ($)", { exact: true }).waitFor();
     await drinkDefaults.getByRole("button", { name: "Remove House bottle", exact: true }).click();
@@ -254,7 +301,8 @@ async function main() {
     assert.equal(menuDefaults[0].name, "New default keg");
     assert.equal(dayMenus.get("2027-01-03").beverages[0].price, 90.25);
     await page.reload();
-    await page.getByRole("tab", { name: "Add or Update Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     await page.getByRole("heading", { name: "Booking schedule" }).waitFor();
     await page.getByLabel("Week starting Sunday").fill("2027-01-03");
     await page.getByRole("button", { name: "Confirm days", exact: true }).click();
@@ -285,14 +333,15 @@ async function main() {
     await dailyMenu.getByText("Starting from drink menu defaults").waitFor();
     await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("150");
     await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").nth(1).click();
-    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Drink Menu", exact: true }).click();
     await drinkDefaults.getByRole("button", { name: "Remove New default keg", exact: true }).click();
     await drinkDefaults.getByRole("button", { name: "Add drink", exact: true }).click();
     await drinkDefaults.getByLabel("Drink name", { exact: true }).fill("Replacement bottle");
     await drinkDefaults.getByLabel("Price ($)", { exact: true }).fill("80");
     await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
     await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
-    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     await dailyMenu.getByLabel("Drink name", { exact: true }).waitFor();
     assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).inputValue(), "Replacement bottle");
     assert.equal(await page.getByRole("tablist", { name: "Confirmed booking days" }).getByRole("tab").count(), 2);
@@ -310,23 +359,25 @@ async function main() {
     assert.equal(dayMenus.get("2027-01-03").beverages[0].name, "New default keg");
     // Keep a day's price edit for a surviving default while applying new defaults.
     await dailyMenu.getByLabel("Price ($)", { exact: true }).fill("99");
-    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Drink Menu", exact: true }).click();
     await drinkDefaults.getByLabel("Price ($)", { exact: true }).fill("85");
     await drinkDefaults.getByRole("button", { name: "Add drink", exact: true }).click();
     await drinkDefaults.getByLabel("Drink name", { exact: true }).nth(1).fill("Added default bottle");
     await drinkDefaults.getByLabel("Price ($)", { exact: true }).nth(1).fill("30");
     await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
     await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
-    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     await dailyMenu.getByLabel("Drink name", { exact: true }).nth(1).waitFor();
     assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).nth(1).inputValue(), "Added default bottle");
     assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).nth(0).inputValue(), "99");
     assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).nth(1).inputValue(), "30");
-    await page.getByRole("tab", { name: "Update Drink Menu Defaults", exact: true }).click();
+    await page.getByRole("tab", { name: "Drink Menu", exact: true }).click();
     await drinkDefaults.getByRole("button", { name: "Remove Added default bottle", exact: true }).click();
     await drinkDefaults.getByRole("button", { name: "Save drink menu defaults", exact: true }).click();
     await drinkDefaults.getByText("Drink menu defaults saved.", { exact: true }).waitFor();
-    await page.getByRole("tab", { name: "Add or Update Sections" }).click();
+    await page.getByRole("tab", { name: "Sections", exact: true }).click();
+    await page.getByRole("tab", { name: "Manage Sections", exact: true }).click();
     await dailyMenu.getByLabel("Drink name", { exact: true }).waitFor();
     assert.equal(await dailyMenu.getByLabel("Drink name", { exact: true }).count(), 1);
     assert.equal(await dailyMenu.getByLabel("Price ($)", { exact: true }).inputValue(), "99");

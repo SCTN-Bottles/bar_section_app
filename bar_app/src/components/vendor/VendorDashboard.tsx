@@ -16,6 +16,43 @@ import type { Venue } from "@/types/venue";
 
 type VendorDashboardProps = { session: VendorSession };
 
+type DashboardTab = "management" | "defaults" | "drink-defaults" | "reservations" | "review" | "bookings" | "analytics";
+type DashboardGroup = "reservations" | "reports" | "sections" | "drinks";
+
+const dashboardGroups: { id: DashboardGroup; label: string; tabs: { id: DashboardTab; label: string }[] }[] = [
+  { id: "reservations", label: "Reservations", tabs: [{ id: "bookings", label: "Bookings" }, { id: "review", label: "Pending Reservations" }] },
+  { id: "reports", label: "Reports", tabs: [{ id: "reservations", label: "Reservation History" }, { id: "analytics", label: "Reservation Analytics" }] },
+  { id: "sections", label: "Sections", tabs: [{ id: "management", label: "Manage Sections" }, { id: "defaults", label: "Section Defaults" }] },
+  { id: "drinks", label: "Drink Menu", tabs: [{ id: "drink-defaults", label: "Drink Menu Defaults" }] },
+];
+
+function PortalTabs<T extends string>({ label, tabs, activeTab, onSelect, secondary = false, idPrefix = "" }: {
+  label: string;
+  tabs: { id: T; label: string; panelId: string }[];
+  activeTab: T;
+  onSelect: (id: T) => void;
+  secondary?: boolean;
+  idPrefix?: string;
+}) {
+  return <div role="tablist" aria-label={label} className={`flex overflow-x-auto border-b border-neutral-300 ${secondary ? "mt-4 gap-1" : "mt-7 gap-2"}`}>
+    {tabs.map((tab, index) => <button key={tab.id} id={`${idPrefix}${tab.id}-tab`} type="button" role="tab"
+      aria-selected={activeTab === tab.id} aria-controls={tab.panelId} tabIndex={activeTab === tab.id ? 0 : -1}
+      onClick={() => onSelect(tab.id)}
+      onKeyDown={(event) => {
+        const nextIndex = event.key === "ArrowRight" ? (index + 1) % tabs.length
+          : event.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length
+          : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
+        if (nextIndex < 0) return;
+        event.preventDefault();
+        onSelect(tabs[nextIndex].id);
+        event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button")[nextIndex]?.focus();
+      }}
+      className={`shrink-0 border-b-2 px-4 py-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${secondary ? "font-medium" : "font-semibold"} ${activeTab === tab.id ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
+      {tab.label}
+    </button>)}
+  </div>;
+}
+
 function cloneVenue(venue: Venue) {
   return JSON.parse(JSON.stringify(venue)) as Venue;
 }
@@ -25,12 +62,33 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
   const { venues, hydrated, venueError, beverageError, sectionError, updateVenue } = useVenueData();
   const venue = venues.find((item) => item.venueName.toLowerCase() === session.venueName);
   const [draft, setDraft] = useState<Venue | null>(venue ? cloneVenue(venue) : null);
-  const [activeDashboardTab, setActiveDashboardTab] = useState<"management" | "defaults" | "drink-defaults" | "reservations" | "review" | "bookings">("bookings");
+  const [activeGroup, setActiveGroup] = useState<DashboardGroup>("reservations");
+  const [groupTabs, setGroupTabs] = useState<Record<DashboardGroup, DashboardTab>>({
+    reservations: "bookings", reports: "reservations", sections: "management", drinks: "drink-defaults",
+  });
+  const activeDashboardTab = groupTabs[activeGroup];
+  const currentGroup = dashboardGroups.find((group) => group.id === activeGroup)!;
   const [defaultsOpened, setDefaultsOpened] = useState(false);
   const [notice, setNotice] = useState("");
   const [drinkDefaultsOpened, setDrinkDefaultsOpened] = useState(false);
   const [menuRefreshVersion, setMenuRefreshVersion] = useState(0);
   const [reservationRefreshVersion, setReservationRefreshVersion] = useState(0);
+
+  function openTab(tab: DashboardTab) {
+    if (tab === "management") setMenuRefreshVersion((value) => value + 1);
+    if (tab === "defaults") setDefaultsOpened(true);
+    if (tab === "drink-defaults") setDrinkDefaultsOpened(true);
+  }
+
+  function selectGroup(group: DashboardGroup) {
+    setActiveGroup(group);
+    openTab(groupTabs[group]);
+  }
+
+  function selectTab(tab: DashboardTab) {
+    setGroupTabs((current) => ({ ...current, [activeGroup]: tab }));
+    openTab(tab);
+  }
 
   async function logout() {
     const { error } = await logoutVendor();
@@ -80,82 +138,43 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           <p className="mt-3 max-w-2xl text-neutral-500">Update the information customers use when reserving sections.</p>
       </div>
 
-      <div className="mt-7 flex flex-wrap gap-2 border-b border-neutral-300" role="tablist" aria-label="Vendor portal views">
-        <button id="bookings-tab" type="button" role="tab" aria-selected={activeDashboardTab === "bookings"} aria-controls="bookings-panel"
-          onClick={() => setActiveDashboardTab("bookings")}
-          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "bookings" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
-          View Bookings
-        </button>
-        <button
-          id="review-tab"
-          type="button"
-          role="tab"
-          aria-selected={activeDashboardTab === "review"}
-          aria-controls="review-panel"
-          onClick={() => setActiveDashboardTab("review")}
-          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "review" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
-        >
-          Pending reservations
-        </button>
-        <button
-          id="management-tab"
-          type="button"
-          role="tab"
-          aria-selected={activeDashboardTab === "management"}
-          aria-controls="management-panel"
-          onClick={() => { setMenuRefreshVersion((value) => value + 1); setActiveDashboardTab("management"); }}
-          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "management" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
-        >
-          Add or Update Sections
-        </button>
-        <button id="defaults-tab" type="button" role="tab" aria-selected={activeDashboardTab === "defaults"} aria-controls="defaults-panel"
-          onClick={() => { setDefaultsOpened(true); setActiveDashboardTab("defaults"); }}
-          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "defaults" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
-          Update Section Defaults
-        </button>
-        <button id="drink-defaults-tab" type="button" role="tab" aria-selected={activeDashboardTab === "drink-defaults"} aria-controls="drink-defaults-panel"
-          onClick={() => { setDrinkDefaultsOpened(true); setActiveDashboardTab("drink-defaults"); }}
-          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "drink-defaults" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
-          Update Drink Menu Defaults
-        </button>
-        <button
-          id="reservations-tab"
-          type="button"
-          role="tab"
-          aria-selected={activeDashboardTab === "reservations"}
-          aria-controls="reservations-panel"
-          onClick={() => setActiveDashboardTab("reservations")}
-          className={`border-b-2 px-4 py-3 text-sm font-semibold ${activeDashboardTab === "reservations" ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}
-        >
-          Reservation history
-        </button>
+      <PortalTabs label="Vendor portal views" activeTab={activeGroup} onSelect={selectGroup} idPrefix="group-"
+        tabs={dashboardGroups.map((group) => ({ id: group.id, label: group.label, panelId: "vendor-group-panel" }))} />
+
+      <div id="vendor-group-panel" role="tabpanel" aria-labelledby={`group-${activeGroup}-tab`} tabIndex={0}>
+        {currentGroup.tabs.length > 1 && <PortalTabs label={`${currentGroup.label} views`} activeTab={activeDashboardTab} onSelect={selectTab} secondary
+          tabs={currentGroup.tabs.map((tab) => ({ ...tab, panelId: `${tab.id}-panel` }))} />}
+
+        <div id="management-panel" role="tabpanel" aria-labelledby="management-tab" hidden={activeDashboardTab !== "management"} className="mt-8 space-y-10">
+          {notice && <p role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</p>}
+          {venueError && <p role="alert" className="text-red-700">{venueError}</p>}
+          {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
+          {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
+
+          <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} menuRefreshVersion={menuRefreshVersion} reservationRefreshVersion={reservationRefreshVersion} />
+        </div>
+        {defaultsOpened && <div id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
+          <SectionDefaultsEditor venueId={session.venueId} venueName={session.venueName}
+            onSaved={(sections) => { if (venue) updateVenue({ ...venue, sections }); }} />
+        </div>}
+        {drinkDefaultsOpened && <div id="drink-defaults-panel" role="tabpanel" aria-labelledby="group-drinks-tab" hidden={activeDashboardTab !== "drink-defaults"} className="mt-8 pb-12">
+          <DrinkMenuEditor venueId={session.venueId} venueName={session.venueName}
+            onSaved={(beverages) => { if (venue) updateVenue({ ...venue, beverages }); setMenuRefreshVersion((value) => value + 1); }} />
+        </div>}
+
+        {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} onReservationChanged={() => setReservationRefreshVersion((value) => value + 1)} /></div>}
+        {activeDashboardTab === "bookings" && <ViewBookings venueId={session.venueId} />}
+        {activeDashboardTab === "reservations" && (
+          <ReservationHistory
+            venueId={session.venueId}
+          />
+        )}
+
+        {activeDashboardTab === "analytics" && <section id="analytics-panel" role="tabpanel" aria-labelledby="analytics-tab" tabIndex={0} className="mt-8 space-y-3 pb-12">
+          <h2 className="text-2xl font-semibold">Reservation Analytics</h2>
+          <p className="text-sm text-neutral-500">Coming soon: charts and trends for your venue’s reservations.</p>
+        </section>}
       </div>
-
-      <div id="management-panel" role="tabpanel" aria-labelledby="management-tab" hidden={activeDashboardTab !== "management"} className="mt-8 space-y-10">
-        {notice && <p role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</p>}
-        {venueError && <p role="alert" className="text-red-700">{venueError}</p>}
-        {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
-        {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
-
-        <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} menuRefreshVersion={menuRefreshVersion} reservationRefreshVersion={reservationRefreshVersion} />
-      </div>
-      {defaultsOpened && <div id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
-        <SectionDefaultsEditor venueId={session.venueId} venueName={session.venueName}
-          onSaved={(sections) => { if (venue) updateVenue({ ...venue, sections }); }} />
-      </div>}
-      {drinkDefaultsOpened && <div id="drink-defaults-panel" role="tabpanel" aria-labelledby="drink-defaults-tab" hidden={activeDashboardTab !== "drink-defaults"} className="mt-8 pb-12">
-        <DrinkMenuEditor venueId={session.venueId} venueName={session.venueName}
-          onSaved={(beverages) => { if (venue) updateVenue({ ...venue, beverages }); setMenuRefreshVersion((value) => value + 1); }} />
-      </div>}
-
-      {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} onReservationChanged={() => setReservationRefreshVersion((value) => value + 1)} /></div>}
-      {activeDashboardTab === "bookings" && <ViewBookings venueId={session.venueId} />}
-      {activeDashboardTab === "reservations" && (
-        <ReservationHistory
-          venueId={session.venueId}
-        />
-      )}
-
     </main>
     </>
   );
