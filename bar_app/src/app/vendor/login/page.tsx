@@ -52,7 +52,11 @@ export default function VendorLoginPage() {
       });
 
       if (signInError) {
-        setError("That email and password don't match a vendor account.");
+        if (signInError.status === 429 || signInError.code === "over_request_rate_limit") {
+          setError("Too many sign-in attempts. Please wait a few minutes before trying again.");
+        } else {
+          setError("That email and password don't match a vendor account.");
+        }
       } else {
         const session = await getVendorSession();
         if (session) {
