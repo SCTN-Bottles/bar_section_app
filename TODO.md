@@ -8,5 +8,5 @@
 7. make sure to change dev keys to prod keys in vercel environment variables
 8. Figure out best way to limit or control how many sections can be reserved by one person
 9. playwright for UI testing
-10. Consolidate the tabs in the vendor portal
-11. Add graph capabilities to the booking history
+10. Add graph capabilities to the booking history
+11. After ui update Review phone interface/ui and make sure nothing looks unusual or weird.
