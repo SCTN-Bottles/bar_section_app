@@ -1,24 +1,28 @@
-import Link from "next/link";
+
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+
+import ActionButton from "@/components/ui/ActionButton";
 
 export default function NotFound() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-32 text-center">
 
-      <h1 className="display-heading">
+      <Heading level={1} className="display-heading">
         Page not found
-      </h1>
+      </Heading>
 
-      <p className="mt-4 text-neutral-600">
+      <Text as="p" type="inherit" color="inherit" className="mt-4 text-neutral-600">
         That venue or section could
         not be found.
-      </p>
+      </Text>
 
-      <Link
+      <ActionButton
         href="/MyHouse"
-        className="mt-8 inline-block rounded-md bg-primary px-6 py-3 text-on-primary hover:bg-accent"
-      >
-        Return to My House
-      </Link>
+        variant="primary"
+        label="Return to My House"
+        className="mt-8"
+      />
 
     </main>
   );

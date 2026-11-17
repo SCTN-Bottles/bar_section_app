@@ -1,5 +1,12 @@
 "use client";
 
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Card } from "@astryxdesign/core/Card";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { getDrinkSignError, MAX_DRINK_SIGN_LENGTH } from "@/lib/drink-sign";
 
 type DrinkSignCustomizationProps = {
@@ -17,40 +24,44 @@ export default function DrinkSignCustomization({
 }: DrinkSignCustomizationProps) {
   const error = getDrinkSignError(text);
   return (
-    <div className="mx-auto max-w-2xl rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-      <button type="button" onClick={onBack} className="text-sm text-neutral-500 hover:text-foreground">
-        ← Back to drinks
-      </button>
+    <Card padding={6} elevation="low" className="reservation-card mx-auto max-w-2xl">
+      <ActionButton
+        type="button"
+        onClick={onBack}
+        variant="ghost"
+        label="← Back to drinks"
+        className="reservation-back"
+      />
 
-      <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 4 of 6</p>
-        <h1 className="mt-1 text-3xl font-semibold">Customize your drink sign</h1>
-        <p className="mt-2 text-sm leading-6 text-neutral-500">
+      <VStack className="mt-6">
+        <Text as="p" type="inherit" color="inherit" className="reservation-step">Step 4 of 6</Text>
+        <Heading level={1} className="reservation-heading mt-2">Customize your drink sign</Heading>
+        <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm leading-6 text-neutral-500">
           Give your celebration a personal touch. Add the message you&apos;d like on your drink sign.
-        </p>
-      </div>
+        </Text>
+      </VStack>
 
       <figure className="drink-sign-preview mt-6 rounded-lg border border-neutral-300 px-5 pt-7 pb-5">
-        <div className="drink-sign-board mx-auto max-w-md rounded-xl">
-          <div className="drink-sign-face rounded-md">
-            <p
-              className="drink-sign-message w-full px-4 text-center whitespace-pre-wrap [overflow-wrap:anywhere] sm:px-6"
+        <VStack className="drink-sign-board mx-auto max-w-md rounded-xl">
+          <VStack className="drink-sign-face rounded-md">
+            <Text as="p" type="inherit" color="inherit"
+              className="drink-sign-message w-full px-4 text-center whitespace-pre-wrap wrap-anywhere sm:px-6"
               aria-live="polite"
               aria-atomic="true"
             >
               {error ? "Please update your message" : text.trim() || "Happy Birthday, Alex!"}
-            </p>
-          </div>
-        </div>
+            </Text>
+          </VStack>
+        </VStack>
         <figcaption className="mt-4 text-center text-xs leading-5 text-neutral-500">
           {text.trim() ? "Live preview" : "Example message · your text will appear here"}
-          <span className="block">An illustration of your sign. The final design may vary.</span>
+          <Text as="span" type="inherit" color="inherit" className="block">An illustration of your sign. The final design may vary.</Text>
         </figcaption>
       </figure>
 
       <form onSubmit={(event) => { event.preventDefault(); if (!error) onContinue(); }} className="mt-6">
         <label htmlFor="drink-sign-text" className="block text-sm font-medium">
-          Your sign message <span className="font-normal text-neutral-500">(optional)</span>
+          Your sign message <Text as="span" type="inherit" color="inherit" className="font-normal text-neutral-500">(optional)</Text>
         </label>
         <textarea
           id="drink-sign-text"
@@ -64,16 +75,14 @@ export default function DrinkSignCustomization({
           aria-describedby={`drink-sign-help drink-sign-count${error ? " drink-sign-error" : ""}`}
           className="mt-2 block w-full resize-y rounded-md border border-neutral-300 bg-neutral-100 px-4 py-3 text-base leading-6 placeholder:text-neutral-500 focus:border-primary"
         />
-        <div className="mt-2 flex justify-between gap-4 text-xs leading-5 text-neutral-500">
-          <p id="drink-sign-help">Leave this blank if you don&apos;t want a custom message.</p>
-          <span id="drink-sign-count" className="shrink-0">{text.length}/{MAX_DRINK_SIGN_LENGTH}</span>
-        </div>
-        <p className="mt-2 text-xs text-neutral-500">Slurs are not allowed. General profanity is allowed.</p>
-        {error && <p id="drink-sign-error" role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-        <button type="submit" disabled={Boolean(error)} className="mt-6 w-full rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent disabled:opacity-50">
-          Continue to agreement
-        </button>
+        <HStack gap={4} vAlign="stretch" className="mt-2 justify-between text-xs leading-5 text-neutral-500">
+          <Text as="p" type="inherit" color="inherit" id="drink-sign-help">Leave this blank if you don&apos;t want a custom message.</Text>
+          <Text as="span" type="inherit" color="inherit" id="drink-sign-count" className="shrink-0">{text.length}/{MAX_DRINK_SIGN_LENGTH}</Text>
+        </HStack>
+        <Text as="p" type="supporting" color="secondary" className="mt-2 text-xs text-neutral-500">Slurs are not allowed. General profanity is allowed.</Text>
+        {error && <Text as="p" type="inherit" color="inherit" id="drink-sign-error" role="alert" className="mt-3 text-sm text-red-700">{error}</Text>}
+        <ActionButton type="submit" disabled={Boolean(error)} variant="primary" label="Continue to agreement" className="mt-6 w-full" />
       </form>
-    </div>
+    </Card>
   );
 }

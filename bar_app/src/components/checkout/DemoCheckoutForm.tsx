@@ -1,5 +1,11 @@
 "use client";
 
+import { VStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import {
   FormEvent,
   useState,
@@ -45,18 +51,18 @@ export default function DemoCheckoutForm({
 
   if (submitted) {
     return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-6">
+      <VStack className="rounded-xl border border-green-200 bg-green-50 p-6">
 
-        <h2 className="text-xl font-semibold text-green-900">
+        <Heading level={2} className="text-xl font-semibold text-green-900">
           Reservation submitted for review
-        </h2>
+        </Heading>
 
-        <p className="mt-2 text-green-800">
+        <Text as="p" type="inherit" color="inherit" className="mt-2 text-green-800">
           Your request is pending review by the venue.
           Keep your reservation number for future reference.
-        </p>
+        </Text>
 
-      </div>
+      </VStack>
     );
   }
 
@@ -67,7 +73,7 @@ export default function DemoCheckoutForm({
       className="space-y-5"
     >
 
-      <div>
+      <VStack>
 
         <label
           htmlFor="name"
@@ -81,13 +87,13 @@ export default function DemoCheckoutForm({
           name="name"
           required
           placeholder="Your name"
-          className="w-full rounded-md border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-primary"
+          className="input px-4 py-3"
         />
 
-      </div>
+      </VStack>
 
 
-      <div>
+      <VStack>
 
         <label
           htmlFor="email"
@@ -102,26 +108,26 @@ export default function DemoCheckoutForm({
           type="email"
           required
           placeholder="you@example.com"
-          className="w-full rounded-md border border-neutral-300 bg-neutral-50 px-4 py-3 outline-none focus:border-primary"
+          className="input px-4 py-3"
         />
 
-      </div>
+      </VStack>
 
 
-      {error && <p role="alert" className="text-red-700">{error}</p>}
-      <button
+      {error && <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{error}</Text>}
+      <ActionButton
         type="submit"
         disabled={busy}
-        className="w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent"
-      >
-        {busy ? "Submitting…" : "Submit Reservation For Review"}
-      </button>
+        variant="primary"
+        label={String(busy ? "Submitting…" : "Submit Reservation For Review")}
+        className="w-full"
+      />
 
 
-      <p className="text-center text-xs text-neutral-500">
+      <Text as="p" type="supporting" color="secondary" className="text-center text-xs text-neutral-500">
         Payment is collected after approval. No payment
         information is collected.
-      </p>
+      </Text>
 
     </form>
   );

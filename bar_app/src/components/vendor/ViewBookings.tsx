@@ -1,5 +1,11 @@
 "use client";
 
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
+
+
 import { useEffect, useState } from "react";
 import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { formatBookingTime } from "@/lib/booking-time";
@@ -47,33 +53,33 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
   const activeArea = areaGroups.some((group) => group.area === selectedArea) ? selectedArea : areaGroups[0]?.area;
 
   return <section id="bookings-panel" role="tabpanel" aria-labelledby="bookings-tab" className="mt-8 space-y-6 pb-12">
-    <div>
-      <h2 className="text-2xl font-semibold">View Bookings</h2>
-      <p className="mt-2 text-sm text-neutral-500">Choose today or future dates to see available sections and reservations. Select a day and area below to view their details.</p>
-    </div>
-    <div className="flex flex-wrap items-end gap-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5">
+    <VStack>
+      <Heading level={2} className="text-2xl font-semibold">View Bookings</Heading>
+      <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">Choose today or future dates to see available sections and reservations. Select a day and area below to view their details.</Text>
+    </VStack>
+    <HStack gap={3} vAlign="stretch" wrap="wrap" className="sctn-panel items-end p-5">
       <label className="min-w-0 text-sm text-neutral-500">Start date<input type="date" value={start} min={today} onChange={(event) => { const value = event.target.value; setStart(value); if (value > end) setEnd(value); }} className="input mt-1" /></label>
       <label className="min-w-0 text-sm text-neutral-500">End date<input type="date" value={end} min={start > today ? start : today} onChange={(event) => setEnd(event.target.value)} className="input mt-1" /></label>
       <button type="button" onClick={() => { const date = bookingToday(); setStart(date); setEnd(date); }} className={buttonClass}>Today</button>
       <button type="button" disabled={!valid || loading} onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Refresh bookings</button>
-    </div>
-    {!valid && <p role="alert" className="text-sm text-red-700">Choose a valid start and end date from today onward. The end date must be on or after the start date.</p>}
-    <div aria-busy={loading} className="space-y-6">
-      {loading && <p role="status" className="text-sm text-neutral-500">Loading bookings…</p>}
-      {current?.error ? <div className="space-y-3"><p role="alert" className="text-red-700">{current.error}</p><button type="button" onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Retry loading bookings</button></div> : current && <>
-        {!dates.length && <p role="status" className="text-sm text-neutral-500">No sections or reservations for the selected dates.</p>}
+    </HStack>
+    {!valid && <Text as="p" type="inherit" color="inherit" role="alert" className="text-sm text-red-700">Choose a valid start and end date from today onward. The end date must be on or after the start date.</Text>}
+    <VStack gap={6} aria-busy={loading} className="">
+      {loading && <Text as="p" type="supporting" color="secondary" role="status" className="text-sm text-neutral-500">Loading bookings…</Text>}
+      {current?.error ? <VStack gap={3} className=""><Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{current.error}</Text><button type="button" onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Retry loading bookings</button></VStack> : current && <>
+        {!dates.length && <Text as="p" type="supporting" color="secondary" role="status" className="text-sm text-neutral-500">No sections or reservations for the selected dates.</Text>}
         {dates.length > 0 && <>
-        <div role="tablist" aria-label="Booking days" className="flex flex-wrap gap-2">
+        <HStack gap={2} vAlign="stretch" wrap="wrap" role="tablist" aria-label="Booking days" className="">
           {dates.map((date) => <button key={date} id={`view-booking-day-${date}`} type="button" role="tab"
             aria-selected={activeDate === date} aria-controls="view-booking-day-panel" onClick={() => setSelectedDate(date)}
             className={buttonClass + (activeDate === date ? " border-primary bg-primary text-on-primary" : "")}>
             {formatDate(date)}
           </button>)}
-        </div>
+        </HStack>
         <section id="view-booking-day-panel" role="tabpanel" aria-labelledby={`view-booking-day-${activeDate}`} className="space-y-3">
-          <h3 className="text-lg font-semibold">{formatDate(activeDate)}</h3>
-          {!visibleBookings.length && <p role="status" className="text-sm text-neutral-500">No sections or reservations for this day.</p>}
-          <div role="tablist" aria-label="Section areas" className="flex flex-wrap gap-2">
+          <Heading level={3} className="text-lg font-semibold">{formatDate(activeDate)}</Heading>
+          {!visibleBookings.length && <Text as="p" type="supporting" color="secondary" role="status" className="text-sm text-neutral-500">No sections or reservations for this day.</Text>}
+          <HStack gap={2} vAlign="stretch" wrap="wrap" role="tablist" aria-label="Section areas" className="">
             {areaGroups.map((group) => <button key={group.area} id={`booking-area-tab-${group.area}`} type="button" role="tab"
               aria-selected={activeArea === group.area} aria-controls="booking-area-panel"
               tabIndex={activeArea === group.area ? 0 : -1}
@@ -92,30 +98,30 @@ export default function ViewBookings({ venueId }: { venueId: string }) {
               className={buttonClass + (activeArea === group.area ? " border-primary bg-primary text-on-primary" : "")}>
               {group.label} ({group.bookings.length})
             </button>)}
-          </div>
+          </HStack>
           {areaGroups.filter((group) => group.area === activeArea).map((group) => <section key={group.area} id="booking-area-panel" role="tabpanel" aria-labelledby={`booking-area-tab-${group.area}`} className="space-y-4">
-            <h4 className="text-xl font-semibold">{group.label}</h4>
-          <div className="grid gap-4 lg:grid-cols-2">{group.bookings.map((booking) => <article key={booking.id} className="space-y-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5 [overflow-wrap:anywhere]">
-            <div className="flex flex-wrap items-start justify-between gap-2"><h5 className="text-lg font-semibold">{booking.section_name}</h5><span className="rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium">{statuses[booking.status] ?? booking.status}</span></div>
-            <p className="text-sm text-neutral-500">{formatBookingTime(booking.reservation_time.slice(0, 5))} · {booking.booking_slot === "day" ? "Daytime" : "Nighttime"}</p>
-            {booking.record_type === "reservation" && <div><p className="font-medium">{booking.customer_name || "Guest details not recorded"}</p>{booking.customer_email && <p className="text-sm text-neutral-500">{booking.customer_email}</p>}</div>}
+            <Heading level={4} className="text-xl font-semibold">{group.label}</Heading>
+          <Grid gap={4} className="lg:grid-cols-2">{group.bookings.map((booking) => <article key={booking.id} className="sctn-panel space-y-3 p-5 wrap-anywhere">
+            <HStack gap={2} vAlign="stretch" wrap="wrap" className="items-start justify-between"><Heading level={5} className="text-lg font-semibold">{booking.section_name}</Heading><Text type="supporting">{statuses[booking.status] ?? booking.status}</Text></HStack>
+            <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">{formatBookingTime(booking.reservation_time.slice(0, 5))} · {booking.booking_slot === "day" ? "Daytime" : "Nighttime"}</Text>
+            {booking.record_type === "reservation" && <VStack><Text as="p" type="inherit" color="inherit" className="font-medium">{booking.customer_name || "Guest details not recorded"}</Text>{booking.customer_email && <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">{booking.customer_email}</Text>}</VStack>}
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-neutral-500">Capacity</dt><dd>{booking.section_capacity}</dd></div>
-              <div><dt className="text-neutral-500">Deposit</dt><dd>{money(booking.deposit_amount)}</dd></div>
-              <div><dt className="text-neutral-500">Minimum spend</dt><dd>{money(booking.minimum_spend_amount)}</dd></div>
+              <VStack><dt className="text-neutral-500">Capacity</dt><dd>{booking.section_capacity}</dd></VStack>
+              <VStack><dt className="text-neutral-500">Deposit</dt><dd>{money(booking.deposit_amount)}</dd></VStack>
+              <VStack><dt className="text-neutral-500">Minimum spend</dt><dd>{money(booking.minimum_spend_amount)}</dd></VStack>
             </dl>
             {booking.record_type === "reservation" && <>
-              <p className="text-sm">Additional bands: {booking.additional_bands ?? 0} · Band charge {money((booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)}</p>
-              <p className="text-sm">Total guest allowance: {booking.section_capacity + (booking.additional_bands ?? 0)} · Deposit + bands: {money(Number(booking.deposit_amount) + (booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)}</p>
-              <p className="whitespace-pre-wrap text-sm">Drink sign: {booking.drink_sign_text || "None"}</p>
-              <div className="text-sm"><p className="text-neutral-500">Drink requests</p>{booking.beverages?.length ? <ul>{booking.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul> : <p>None</p>}</div>
-              <p className="text-xs text-neutral-500">Reservation number: {booking.reservation_id}</p>
+              <Text as="p" type="inherit" color="inherit" className="text-sm">Additional bands: {booking.additional_bands ?? 0} · Band charge {money((booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)}</Text>
+              <Text as="p" type="inherit" color="inherit" className="text-sm">Total guest allowance: {booking.section_capacity + (booking.additional_bands ?? 0)} · Deposit + bands: {money(Number(booking.deposit_amount) + (booking.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE)}</Text>
+              <Text as="p" type="inherit" color="inherit" className="whitespace-pre-wrap text-sm">Drink sign: {booking.drink_sign_text || "None"}</Text>
+              <VStack className="text-sm"><Text as="p" type="inherit" color="inherit" className="text-neutral-500">Drink requests</Text>{booking.beverages?.length ? <ul>{booking.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul> : <Text as="p" type="inherit" color="inherit">None</Text>}</VStack>
+              <Text as="p" type="supporting" color="secondary" className="text-xs text-neutral-500">Reservation number: {booking.reservation_id}</Text>
             </>}
-          </article>)}</div>
+          </article>)}</Grid>
           </section>)}
         </section>
         </>}
       </>}
-    </div>
+    </VStack>
   </section>;
 }

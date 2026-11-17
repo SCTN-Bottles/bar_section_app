@@ -1,5 +1,12 @@
 "use client";
 
+import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+import { VStack } from "@astryxdesign/core/Stack";
+import { Card } from "@astryxdesign/core/Card";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useState, type SubmitEvent } from "react";
 import Link from "next/link";
 
@@ -63,22 +70,22 @@ export default function VendorResetPasswordPage() {
     }
   }
 
-  return <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12"><div className="w-full rounded-xl border border-neutral-300 bg-neutral-50 p-7">
-    <p className="text-sm text-neutral-500">SCTN vendor portal</p>
-    <h1 className="mt-2 text-3xl font-semibold">Choose a new password</h1>
-    {isCheckingSession ? <p className="mt-4 text-sm text-neutral-500">Checking your reset link…</p> : !hasSession ? <div className="mt-4 space-y-3 text-sm text-neutral-600">
-      <p>This reset link is invalid or has expired. Request a new one from the sign-in page.</p>
+  return <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12"><Card padding={6} elevation="low" className="w-full">
+    <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">SCTN vendor portal</Text>
+    <Heading level={1} className="mt-2 text-3xl font-semibold">Choose a new password</Heading>
+    {isCheckingSession ? <Text as="p" type="supporting" color="secondary" className="mt-4 text-sm text-neutral-500">Checking your reset link…</Text> : !hasSession ? <VStack gap={3} className="mt-4 text-sm text-neutral-600">
+      <Text as="p" type="inherit" color="inherit">This reset link is invalid or has expired. Request a new one from the sign-in page.</Text>
       <Link href="/vendor/login" className="font-medium text-primary underline-offset-4 hover:underline">Back to sign in</Link>
-    </div> : updated ? <div className="mt-4 space-y-3 text-sm text-neutral-600">
-      <p role="status">Your password has been updated.</p>
+    </VStack> : updated ? <VStack gap={3} className="mt-4 text-sm text-neutral-600">
+      <Text as="p" type="inherit" color="inherit" role="status">Your password has been updated.</Text>
       <Link href="/vendor/login" className="font-medium text-primary underline-offset-4 hover:underline">Return to vendor sign in</Link>
-    </div> : <form onSubmit={submit} className="mt-6 space-y-4">
+    </VStack> : <form onSubmit={submit} className="mt-6 space-y-4">
       <Field label="New password"><input required minLength={8} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="input" /></Field>
       <Field label="Confirm new password"><input required minLength={8} type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="input" /></Field>
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      <button type="submit" disabled={isSaving} className="w-full rounded-md bg-primary px-5 py-3 font-semibold text-on-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Updating password…" : "Update password"}</button>
+      {error && <Text as="p" type="inherit" color="inherit" role="alert" className="text-sm text-red-700">{error}</Text>}
+      <ActionButton type="submit" disabled={isSaving} variant="primary" label={isSaving ? "Updating password…" : "Update password"} className="w-full" />
     </form>}
-  </div></main>;
+  </Card></main>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

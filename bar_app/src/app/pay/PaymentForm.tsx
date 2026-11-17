@@ -1,4 +1,8 @@
 "use client";
+
+import { Text } from "@astryxdesign/core/Text";
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useState, type FormEvent } from "react";
 
 export default function PaymentForm({ token }: { token: string }) {
@@ -21,9 +25,9 @@ export default function PaymentForm({ token }: { token: string }) {
   }
   return <form onSubmit={pay} className="mt-6 space-y-4">
     <label className="block">Reservation number
-      <input name="reservationNumber" required className="mt-2 w-full rounded border p-3" autoComplete="off" />
+      <input name="reservationNumber" required className="input mt-2" autoComplete="off" />
     </label>
-    {error && <p role="alert" className="text-red-700">{error}</p>}
-    <button disabled={busy} className="rounded bg-primary px-5 py-3 text-on-primary">{busy ? "Opening checkout…" : "Pay deposit and bands with Stripe"}</button>
+    {error && <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{error}</Text>}
+    <ActionButton disabled={busy} variant="primary" label={busy ? "Opening checkout…" : "Pay deposit and bands with Stripe"} type="submit" />
   </form>;
 }

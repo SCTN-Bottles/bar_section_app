@@ -1,5 +1,11 @@
 "use client";
 
+import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Card } from "@astryxdesign/core/Card";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -73,19 +79,19 @@ export default function VendorLoginPage() {
     }
   }
 
-  return <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12"><div className="w-full rounded-xl border border-neutral-300 bg-neutral-50 p-7">
-    <p className="text-sm text-neutral-500">SCTN vendor portal</p><h1 className="mt-2 text-3xl font-semibold">{isForgotPassword ? "Reset your password" : "Sign in to manage your venue"}</h1>
-    <p className="mt-3 text-sm text-neutral-500">{isForgotPassword ? "Enter the email address for your vendor account and we'll send a reset link if it exists." : "Sign in with the email and password provided for your vendor account."}</p>
+  return <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-12"><Card padding={6} elevation="low" className="w-full">
+    <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">SCTN vendor portal</Text><Heading level={1} className="mt-2 text-3xl font-semibold">{isForgotPassword ? "Reset your password" : "Sign in to manage your venue"}</Heading>
+    <Text as="p" type="supporting" color="secondary" className="mt-3 text-sm text-neutral-500">{isForgotPassword ? "Enter the email address for your vendor account and we'll send a reset link if it exists." : "Sign in with the email and password provided for your vendor account."}</Text>
     <form onSubmit={submit} className="mt-6 space-y-4">
       <Field label="Email"><input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="input" /></Field>
       {!isForgotPassword && <Field label="Password"><input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="input" /></Field>}
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      {resetRequested && <p role="status" className="text-sm text-green-800">If a vendor account exists for that email, a password reset link is on its way.</p>}
-      <button type="submit" disabled={isSendingReset || isSigningIn} className="w-full rounded-md bg-primary px-5 py-3 font-semibold text-on-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60">{isSendingReset ? "Sending reset link…" : isSigningIn ? "Signing in…" : isForgotPassword ? "Send reset link" : "Sign in"}</button>
+      {error && <Text as="p" type="inherit" color="inherit" role="alert" className="text-sm text-red-700">{error}</Text>}
+      {resetRequested && <Text as="p" type="inherit" color="inherit" role="status" className="text-sm text-green-800">If a vendor account exists for that email, a password reset link is on its way.</Text>}
+      <ActionButton type="submit" disabled={isSendingReset || isSigningIn} variant="primary" label={isSendingReset ? "Sending reset link…" : isSigningIn ? "Signing in…" : isForgotPassword ? "Send reset link" : "Sign in"} className="w-full" />
     </form>
     <button type="button" onClick={() => { setIsForgotPassword((current) => !current); setError(""); setResetRequested(false); }} className="mt-4 text-sm font-medium text-primary underline-offset-4 hover:underline">{isForgotPassword ? "Back to sign in" : "Forgot password?"}</button>
     <Link href="/" className="mt-6 block w-full rounded-md border border-neutral-300 px-5 py-3 text-center text-sm font-medium hover:border-primary hover:text-primary">Return to Homepage</Link>
-  </div></main>;
+  </Card></main>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

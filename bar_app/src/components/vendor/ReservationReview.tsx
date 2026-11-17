@@ -1,5 +1,11 @@
 "use client";
 
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+import { HStack } from "@astryxdesign/core/Stack";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useState } from "react";
 import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { supabase } from "@/lib/supabase";
@@ -78,26 +84,26 @@ export default function ReservationReview({ venueId, onReservationChanged }: { v
   }
 
   return <section className="mt-8 space-y-4">
-    <h2 className="text-2xl font-semibold">Pending reservations</h2>
-    <p className="text-sm text-neutral-500">Requests awaiting review and approved reservations awaiting payment. Approved guests receive an email with a payment link and one hour to pay.</p>
-    {error && <p role="alert" className="text-red-700">{error}</p>}
-    {loading ? <p role="status">Loading requests…</p> : !requests.length && <p>No reservations are awaiting review or payment.</p>}
-    {requests.map((request) => <article key={request.id} className="space-y-3 rounded-xl border border-neutral-300 bg-neutral-50 p-5 [overflow-wrap:anywhere]">
-      <h3 className="text-xl font-semibold">{request.section_name}</h3>
-      <p className="text-sm text-neutral-500">{request.status === "confirmed" ? "Approved · Awaiting payment · Section held" : "Pending management review"}</p>
-      {request.status === "confirmed" && request.payment_deadline && <p className="text-sm text-neutral-500">Payment due by {new Date(request.payment_deadline).toLocaleString()}.</p>}
-      <p>{request.customer_name} · {request.customer_email}</p>
-      <p>{request.reservation_date} · {request.booking_slot} · {request.reservation_time} · Capacity {request.section_capacity}</p>
-      <p>Additional bands: {request.additional_bands ?? 0} · Band charge ${((request.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)} · Total guest allowance {request.section_capacity + (request.additional_bands ?? 0)}</p>
-      <p>Total due after approval ${(Number(request.deposit_amount) + (request.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</p>
-      <p>Deposit ${request.deposit_amount} · Minimum spend ${request.minimum_spend_amount}</p>
-      <p className="whitespace-pre-wrap">Drink sign: {request.drink_sign_text || "None"}</p>
+    <Heading level={2} className="text-2xl font-semibold">Pending reservations</Heading>
+    <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Requests awaiting review and approved reservations awaiting payment. Approved guests receive an email with a payment link and one hour to pay.</Text>
+    {error && <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{error}</Text>}
+    {loading ? <Text as="p" type="inherit" color="inherit" role="status">Loading requests…</Text> : !requests.length && <Text as="p" type="inherit" color="inherit">No reservations are awaiting review or payment.</Text>}
+    {requests.map((request) => <article key={request.id} className="sctn-panel space-y-3 p-5 wrap-anywhere">
+      <Heading level={3} className="text-xl font-semibold">{request.section_name}</Heading>
+      <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">{request.status === "confirmed" ? "Approved · Awaiting payment · Section held" : "Pending management review"}</Text>
+      {request.status === "confirmed" && request.payment_deadline && <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Payment due by {new Date(request.payment_deadline).toLocaleString()}.</Text>}
+      <Text as="p" type="inherit" color="inherit">{request.customer_name} · {request.customer_email}</Text>
+      <Text as="p" type="inherit" color="inherit">{request.reservation_date} · {request.booking_slot} · {request.reservation_time} · Capacity {request.section_capacity}</Text>
+      <Text as="p" type="inherit" color="inherit">Additional bands: {request.additional_bands ?? 0} · Band charge ${((request.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)} · Total guest allowance {request.section_capacity + (request.additional_bands ?? 0)}</Text>
+      <Text as="p" type="inherit" color="inherit">Total due after approval ${(Number(request.deposit_amount) + (request.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</Text>
+      <Text as="p" type="inherit" color="inherit">Deposit ${request.deposit_amount} · Minimum spend ${request.minimum_spend_amount}</Text>
+      <Text as="p" type="inherit" color="inherit" className="whitespace-pre-wrap">Drink sign: {request.drink_sign_text || "None"}</Text>
       <ul>{request.beverages.map((drink, index) => <li key={index}>{drink.quantity} × {drink.name}</li>)}</ul>
-      <p className="break-all text-sm">Reservation number: {request.id}</p>
-      <div className="flex gap-3">
-        <button disabled={!!busy} onClick={() => void review(request.id, "confirmed")} className="rounded-md bg-primary px-4 py-2 text-on-primary disabled:opacity-50">{request.status === "confirmed" ? "Retry approval email" : "Approve"}</button>
-        <button disabled={!!busy || request.status !== "pending"} onClick={() => void review(request.id, "cancelled")} className="rounded-md border border-neutral-300 px-4 py-2 hover:border-primary disabled:opacity-50">Deny</button>
-      </div>
+      <Text as="p" type="inherit" color="inherit" className="break-all text-sm">Reservation number: {request.id}</Text>
+      <HStack gap={3} vAlign="stretch" className="">
+        <ActionButton disabled={!!busy} onClick={() => void review(request.id, "confirmed")} variant="primary" label={request.status === "confirmed" ? "Retry approval email" : "Approve"} type="button" />
+        <ActionButton disabled={!!busy || request.status !== "pending"} onClick={() => void review(request.id, "cancelled")} variant="secondary" label="Deny" type="button" />
+      </HStack>
     </article>)}
   </section>;
 }

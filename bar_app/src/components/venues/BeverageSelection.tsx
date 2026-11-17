@@ -1,5 +1,12 @@
 "use client";
 
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Card } from "@astryxdesign/core/Card";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { formatBookingTime } from "@/lib/booking-time";
 import { BeverageOption, Section } from "@/types/venue";
@@ -66,127 +73,127 @@ export default function BeverageSelection({
 
   function renderBeverageGroup(title: string, options: BeverageOption[]) {
     return (
-      <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+      <VStack>
+        <Heading level={3} className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
           {title}
-        </h3>
-        <div className="space-y-2">
+        </Heading>
+        <VStack gap={2} className="">
           {options.map((beverage) => {
             const quantity = quantities[beverage.id] ?? 0;
 
             return (
-              <div
+              <HStack gap={3} vAlign="stretch"
                 key={beverage.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-3"
+                className="sctn-inset items-center justify-between px-3 py-3"
               >
-                <div>
-                  <p className="font-medium">{beverage.name}</p>
-                  <p className="mt-1 text-sm text-neutral-500">
+                <VStack>
+                  <Text as="p" type="inherit" color="inherit" className="font-medium">{beverage.name}</Text>
+                  <Text as="p" type="supporting" color="secondary" className="mt-1 text-sm text-neutral-500">
                     {formatCurrency(beverage.price)} per {beverage.type}
-                  </p>
-                </div>
+                  </Text>
+                </VStack>
 
-                <div className="flex items-center gap-2" aria-label={`${beverage.name} quantity`}>
-                  <button
+                <HStack gap={2} vAlign="stretch" className="items-center" aria-label={`${beverage.name} quantity`}>
+                  <ActionButton
                     type="button"
                     onClick={() => changeQuantity(beverage.id, -1)}
                     disabled={quantity === 0}
                     aria-label={`Remove one ${beverage.name}`}
-                    className="flex h-9 min-h-0 w-9 items-center justify-center rounded-md border border-neutral-300 text-lg disabled:cursor-default disabled:opacity-40"
-                  >
-                    −
-                  </button>
-                  <span className="w-5 text-center font-semibold" aria-live="polite">
+                    variant="secondary"
+                    label="−"
+                    className="reservation-quantity"
+                  />
+                  <Text as="span" type="inherit" color="inherit" className="w-5 text-center font-semibold" aria-live="polite">
                     {quantity}
-                  </span>
-                  <button
+                  </Text>
+                  <ActionButton
                     type="button"
                     onClick={() => changeQuantity(beverage.id, 1)}
                     aria-label={`Add one ${beverage.name}`}
-                    className="flex h-9 min-h-0 w-9 items-center justify-center rounded-md border border-primary bg-primary text-lg text-on-primary hover:bg-accent"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+                    variant="primary"
+                    label="+"
+                    className="reservation-quantity"
+                  />
+                </HStack>
+              </HStack>
             );
           })}
-        </div>
-      </div>
+        </VStack>
+      </VStack>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-      <button
+    <Card padding={6} elevation="low" className="reservation-card mx-auto max-w-2xl">
+      <ActionButton
         type="button"
         onClick={onBack}
-        className="text-sm text-neutral-500 hover:text-foreground"
-      >
-        ← Back to bands
-      </button>
+        variant="ghost"
+        label="← Back to bands"
+        className="reservation-back"
+      />
 
-      <div className="mt-6 rounded-lg border border-neutral-300 bg-neutral-100 p-4">
-        <p className="text-sm text-neutral-500">Pre-ordering for</p>
-        <p className="mt-1 text-xl font-semibold">Section {section.name}</p>
-        <p className="mt-1 text-sm text-neutral-500">
+      <VStack className="sctn-inset mt-6 p-4">
+        <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Pre-ordering for</Text>
+        <Text as="p" type="inherit" color="inherit" className="mt-1 text-xl font-semibold">Section {section.name}</Text>
+        <Text as="p" type="supporting" color="secondary" className="mt-1 text-sm text-neutral-500">
           {bookingDate} · {formatBookingTime(bookingTime)}
-        </p>
-      </div>
+        </Text>
+      </VStack>
 
-      <div className="mt-6">
-        <p className="text-sm text-neutral-500">Step 3 of 6</p>
-        <h1 className="mt-1 text-3xl font-semibold">Bottles & kegs</h1>
-        <p className="mt-2 text-sm text-neutral-500">
+      <VStack className="mt-6">
+        <Text as="p" type="inherit" color="inherit" className="reservation-step">Step 3 of 6</Text>
+        <Heading level={1} className="reservation-heading mt-2">Bottles & kegs</Heading>
+        <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">
           {beverages.length ? "Choose at least one item, then personalize your drink sign." : "No drinks are offered for this date. Continue to personalize your drink sign."}
-        </p>
-      </div>
+        </Text>
+      </VStack>
 
-      <div className="mt-6 space-y-6">
+      <VStack gap={6} className="mt-6">
         {renderBeverageGroup("Bottles", bottles)}
         {renderBeverageGroup("Kegs", kegs)}
-      </div>
+      </VStack>
 
-      <div className="mt-6 space-y-3 border-t border-neutral-300 pt-5">
-        <div className="flex justify-between gap-4">
-          <span className="text-neutral-500">
+      <VStack gap={3} className="mt-6 border-t border-neutral-300 pt-5">
+        <HStack gap={4} vAlign="stretch" className="justify-between">
+          <Text as="span" type="inherit" color="inherit" className="text-neutral-500">
             {selectedCount} selected item{selectedCount === 1 ? "" : "s"}
-          </span>
-          <span className="font-semibold">{formatCurrency(preorderTotal)}</span>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <span className="text-neutral-500">Remaining section minimum</span>
-          <span>
+          </Text>
+          <Text as="span" type="inherit" color="inherit" className="font-semibold">{formatCurrency(preorderTotal)}</Text>
+        </HStack>
+        <HStack gap={4} vAlign="stretch" className="justify-between text-sm">
+          <Text as="span" type="inherit" color="inherit" className="text-neutral-500">Remaining section minimum</Text>
+          <Text as="span" type="inherit" color="inherit">
             {remainingMinimumSpend === 0
               ? "Minimum covered"
               : formatCurrency(remainingMinimumSpend)}
-          </span>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <span className="text-neutral-500">Deposit due after approval</span>
-          <span>{formatCurrency(section.deposit)}</span>
-        </div>
-        <div className="flex justify-between gap-4 text-sm"><span>Additional bands ({additionalBands})</span><span>{formatCurrency(additionalBands * ADDITIONAL_BAND_PRICE)}</span></div>
-        <div className="flex justify-between gap-4 font-semibold"><span>Total due after approval</span><span>{formatCurrency(section.deposit + additionalBands * ADDITIONAL_BAND_PRICE)}</span></div>
-      </div>
+          </Text>
+        </HStack>
+        <HStack gap={4} vAlign="stretch" className="justify-between text-sm">
+          <Text as="span" type="inherit" color="inherit" className="text-neutral-500">Deposit due after approval</Text>
+          <Text as="span" type="inherit" color="inherit">{formatCurrency(section.deposit)}</Text>
+        </HStack>
+        <HStack gap={4} vAlign="stretch" className="justify-between text-sm"><Text as="span" type="inherit" color="inherit">Additional bands ({additionalBands})</Text><Text as="span" type="inherit" color="inherit">{formatCurrency(additionalBands * ADDITIONAL_BAND_PRICE)}</Text></HStack>
+        <HStack gap={4} vAlign="stretch" className="sctn-total mt-3 justify-between font-semibold tabular-nums"><Text as="span" type="inherit" color="inherit">Total due after approval</Text><Text as="span" type="inherit" color="inherit">{formatCurrency(section.deposit + additionalBands * ADDITIONAL_BAND_PRICE)}</Text></HStack>
+      </VStack>
 
       {selectedCount > 0 || beverages.length === 0 ? (
-        <button
+        <ActionButton
           type="button"
           onClick={onContinue}
-          className="mt-6 block w-full rounded-md bg-primary px-5 py-3 text-center font-medium text-on-primary hover:bg-accent"
-        >
-          Continue to drink sign
-        </button>
+          variant="primary"
+          label="Continue to drink sign"
+          className="mt-6 w-full"
+        />
       ) : (
-        <button
+        <ActionButton
           type="button"
           disabled
-          className="mt-6 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary opacity-50"
-        >
-          Choose a bottle or keg to continue
-        </button>
+          variant="primary"
+          label="Choose a bottle or keg to continue"
+          className="mt-6 w-full"
+        />
       )}
-    </div>
+    </Card>
   );
 }

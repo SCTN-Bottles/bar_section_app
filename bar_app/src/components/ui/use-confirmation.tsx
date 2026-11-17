@@ -1,5 +1,11 @@
 "use client";
 
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+import { HStack } from "@astryxdesign/core/Stack";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useId, useRef, useState } from "react";
 
 type Confirmation = {
@@ -29,12 +35,12 @@ function ConfirmationDialog({ title, message, confirmLabel = "Continue", onAnswe
   return <dialog ref={dialogRef} aria-labelledby={titleId} aria-describedby={messageId}
     onCancel={(event) => { event.preventDefault(); onAnswer(false); }}
     className="fixed inset-auto left-[50vw] top-[50dvh] m-0 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-neutral-300 bg-neutral-50 p-6 text-foreground shadow-xl backdrop:bg-black/60">
-    <h2 id={titleId} className="text-xl font-semibold">{title}</h2>
-    <p id={messageId} className="mt-3 text-sm leading-6 text-neutral-600">{message}</p>
-    <div className="mt-6 flex flex-wrap justify-end gap-3">
-      <button type="button" autoFocus onClick={() => onAnswer(false)} className="rounded-md border border-neutral-300 px-4 py-3 text-sm font-medium">Cancel</button>
-      <button type="button" onClick={() => onAnswer(true)} className="rounded-md bg-primary px-4 py-3 text-sm font-semibold text-on-primary hover:bg-accent">{confirmLabel}</button>
-    </div>
+    <Heading level={2} id={titleId} className="text-xl font-semibold">{title}</Heading>
+    <Text as="p" type="supporting" color="secondary" id={messageId} className="mt-3 text-sm leading-6 text-neutral-600">{message}</Text>
+    <HStack gap={3} vAlign="stretch" wrap="wrap" className="mt-6 justify-end">
+      <ActionButton type="button" autoFocus onClick={() => onAnswer(false)} variant="secondary" label="Cancel" />
+      <ActionButton type="button" onClick={() => onAnswer(true)} variant="primary" label={confirmLabel} />
+    </HStack>
   </dialog>;
 }
 

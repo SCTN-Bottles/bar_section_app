@@ -1,5 +1,12 @@
 "use client";
 
+import { Text } from "@astryxdesign/core/Text";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Heading } from "@astryxdesign/core/Heading";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { ADDITIONAL_BAND_PRICE, parseAdditionalBands } from "@/lib/additional-bands";
 import Link from "next/link";
 import { submitReservation } from "@/lib/reservations";
@@ -83,12 +90,12 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
 
   if (additionalBands === null) {
     backQuery.set("step", "bands");
-    return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16"><p role="alert">Enter a whole number from 0 to 5 additional bands.</p><Link className="underline" href={`/${activeVenue.venueName}?${backQuery.toString()}`}>Edit additional bands</Link></main>;
+    return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16"><Text as="p" type="inherit" color="inherit" role="alert">Enter a whole number from 0 to 5 additional bands.</Text><Link className="underline" href={`/${activeVenue.venueName}?${backQuery.toString()}`}>Edit additional bands</Link></main>;
   }
 
   if (signError) return <main className="mx-auto max-w-2xl space-y-4 px-6 py-16">
-    <h1 className="text-2xl font-semibold">Update your drink sign</h1>
-    <p role="alert" className="text-red-700">{signError}</p>
+    <Heading level={1} className="text-2xl font-semibold">Update your drink sign</Heading>
+    <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{signError}</Text>
     <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="inline-block underline">Edit drink sign</Link>
   </main>;
 
@@ -96,7 +103,12 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
     return <main className="mx-auto max-w-5xl px-6 py-16 text-neutral-500">Loading drink options…</main>;
   }
 
-  if (!date || day.error) return <main className="mx-auto max-w-5xl space-y-4 px-6 py-16"><p role="alert" className="text-red-700">{day.error || "Choose a reservation date before checking out."}</p>{date && <button type="button" onClick={day.retry} className="rounded-md border px-4 py-2">Retry loading date</button>}<Link className="block underline" href={`/${activeVenue.venueName}`}>Choose a date</Link></main>;
+  if (!date || day.error) return <main className="mx-auto max-w-5xl space-y-4 px-6 py-16"><Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{day.error || "Choose a reservation date before checking out."}</Text>{date && <ActionButton
+    type="button"
+    onClick={day.retry}
+    variant="secondary"
+    label="Retry loading date"
+  />}<Link className="block underline" href={`/${activeVenue.venueName}`}>Choose a date</Link></main>;
 
   if (venueError || beverageError || sectionError) {
     return <main role="alert" className="mx-auto max-w-5xl px-6 py-16 text-red-700">{venueError ?? beverageError ?? sectionError}</main>;
@@ -107,13 +119,11 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
       <>
         <VenueHeader venue={activeVenue} />
         <section className="mx-auto max-w-2xl px-6 py-16">
-          <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-            <h1 className="text-2xl font-semibold">This section is no longer available</h1>
-            <p className="mt-3 text-neutral-500">Please return to the venue and choose another section.</p>
-            <Link href={`/${activeVenue.venueName}?restart=1`} className="mt-6 inline-block rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent">
-              Browse sections
-            </Link>
-          </div>
+          <VStack className="sctn-panel p-5 sm:p-6">
+            <Heading level={1} className="text-2xl font-semibold">This section is no longer available</Heading>
+            <Text as="p" type="inherit" color="inherit" className="mt-3 text-neutral-500">Please return to the venue and choose another section.</Text>
+            <ActionButton href={`/${activeVenue.venueName}?restart=1`} variant="primary" label="Browse sections" className="mt-6" />
+          </VStack>
         </section>
       </>
     );
@@ -132,12 +142,12 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
     <>
       <VenueHeader venue={activeVenue} />
       <section className="mx-auto max-w-5xl px-6 py-16">
-        <div className="grid items-start gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-            <Link href={`/${activeVenue.venueName}?${backQuery.toString()}`} className="text-sm text-neutral-500 hover:text-foreground">← Back to drink sign</Link>
-            <p className="mt-6 text-sm text-neutral-500">Step 6 of 6</p>
-            <h1 className="mt-1 text-3xl font-semibold">Reserve {section.name}</h1>
-            <div className="mt-6">
+        <Grid gap={6} className="items-start md:grid-cols-2">
+          <VStack className="reservation-card sctn-panel p-5 sm:p-6">
+            <ActionButton href={`/${activeVenue.venueName}?${backQuery.toString()}`} variant="ghost" label="← Back to drink sign" className="reservation-back" />
+            <Text as="p" type="inherit" color="inherit" className="mt-6 reservation-step">Step 6 of 6</Text>
+            <Heading level={1} className="section-heading mt-1">Reserve {section.name}</Heading>
+            <VStack className="mt-6">
           <DemoCheckoutForm
             onComplete={async (details) => {
 
@@ -167,12 +177,12 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
               window.scrollTo({ top: 0, behavior: "instant" });
             }}
           />
-            </div>
-          </div>
-          <aside className="rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-            <p className="text-sm text-neutral-500">Reservation summary</p>
-            <h2 className="mt-2 text-2xl font-semibold">{activeVenue.name}</h2>
-            <div className="mt-6 space-y-4">
+            </VStack>
+          </VStack>
+          <aside aria-label="Reservation summary" className="sctn-panel p-5 sm:p-6">
+            <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Reservation summary</Text>
+            <Heading level={2} className="mt-2 text-2xl font-semibold">{activeVenue.name}</Heading>
+            <VStack gap={4} className="mt-6">
               <SummaryRow label="Section" value={section.name} />
               <SummaryRow label="Date" value={reservationDate} />
               <SummaryRow label="Time" value={formatBookingTime(reservationTime)} />
@@ -180,32 +190,32 @@ export default function CheckoutPageClient({ initialVenue, sectionId, date, time
               <SummaryRow label="Additional bands" value={`${additionalBands} × $${ADDITIONAL_BAND_PRICE} = $${additionalBands * ADDITIONAL_BAND_PRICE}`} />
               <SummaryRow label="Total guest allowance" value={`Up to ${section.capacity + additionalBands} guests`} />
               <SummaryRow label="Minimum spend" value={`$${section.minimumSpend}`} />
-              <div className="border-t border-neutral-300 pt-4">
-                <p className="text-neutral-500">Drink sign message</p>
-                <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">{drinkSignText || "No custom message"}</p>
-              </div>
-              <div className="border-t border-neutral-300 pt-4">
-                <span className="text-neutral-500">Pre-ordered drinks</span>
+              <VStack className="border-t border-neutral-300 pt-4">
+                <Text as="p" type="inherit" color="inherit" className="text-neutral-500">Drink sign message</Text>
+                <Text as="p" type="inherit" color="inherit" className="mt-2 whitespace-pre-wrap wrap-anywhere">{drinkSignText || "No custom message"}</Text>
+              </VStack>
+              <VStack className="border-t border-neutral-300 pt-4">
+                <Text as="span" type="inherit" color="inherit" className="text-neutral-500">Pre-ordered drinks</Text>
                 {selectedBeverages.length ? (
-                  <div className="mt-3 space-y-2">
+                  <VStack gap={2} className="mt-3">
                     {selectedBeverages.map(({ beverage, quantity }) => (
-                      <div key={beverage.id} className="flex justify-between gap-3"><span>{quantity}× {beverage.name}</span><span>${beverage.price * quantity}</span></div>
+                      <HStack gap={3} vAlign="stretch" key={beverage.id} className="justify-between"><Text as="span" type="inherit" color="inherit">{quantity}× {beverage.name}</Text><Text as="span" type="inherit" color="inherit">${beverage.price * quantity}</Text></HStack>
                     ))}
-                    <div className="flex justify-between border-t border-neutral-300 pt-3 font-medium"><span>Drink total</span><span>${beverageTotal}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-neutral-500">Remaining minimum</span><span>{remainingMinimumSpend === 0 ? "Minimum covered" : `$${remainingMinimumSpend}`}</span></div>
-                  </div>
-                ) : <p className="mt-2 text-sm">None selected</p>}
-              </div>
-              <div className="border-t border-neutral-300 pt-4"><div className="flex justify-between text-lg font-semibold"><span>Deposit due after approval</span><span>${section.deposit}</span></div><div className="mt-3 flex justify-between text-lg font-semibold"><span>Total due after approval</span><span>${section.deposit + additionalBands * ADDITIONAL_BAND_PRICE}</span></div><p className="mt-2 text-sm text-neutral-500">Includes additional bands. Bands do not count toward the drink minimum.</p></div>
-            </div>
+                    <HStack vAlign="stretch" className="justify-between border-t border-neutral-300 pt-3 font-medium"><Text as="span" type="inherit" color="inherit">Drink total</Text><Text as="span" type="inherit" color="inherit">${beverageTotal}</Text></HStack>
+                    <HStack vAlign="stretch" className="justify-between text-sm"><Text as="span" type="inherit" color="inherit" className="text-neutral-500">Remaining minimum</Text><Text as="span" type="inherit" color="inherit">{remainingMinimumSpend === 0 ? "Minimum covered" : `$${remainingMinimumSpend}`}</Text></HStack>
+                  </VStack>
+                ) : <Text as="p" type="inherit" color="inherit" className="mt-2 text-sm">None selected</Text>}
+              </VStack>
+              <VStack className="sctn-total"><HStack gap={3} vAlign="stretch" className="justify-between font-semibold tabular-nums"><Text as="span" type="inherit" color="inherit">Deposit due after approval</Text><Text as="span" type="inherit" color="inherit">${section.deposit}</Text></HStack><HStack gap={3} vAlign="stretch" className="mt-3 justify-between text-lg font-semibold tabular-nums"><Text as="span" type="inherit" color="inherit">Total due after approval</Text><Text as="span" type="inherit" color="inherit">${section.deposit + additionalBands * ADDITIONAL_BAND_PRICE}</Text></HStack><Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">Includes additional bands. Bands do not count toward the drink minimum.</Text></VStack>
+            </VStack>
           </aside>
-        </div>
+        </Grid>
       </section>
     </>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
-  return <div className="flex justify-between gap-3"><span className="text-neutral-500">{label}</span><span className="text-right">{value}</span></div>;
+  return <HStack gap={3} vAlign="stretch" className="justify-between"><Text as="span" type="inherit" color="inherit" className="text-neutral-500">{label}</Text><Text as="span" type="inherit" color="inherit" className="text-right">{value}</Text></HStack>;
 }
 

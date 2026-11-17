@@ -14,8 +14,13 @@ function load(file, dependencies = {}, globals = {}) {
   }).outputText;
   vm.runInNewContext(code, { exports, URL, URLSearchParams, Response, Date, crypto, process: { env: {
     NEXT_PUBLIC_SUPABASE_URL: "https://example.test", SUPABASE_SERVICE_ROLE_KEY: "test", STRIPE_SECRET_KEY: "test", STRIPE_WEBHOOK_SECRET: "test", APP_URL: "https://example.test",
-  } }, require: (name) => name in dependencies ? dependencies[name]
-    : name.startsWith("@/") ? load(`${name.slice(2)}.ts`, dependencies, globals) : require(name), ...globals });
+  } }, require: (name) => {
+    if (name in dependencies) return dependencies[name];
+    if (!name.startsWith("@/")) return require(name);
+    const base = name.slice(2);
+    const extension = fs.existsSync(path.resolve(__dirname, "../src", `${base}.ts`)) ? "ts" : "tsx";
+    return load(`${base}.${extension}`, dependencies, globals);
+  }, ...globals });
   return exports;
 }
 function nodes(node) {
@@ -34,10 +39,16 @@ async function main() {
   for (const [choice, quantity, inputVisible, enabled] of [[null,"0",false,false],["no","0",false,true],["yes","1",true,true],["yes","0",true,true],["yes","5",true,true],["yes","",true,false],["yes","6",true,false],["yes","1.5",true,false]]) {
     const tree = BandSelection({ ...props, choice, quantity });
     assert.equal(nodes(tree).some((node) => node.type === "input"), inputVisible);
-    const confirm = nodes(tree).find((node) => node.type === "button" && node.props.children === "Confirm bands");
+    const confirm = nodes(tree).find((node) => node.props.label === "Confirm bands");
     assert.equal(Boolean(confirm), choice === "yes");
     if (confirm) assert.equal(!confirm.props.disabled, enabled);
-    for (const answer of ["Yes", "No"]) assert.match(nodes(tree).find((node) => node.type === "button" && node.props.children === answer).props.className, /bg-primary.*text-on-primary/);
+    for (const answer of ["Yes", "No"]) {
+      const option = nodes(tree).find((node) => node.props.label === answer);
+      const selected = choice === answer.toLowerCase();
+      assert.equal(option.props["aria-pressed"], selected);
+      assert.equal(option.props.variant, selected ? "primary" : "secondary");
+      option.props.onClick();
+    }
   }
   const yesHtml = renderToStaticMarkup(React.createElement(BandSelection, { ...props, choice: "yes", quantity: "5" }));
   assert.match(yesHtml, /Up to 15 guests/); assert.match(yesHtml, /\$125/);
@@ -92,7 +103,7 @@ async function main() {
   state.length=0; initialReservation={ date:"2027-01-03", sectionId:"section", step:"bands", additional_bands:"0", bandsChoice:"yes" };
   assert.equal(find("AdditionalBandsSelection").props.choice, "yes");
   find("AdditionalBandsSelection").props.onBack();
-  nodes(render()).find((node) => node.type === "button" && node.props.children === "Change date").props.onClick();
+  nodes(render()).find((node) => node.props.label === "Change date").props.onClick();
   find("BookingCalendar").props.onChange("2027-01-04");
   find("SectionDetails").props.onReserve(); await flush();
   assert.equal(find("AdditionalBandsSelection").props.choice, null);
