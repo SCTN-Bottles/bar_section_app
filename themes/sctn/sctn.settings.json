@@ -1,0 +1,14 @@
+{
+  "name": "sctn",
+  "like": "neutral",
+  "mode": "both",
+  "settings": [
+    {
+      "thing": "accent",
+      "value": "#f1b82d",
+      "source": "dial"
+    }
+  ],
+  "lifted": [],
+  "palette": "9c86c5d1e5ba03f45328aedaf2034ad7a888b4b71f774a810faf940f4de47d47"
+}
