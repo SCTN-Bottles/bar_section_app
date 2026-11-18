@@ -1,5 +1,12 @@
 "use client";
 
+import { Text } from "@astryxdesign/core/Text";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Card } from "@astryxdesign/core/Card";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { ADDITIONAL_BAND_PRICE, MAX_ADDITIONAL_BANDS, isValidAdditionalBands } from "@/lib/additional-bands";
 import type { Section } from "@/types/venue";
 
@@ -18,26 +25,39 @@ type Props = {
 export default function AdditionalBandsSelection({ section, choice, quantity, onChoice, onQuantity, onBack, onContinue }: Props) {
   const count = choice === "no" ? 0 : Number(quantity);
   const valid = choice !== null && (choice === "no" || quantity.trim() !== "" && isValidAdditionalBands(count));
-  return <div className="mx-auto max-w-2xl rounded-xl border border-neutral-300 bg-neutral-50 p-6">
-    <button type="button" onClick={onBack} className="text-sm text-neutral-500 hover:text-foreground">← Back to sections</button>
-    <p className="mt-6 text-sm text-neutral-500">Step 2 of 6</p>
-    <h1 className="mt-1 text-3xl font-semibold">Additional bands</h1>
-    <p className="mt-4">Would you like to purchase additional bands to allow more people in your section?</p>
-    <p className="mt-2 text-sm text-neutral-500">{section.name} includes up to {section.capacity} guests. Each additional band admits one more guest.</p>
-    <div className="mt-6 flex gap-3" role="group" aria-label="Purchase additional bands">
-      {(["yes", "no"] as const).map((answer) => <button key={answer} type="button" aria-pressed={choice === answer} onClick={() => onChoice(answer)} className="rounded-md border border-primary bg-primary px-6 py-3 font-medium text-on-primary hover:bg-accent">{answer === "yes" ? "Yes" : "No"}</button>)}
-    </div>
-    {choice === "yes" && <div className="mt-6">
+  return <Card padding={6} elevation="low" className="reservation-card mx-auto max-w-2xl">
+    <ActionButton
+      type="button"
+      onClick={onBack}
+      variant="ghost"
+      label="← Back to sections"
+      className="reservation-back"
+    />
+    <Text as="p" type="inherit" color="inherit" className="mt-6 reservation-step">Step 2 of 6</Text>
+    <Heading level={1} className="reservation-heading mt-2">Additional bands</Heading>
+    <Text as="p" type="inherit" color="inherit" className="mt-4">Would you like to purchase additional bands to allow more people in your section?</Text>
+    <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">{section.name} includes up to {section.capacity} guests. Each additional band admits one more guest.</Text>
+    <HStack gap={3} vAlign="stretch" className="mt-6" role="group" aria-label="Purchase additional bands">
+      {(["yes", "no"] as const).map((answer) => <ActionButton
+        key={answer}
+        type="button"
+        aria-pressed={choice === answer}
+        onClick={() => onChoice(answer)}
+        variant={choice === answer ? "primary" : "secondary"}
+        label={String(answer === "yes" ? "Yes" : "No")}
+      />)}
+    </HStack>
+    {choice === "yes" && <VStack className="mt-6">
       <label htmlFor="additional-bands" className="block font-medium">Number of additional bands</label>
       <input id="additional-bands" type="number" min={0} max={MAX_ADDITIONAL_BANDS} step={1} value={quantity} onChange={(event) => onQuantity(event.target.value)} aria-describedby="additional-bands-help" aria-invalid={!valid} className="input mt-2 max-w-32" />
-      <p id="additional-bands-help" className="mt-2 text-sm text-neutral-500">Enter a whole number from 0 to {MAX_ADDITIONAL_BANDS}. ${ADDITIONAL_BAND_PRICE} per band, paid with your deposit after approval. Bands do not count toward the drink minimum.</p>
-      {!valid && <p role="alert" className="mt-2 text-sm text-red-700">Enter a whole number from 0 to {MAX_ADDITIONAL_BANDS}.</p>}
-    </div>}
+      <Text as="p" type="supporting" color="secondary" id="additional-bands-help" className="mt-2 text-sm text-neutral-500">Enter a whole number from 0 to {MAX_ADDITIONAL_BANDS}. ${ADDITIONAL_BAND_PRICE} per band, paid with your deposit after approval. Bands do not count toward the drink minimum.</Text>
+      {!valid && <Text as="p" type="inherit" color="inherit" role="alert" className="mt-2 text-sm text-red-700">Enter a whole number from 0 to {MAX_ADDITIONAL_BANDS}.</Text>}
+    </VStack>}
     {choice === "yes" && valid && <dl aria-live="polite" className="mt-6 space-y-3 border-t border-neutral-300 pt-5">
-      <div className="flex justify-between"><dt>Additional bands ({count})</dt><dd>${count * ADDITIONAL_BAND_PRICE}</dd></div>
-      <div className="flex justify-between"><dt>Total guest allowance</dt><dd>Up to {section.capacity + count} guests</dd></div>
-      <div className="flex justify-between font-semibold"><dt>Due after approval</dt><dd>${section.deposit + count * ADDITIONAL_BAND_PRICE}</dd></div>
+      <HStack vAlign="stretch" className="justify-between"><dt>Additional bands ({count})</dt><dd>${count * ADDITIONAL_BAND_PRICE}</dd></HStack>
+      <HStack vAlign="stretch" className="justify-between"><dt>Total guest allowance</dt><dd>Up to {section.capacity + count} guests</dd></HStack>
+      <HStack vAlign="stretch" className="justify-between font-semibold"><dt>Due after approval</dt><dd>${section.deposit + count * ADDITIONAL_BAND_PRICE}</dd></HStack>
     </dl>}
-    {choice === "yes" && <button type="button" disabled={!valid} onClick={onContinue} className="mt-6 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent disabled:opacity-50">Confirm bands</button>}
-  </div>;
+    {choice === "yes" && <ActionButton type="button" disabled={!valid} onClick={onContinue} variant="primary" label="Confirm bands" className="mt-6 w-full" />}
+  </Card>;
 }

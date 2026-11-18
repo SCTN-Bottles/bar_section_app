@@ -1,5 +1,13 @@
 "use client";
 
+import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Card } from "@astryxdesign/core/Card";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { Section } from "@/types/venue";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 
@@ -23,25 +31,19 @@ export default function SectionDetails({
   const availabilityLabel = sold ? "Sold" : "Available";
 
   return (
-    <div className="rounded-xl border border-neutral-300 bg-neutral-50 p-5">
+    <Card padding={5} elevation="low">
       {confirmationDialog}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-neutral-500">Selected section</p>
-          <h2 className="section-heading mt-1">{section.name}</h2>
-        </div>
+      <HStack gap={3} vAlign="stretch" className="items-start justify-between">
+        <VStack>
+          <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Selected section</Text>
+          <Heading level={2} className="section-heading mt-1">{section.name}</Heading>
+        </VStack>
 
-        <span
-          className={`rounded-full px-3 py-1 text-sm ${
-            sold ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
-          }`}
-        >
-          {availabilityLabel}
-        </span>
-      </div>
+        <Text type="supporting" color="secondary" className={sold ? undefined : "text-status-success"}>{availabilityLabel}</Text>
+      </HStack>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-[150px_1fr]">
-        <div className="relative h-32 overflow-hidden rounded-lg bg-neutral-100 sm:h-full">
+      <Grid gap={4} className="mt-5 sm:grid-cols-section-details">
+        <VStack className="relative h-32 overflow-hidden rounded-lg bg-neutral-100 sm:h-full">
           {section.imagePath ? (
             <img
               src={section.imagePath}
@@ -49,49 +51,49 @@ export default function SectionDetails({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-neutral-400">
+            <HStack vAlign="stretch" className="h-full items-center justify-center text-sm text-neutral-400">
               Section photo
-            </div>
+            </HStack>
           )}
-        </div>
+        </VStack>
 
-        <div>
+        <VStack>
           <dl className="space-y-3">
-            <div className="flex justify-between gap-3">
+            <HStack gap={3} vAlign="stretch" className="justify-between">
               <dt className="text-neutral-500">Minimum spend</dt>
               <dd className="font-medium">${section.minimumSpend}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
+            </HStack>
+            <HStack gap={3} vAlign="stretch" className="justify-between">
               <dt className="text-neutral-500">Capacity</dt>
               <dd className="font-medium">Up to {section.capacity} guests</dd>
-            </div>
-            <div className="flex justify-between gap-3">
+            </HStack>
+            <HStack gap={3} vAlign="stretch" className="justify-between">
               <dt className="text-neutral-500">Deposit</dt>
               <dd className="font-medium">${section.deposit}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
+            </HStack>
+            <HStack gap={3} vAlign="stretch" className="justify-between">
               <dt className="text-neutral-500">Reservation</dt>
               <dd className="text-right font-medium">{bookingDate} · {bookingTime}</dd>
-            </div>
+            </HStack>
           </dl>
-        </div>
-      </div>
+        </VStack>
+      </Grid>
 
-      <p className="mt-4 text-sm text-neutral-600">{section.description}</p>
+      <Text as="p" type="supporting" color="secondary" className="mt-4 text-sm text-neutral-600">{section.description}</Text>
 
-      <button
+      <ActionButton
         type="button"
         onClick={async () => {
-          if (await confirm({
-            title: "Age requirement: 21+",
-            message: "You must be 21 years of age or older to purchase a section. By continuing, you confirm that you are at least 21 years old.",
-            confirmLabel: "I’m 21 or older",
-          })) onReserve();
+        if (await confirm({
+        title: "Age requirement: 21+",
+        message: "You must be 21 years of age or older to purchase a section. By continuing, you confirm that you are at least 21 years old.",
+        confirmLabel: "I’m 21 or older",
+        })) onReserve();
         }}
-        className="mt-5 w-full rounded-md bg-primary px-5 py-3 font-medium text-on-primary hover:bg-accent"
-      >
-        Reserve section
-      </button>
-    </div>
+        variant="primary"
+        label="Reserve section"
+        className="mt-5 w-full"
+      />
+    </Card>
   );
 }

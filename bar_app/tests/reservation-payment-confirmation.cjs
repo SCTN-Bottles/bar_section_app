@@ -225,8 +225,9 @@ async function main() {
 
   const React = require("react");
   const { renderToStaticMarkup } = require("react-dom/server");
+  const ui = { "@/components/ui/ActionButton": load("components/ui/ActionButton.tsx", {}) };
   const Confirmation = load("components/checkout/ReservationConfirmation.tsx", {
-    "next/link": ({ href, children, ...props }) => React.createElement("a", { href, ...props }, children),
+    ...ui,
     "@/lib/booking-time": { formatBookingTime: () => "9:30 PM" },
   }).default;
   const receipt = { id: "booking", venueName: "Test bar", sectionName: "Section A", date: "January 3, 2027", time: "21:30", capacity: 10, additional_bands: 2, customerEmail: "guest@example.test", minimumSpend: 100, deposit: 25, drinkSignText: "Happy birthday", beverages: [] };
@@ -241,7 +242,7 @@ async function main() {
   assert.match(html, /2 × \$20 = \$40/);
   assert.match(html, /Up to 12 guests/);
   assert.match(html, /\$65/);
-  const CheckoutForm = load("components/checkout/DemoCheckoutForm.tsx", {}).default;
+  const CheckoutForm = load("components/checkout/DemoCheckoutForm.tsx", ui).default;
   const form = renderToStaticMarkup(React.createElement(CheckoutForm, {onComplete:async()=>{}}));
   assert.doesNotMatch(form, /Number of guests|name="guests"/);
   const warning = renderToStaticMarkup(React.createElement(Confirmation, { receipt: { ...receipt, emailWarning: "Email delivery failed." } }));

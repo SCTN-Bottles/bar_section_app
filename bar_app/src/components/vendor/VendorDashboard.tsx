@@ -1,8 +1,14 @@
 "use client";
 
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Heading } from "@astryxdesign/core/Heading";
+import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
+
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import ActionButton from "@/components/ui/ActionButton";
 
 import { useVenueData } from "@/components/providers/VenueDataProvider";
 import ReservationHistory from "@/components/vendor/ReservationHistory";
@@ -34,7 +40,7 @@ function PortalTabs<T extends string>({ label, tabs, activeTab, onSelect, second
   secondary?: boolean;
   idPrefix?: string;
 }) {
-  return <div role="tablist" aria-label={label} className={`flex overflow-x-auto border-b border-neutral-300 ${secondary ? "mt-4 gap-1" : "mt-7 gap-2"}`}>
+  return <HStack gap={secondary ? 1 : 2} role="tablist" aria-label={label} className={`portal-tabs overflow-x-auto ${secondary ? "mt-4" : "mt-7"}`}>
     {tabs.map((tab, index) => <button key={tab.id} id={`${idPrefix}${tab.id}-tab`} type="button" role="tab"
       aria-selected={activeTab === tab.id} aria-controls={tab.panelId} tabIndex={activeTab === tab.id ? 0 : -1}
       onClick={() => onSelect(tab.id)}
@@ -47,10 +53,10 @@ function PortalTabs<T extends string>({ label, tabs, activeTab, onSelect, second
         onSelect(tabs[nextIndex].id);
         event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button")[nextIndex]?.focus();
       }}
-      className={`shrink-0 border-b-2 px-4 py-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${secondary ? "font-medium" : "font-semibold"} ${activeTab === tab.id ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
+      className={`shrink-0 border-b-2 px-4 py-3 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${secondary ? "font-medium" : "font-semibold"} ${activeTab === tab.id ? "border-primary text-foreground" : "border-transparent text-neutral-500 hover:text-foreground"}`}>
       {tab.label}
     </button>)}
-  </div>;
+  </HStack>;
 }
 
 function cloneVenue(venue: Venue) {
@@ -122,47 +128,51 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
 
   return (
     <>
-      <header className="venue-header border-b-2">
-        <div className="venue-header-content grid w-full items-center gap-2 px-3 py-3 sm:px-4">
-          <p className="justify-self-start text-xs text-foreground sm:text-sm">Vendor portal</p>
-          <Link href="/vendor" className="venue-header-title text-base font-semibold text-foreground sm:text-xl">{venue?.name ?? draft.name}</Link>
-          <nav aria-label="Vendor portal navigation" className="col-span-3 flex flex-wrap items-center justify-end gap-2 sm:col-span-1 sm:justify-self-end">
-            <a href={`/${draft.venueName}`} className="inline-flex min-h-11 items-center rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:px-4 sm:text-sm">View reservation site</a>
-            <button type="button" onClick={logout} className="rounded-md border border-neutral-300 px-3 py-2 text-xs font-semibold text-foreground hover:border-primary sm:px-4 sm:text-sm">Log out</button>
-          </nav>
-        </div>
+      <header className="vendor-portal venue-header border-b-2">
+        <TopNav
+          label="Vendor portal navigation"
+          className="sctn-top-nav"
+          heading={<Text as="p" type="supporting" color="secondary" className="text-xs text-neutral-500">Vendor portal</Text>}
+          centerContent={<TopNavHeading heading={venue?.name ?? draft.name} headingHref="/vendor" />}
+          endContent={
+            <HStack gap={2} vAlign="stretch" wrap="wrap" className="items-center justify-end">
+              <ActionButton href={`/${draft.venueName}`} as="a" variant="secondary" label="View reservation site" />
+              <ActionButton type="button" onClick={logout} variant="secondary" label="Log out" />
+            </HStack>
+          }
+        />
       </header>
-    <main className="mx-auto max-w-7xl px-6 py-10">
-      <div className="border-b border-neutral-300 pb-7">
-          <h1 className="display-heading">Manage your venue</h1>
-          <p className="mt-3 max-w-2xl text-neutral-500">Update the information customers use when reserving sections.</p>
-      </div>
+    <main className="vendor-portal mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <VStack className="page-intro">
+          <Heading level={1} className="display-heading">Manage your venue</Heading>
+          <Text as="p" type="inherit" color="inherit" className="mt-3 max-w-2xl text-neutral-500">Update the information customers use when reserving sections.</Text>
+      </VStack>
 
       <PortalTabs label="Vendor portal views" activeTab={activeGroup} onSelect={selectGroup} idPrefix="group-"
         tabs={dashboardGroups.map((group) => ({ id: group.id, label: group.label, panelId: "vendor-group-panel" }))} />
 
-      <div id="vendor-group-panel" role="tabpanel" aria-labelledby={`group-${activeGroup}-tab`} tabIndex={0}>
+      <VStack id="vendor-group-panel" role="tabpanel" aria-labelledby={`group-${activeGroup}-tab`} tabIndex={0}>
         {currentGroup.tabs.length > 1 && <PortalTabs label={`${currentGroup.label} views`} activeTab={activeDashboardTab} onSelect={selectTab} secondary
           tabs={currentGroup.tabs.map((tab) => ({ ...tab, panelId: `${tab.id}-panel` }))} />}
 
-        <div id="management-panel" role="tabpanel" aria-labelledby="management-tab" hidden={activeDashboardTab !== "management"} className="mt-8 space-y-10">
-          {notice && <p role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</p>}
-          {venueError && <p role="alert" className="text-red-700">{venueError}</p>}
-          {beverageError && <p role="alert" className="text-red-700">{beverageError}</p>}
-          {sectionError && <p role="alert" className="text-red-700">{sectionError}</p>}
+        <VStack gap={10} id="management-panel" role="tabpanel" aria-labelledby="management-tab" hidden={activeDashboardTab !== "management"} className="mt-8">
+          {notice && <Text as="p" type="inherit" color="inherit" role="status" className="rounded-md border border-primary bg-neutral-50 px-4 py-3 text-sm">{notice}</Text>}
+          {venueError && <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{venueError}</Text>}
+          {beverageError && <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{beverageError}</Text>}
+          {sectionError && <Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{sectionError}</Text>}
 
           <WeeklyBookingEditor venue={venue ?? draft} disabled={!!venueError || !!sectionError} menuRefreshVersion={menuRefreshVersion} reservationRefreshVersion={reservationRefreshVersion} />
-        </div>
-        {defaultsOpened && <div id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
+        </VStack>
+        {defaultsOpened && <VStack id="defaults-panel" role="tabpanel" aria-labelledby="defaults-tab" hidden={activeDashboardTab !== "defaults"} className="mt-8 pb-12">
           <SectionDefaultsEditor venueId={session.venueId} venueName={session.venueName}
             onSaved={(sections) => { if (venue) updateVenue({ ...venue, sections }); }} />
-        </div>}
-        {drinkDefaultsOpened && <div id="drink-defaults-panel" role="tabpanel" aria-labelledby="group-drinks-tab" hidden={activeDashboardTab !== "drink-defaults"} className="mt-8 pb-12">
+        </VStack>}
+        {drinkDefaultsOpened && <VStack id="drink-defaults-panel" role="tabpanel" aria-labelledby="group-drinks-tab" hidden={activeDashboardTab !== "drink-defaults"} className="mt-8 pb-12">
           <DrinkMenuEditor venueId={session.venueId} venueName={session.venueName}
             onSaved={(beverages) => { if (venue) updateVenue({ ...venue, beverages }); setMenuRefreshVersion((value) => value + 1); }} />
-        </div>}
+        </VStack>}
 
-        {activeDashboardTab === "review" && <div id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} onReservationChanged={() => setReservationRefreshVersion((value) => value + 1)} /></div>}
+        {activeDashboardTab === "review" && <VStack id="review-panel" role="tabpanel" aria-labelledby="review-tab"><ReservationReview venueId={session.venueId} onReservationChanged={() => setReservationRefreshVersion((value) => value + 1)} /></VStack>}
         {activeDashboardTab === "bookings" && <ViewBookings venueId={session.venueId} />}
         {activeDashboardTab === "reservations" && (
           <ReservationHistory
@@ -170,11 +180,11 @@ export default function VendorDashboard({ session }: VendorDashboardProps) {
           />
         )}
 
-        {activeDashboardTab === "analytics" && <section id="analytics-panel" role="tabpanel" aria-labelledby="analytics-tab" tabIndex={0} className="mt-8 space-y-3 pb-12">
-          <h2 className="text-2xl font-semibold">Reservation Analytics</h2>
-          <p className="text-sm text-neutral-500">Coming soon: charts and trends for your venue’s reservations.</p>
+        {activeDashboardTab === "analytics" && <section id="analytics-panel" role="tabpanel" aria-labelledby="analytics-tab" tabIndex={0} className="sctn-panel mt-8 space-y-3 p-5 sm:p-6">
+          <Heading level={2} className="text-2xl font-semibold">Reservation Analytics</Heading>
+          <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Coming soon: charts and trends for your venue’s reservations.</Text>
         </section>}
-      </div>
+      </VStack>
     </main>
     </>
   );

@@ -1,5 +1,10 @@
 "use client";
 
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/Stack";
+import { Heading } from "@astryxdesign/core/Heading";
+
+
 import VenueHeader from "@/components/layout/VenueHeader";
 import VenueExplorer from "@/components/venues/VenueExplorer";
 import { useVenueByName } from "@/components/providers/VenueDataProvider";
@@ -41,25 +46,25 @@ export default function VenuePageClient({
     <>
       <VenueHeader venue={activeVenue} />
 
-      <section className="mx-auto max-w-7xl px-6 py-12">
-        {beverageError && <p role="alert" className="mb-6 text-red-700">{beverageError}</p>}
-        {sectionError && <p role="alert" className="mb-6 text-red-700">{sectionError}</p>}
-        <div className="mb-10">
-          <p className="page-supporting-text text-sm">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+        {beverageError && <Text as="p" type="inherit" color="inherit" role="alert" className="mb-6 text-red-700">{beverageError}</Text>}
+        {sectionError && <Text as="p" type="inherit" color="inherit" role="alert" className="mb-6 text-red-700">{sectionError}</Text>}
+        <VStack className="page-intro mb-8">
+          <Text as="p" type="inherit" color="inherit" className="page-eyebrow">
             {activeVenue.city}, {activeVenue.state}
-          </p>
-          <h1 className="display-heading mt-2">
+          </Text>
+          <Heading level={1} className="display-heading mt-2">
             Reserve a section at {activeVenue.name}
-          </h1>
-          <p className="page-supporting-text mt-3 max-w-2xl">{activeVenue.description}</p>
-        </div>
+          </Heading>
+          <Text as="p" type="inherit" color="inherit" className="page-supporting-text mt-4 max-w-2xl leading-relaxed">{activeVenue.description}</Text>
+        </VStack>
 
         <VenueExplorer
           key={`${initialReservation.restart ?? "reservation"}-${venueKey}`}
           venue={activeVenue}
           initialReservation={initialReservation}
         />
-      </section>
+      </main>
     </>
   );
 }

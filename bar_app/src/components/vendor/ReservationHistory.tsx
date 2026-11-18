@@ -1,5 +1,10 @@
 "use client";
 
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+
+
 import { useEffect, useState } from "react";
 import { ADDITIONAL_BAND_PRICE } from "@/lib/additional-bands";
 import { supabase } from "@/lib/supabase";
@@ -46,17 +51,17 @@ export default function ReservationHistory({ venueId }: { venueId: string }) {
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / 10));
 
   return <section id="reservations-panel" role="tabpanel" aria-labelledby="reservations-tab" className="mt-8 space-y-6 pb-12">
-    <div>
-      <h2 className="text-2xl font-semibold">Reservation history</h2>
-      <p className="mt-2 text-sm text-neutral-500">Past sections marked Reserved or Unreserved, newest first.</p>
-    </div>
-    <section className="overflow-hidden rounded-xl border border-neutral-300 bg-neutral-50" aria-busy={loading}>
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-300 px-5 py-4">
-        <div>
-          <h3 className="font-semibold">Reservation logs</h3>
-          {data && <p className="mt-1 text-sm text-neutral-500">Showing {data.reservations.length} of {data.total} matching reservation{data.total === 1 ? "" : "s"}.</p>}
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
+    <VStack>
+      <Heading level={2} className="text-2xl font-semibold">Reservation history</Heading>
+      <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">Past sections marked Reserved or Unreserved, newest first.</Text>
+    </VStack>
+    <section className="sctn-panel overflow-hidden" aria-busy={loading}>
+      <HStack gap={4} vAlign="stretch" wrap="wrap" className="items-end justify-between border-b border-neutral-300 px-5 py-4">
+        <VStack>
+          <Heading level={3} className="font-semibold">Reservation logs</Heading>
+          {data && <Text as="p" type="supporting" color="secondary" className="mt-1 text-sm text-neutral-500">Showing {data.reservations.length} of {data.total} matching reservation{data.total === 1 ? "" : "s"}.</Text>}
+        </VStack>
+        <HStack gap={3} vAlign="stretch" wrap="wrap" className="items-end">
           <label className="text-sm text-neutral-500">Month
             <select value={month} onChange={(event) => { setMonth(event.target.value); setPage(1); }} className="input mt-1 min-w-36">
               <option value="">All months</option>
@@ -71,34 +76,34 @@ export default function ReservationHistory({ venueId }: { venueId: string }) {
           </label>
           {(month || year) && <button type="button" onClick={() => { setMonth(""); setYear(""); setPage(1); }} className={buttonClass}>Clear filters</button>}
           <button type="button" disabled={loading} onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Refresh history</button>
-        </div>
-      </div>
-      {loading ? <p role="status" className="px-5 py-8 text-neutral-500">Loading reservation history…</p> : error ? <div className="space-y-3 px-5 py-8"><p role="alert">{error}</p><button type="button" onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Retry loading history</button></div> : data?.reservations.length ? <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] text-left text-sm">
+        </HStack>
+      </HStack>
+      {loading ? <Text as="p" type="inherit" color="inherit" role="status" className="px-5 py-8 text-neutral-500">Loading reservation history…</Text> : error ? <VStack gap={3} className="px-5 py-8"><Text as="p" type="inherit" color="inherit" role="alert">{error}</Text><button type="button" onClick={() => setVersion((value) => value + 1)} className={buttonClass}>Retry loading history</button></VStack> : data?.reservations.length ? <VStack className="overflow-x-auto">
+        <table className="portal-table w-full min-w-booking-table text-left text-sm tabular-nums">
           <thead className="bg-neutral-100 text-neutral-500"><tr>
             {["Date", "Guest", "Section", "Drink sign", "Capacity", "Additional bands", "Total guests", "Deposit", "Deposit + bands", "Status"].map((label) => <th key={label} className="px-5 py-3 font-medium">{label}</th>)}
           </tr></thead>
           <tbody>{data.reservations.map((reservation) => <tr key={reservation.booking_id} className="border-t border-neutral-300">
-            <td className="whitespace-nowrap px-5 py-4">{formatDate(reservation.reservation_date)}<span className="block text-xs text-neutral-500">{formatBookingTime(reservation.reservation_time)} · {reservation.booking_slot}</span></td>
-            <td className="px-5 py-4 [overflow-wrap:anywhere]"><span className="block font-medium">{reservation.customer_name || "Guest details not recorded"}</span><span className="block text-xs text-neutral-500">{reservation.customer_email}</span></td>
-            <td className="px-5 py-4">{reservation.section_name}<span className="block text-xs text-neutral-500">{venueAreaLabels[reservation.section_area as VenueArea] ?? reservation.section_area}</span></td>
-            <td className="min-w-40 max-w-64 whitespace-pre-wrap px-5 py-4 [overflow-wrap:anywhere]">{reservation.drink_sign_text || "—"}</td>
+            <td className="whitespace-nowrap px-5 py-4">{formatDate(reservation.reservation_date)}<Text as="span" type="supporting" color="secondary" className="block text-xs text-neutral-500">{formatBookingTime(reservation.reservation_time)} · {reservation.booking_slot}</Text></td>
+            <td className="px-5 py-4 wrap-anywhere"><Text as="span" type="inherit" color="inherit" className="block font-medium">{reservation.customer_name || "Guest details not recorded"}</Text><Text as="span" type="supporting" color="secondary" className="block text-xs text-neutral-500">{reservation.customer_email}</Text></td>
+            <td className="px-5 py-4">{reservation.section_name}<Text as="span" type="supporting" color="secondary" className="block text-xs text-neutral-500">{venueAreaLabels[reservation.section_area as VenueArea] ?? reservation.section_area}</Text></td>
+            <td className="min-w-40 max-w-64 whitespace-pre-wrap px-5 py-4 wrap-anywhere">{reservation.drink_sign_text || "—"}</td>
             <td className="px-5 py-4">{reservation.section_capacity}</td>
-            <td className="px-5 py-4">{reservation.additional_bands ?? 0}<span className="block text-xs text-neutral-500">${((reservation.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</span></td>
+            <td className="px-5 py-4">{reservation.additional_bands ?? 0}<Text as="span" type="supporting" color="secondary" className="block text-xs text-neutral-500">${((reservation.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</Text></td>
             <td className="px-5 py-4">{reservation.section_capacity + (reservation.additional_bands ?? 0)}</td>
             <td className="px-5 py-4">${Number(reservation.deposit_amount).toFixed(2)}</td>
             <td className="px-5 py-4">${(Number(reservation.deposit_amount) + (reservation.additional_bands ?? 0) * ADDITIONAL_BAND_PRICE).toFixed(2)}</td>
             <td className="px-5 py-4">{bookingHistoryStatus(reservation.status)}</td>
           </tr>)}</tbody>
         </table>
-      </div> : <p className="px-5 py-8 text-sm text-neutral-500">{month || year ? "No reservations match the selected month and year." : "No past sections or reservations have been recorded yet."}</p>}
-      {data && data.total > 0 && <div className="flex items-center justify-between gap-4 border-t border-neutral-300 px-5 py-4 text-sm">
-        <span className="text-neutral-500">Page {data.page} of {totalPages}</span>
-        <div className="flex gap-2">
+      </VStack> : <Text as="p" type="supporting" color="secondary" className="px-5 py-8 text-sm text-neutral-500">{month || year ? "No reservations match the selected month and year." : "No past sections or reservations have been recorded yet."}</Text>}
+      {data && data.total > 0 && <HStack gap={4} vAlign="stretch" className="items-center justify-between border-t border-neutral-300 px-5 py-4 text-sm">
+        <Text as="span" type="inherit" color="inherit" className="text-neutral-500">Page {data.page} of {totalPages}</Text>
+        <HStack gap={2} vAlign="stretch" className="">
           <button type="button" disabled={data.page === 1} onClick={() => setPage(data.page - 1)} className={buttonClass}>Previous</button>
           <button type="button" disabled={data.page >= totalPages} onClick={() => setPage(data.page + 1)} className={buttonClass}>Next</button>
-        </div>
-      </div>}
+        </HStack>
+      </HStack>}
     </section>
   </section>;
 }

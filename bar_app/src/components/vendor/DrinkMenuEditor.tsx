@@ -1,5 +1,12 @@
 "use client";
 
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Grid } from "@astryxdesign/core/Grid";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { getBeverageOptions, saveBeverageOptions } from "@/lib/beverages";
 import { getDailyDrinkMenus, saveDailyDrinkMenus, validDrinkMenu, type DailyDrinkMenu } from "@/lib/drink-menus";
@@ -162,27 +169,27 @@ export default function DrinkMenuEditor({ venueId, venueName, dates, activeDate,
     finally { setSaving(false); }
   }
 
-  return <section aria-label={isDefault ? "Default drink menu editor" : "Daily drink menu editor"} className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
+  return <section aria-label={isDefault ? "Default drink menu editor" : "Daily drink menu editor"} className="sctn-panel p-4 sm:p-6">
     {confirmationDialog}
-    <h2 className="text-2xl font-semibold">{isDefault ? "Update Drink Menu Defaults" : "Drink menu"}</h2>
-    <p className="mt-2 text-sm text-neutral-500">{isDefault ? "Add, remove, or edit the default drinks used for dates without a saved menu." : `Editing ${current?.date ?? activeDate}. ${combinedSave ? "Save changes below saves sections and drink menus" : "Save drink changes saves the menus"} for all confirmed days.`}</p>
-    {loading && <p role="status" className="mt-4 text-sm">Loading drink menu…</p>}
-    {error && <div className="mt-4"><p role="alert" className="text-sm text-red-700">{error}</p>{loadedKey !== requestKey && <button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-2 rounded-md border px-4 py-2">Retry loading menu</button>}</div>}
-    {notice && <p role="status" className="mt-4 text-sm">{notice}</p>}
+    <Heading level={2} className="text-2xl font-semibold">{isDefault ? "Update Drink Menu Defaults" : "Drink menu"}</Heading>
+    <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">{isDefault ? "Add, remove, or edit the default drinks used for dates without a saved menu." : `Editing ${current?.date ?? activeDate}. ${combinedSave ? "Save changes below saves sections and drink menus" : "Save drink changes saves the menus"} for all confirmed days.`}</Text>
+    {loading && <Text as="p" type="inherit" color="inherit" role="status" className="mt-4 text-sm">Loading drink menu…</Text>}
+    {error && <VStack className="mt-4"><Text as="p" type="inherit" color="inherit" role="alert" className="text-sm text-red-700">{error}</Text>{loadedKey !== requestKey && <button type="button" onClick={() => setRetry((value) => value + 1)} className="mt-2 rounded-md border px-4 py-2">Retry loading menu</button>}</VStack>}
+    {notice && <Text as="p" type="inherit" color="inherit" role="status" className="mt-4 text-sm">{notice}</Text>}
     {!loading && loadedKey === requestKey && current && <fieldset disabled={saving} className="mt-5 space-y-4 disabled:opacity-60">
-      {!isDefault && <p className="text-xs text-neutral-500">{current.saved ? "Loaded from saved daily menu" : "Starting from drink menu defaults"}{dirty.has(current.date) ? " · Unsaved changes" : ""}</p>}
-      {!isDefault && <div className="space-y-2"><p className="text-xs text-neutral-500">Saved daily menus keep their own drink list. Use the latest defaults to replace this day’s list, then save.</p><button type="button" onClick={useLatestDefaults} className="rounded-md border border-neutral-300 px-4 py-2 text-sm">Use latest drink defaults</button></div>}
-      {current.beverages.map((drink) => <div key={drink.id} className="grid gap-3 rounded-lg border border-neutral-300 bg-neutral-100 p-4 md:grid-cols-[1fr_130px_120px_auto]">
+      {!isDefault && <Text as="p" type="supporting" color="secondary" className="text-xs text-neutral-500">{current.saved ? "Loaded from saved daily menu" : "Starting from drink menu defaults"}{dirty.has(current.date) ? " · Unsaved changes" : ""}</Text>}
+      {!isDefault && <VStack gap={2} className=""><Text as="p" type="supporting" color="secondary" className="text-xs text-neutral-500">Saved daily menus keep their own drink list. Use the latest defaults to replace this day’s list, then save.</Text><button type="button" onClick={useLatestDefaults} className="rounded-md border border-neutral-300 px-4 py-2 text-sm">Use latest drink defaults</button></VStack>}
+      {current.beverages.map((drink) => <Grid gap={3} key={drink.id} className="sctn-inset p-4 md:grid-cols-drink-editor">
         <label className="text-sm text-neutral-500">Drink name<input value={drink.name} onChange={(event) => change(current.beverages.map((item) => item.id === drink.id ? { ...item, name: event.target.value } : item))} className="input mt-1" /></label>
         <label className="text-sm text-neutral-500">Type<select aria-label="Type" value={drink.type} onChange={(event) => change(current.beverages.map((item) => item.id === drink.id ? { ...item, type: event.target.value as BeverageOption["type"] } : item))} className="input mt-1"><option value="bottle">Bottle</option><option value="keg">Keg</option></select></label>
         <label className="text-sm text-neutral-500">Price ($)<input type="number" min="0" step="0.01" value={Number.isNaN(drink.price) ? "" : drink.price} onChange={(event) => change(current.beverages.map((item) => item.id === drink.id ? { ...item, price: event.target.value === "" ? NaN : Number(event.target.value) } : item))} className="input mt-1" /></label>
         <button type="button" aria-label={`Remove ${drink.name || "drink"}`} onClick={() => change(current.beverages.filter((item) => item.id !== drink.id))} className="self-end rounded-md border border-neutral-300 px-4 py-2 text-sm">Remove</button>
-      </div>)}
-      {!current.beverages.length && <p className="text-sm text-neutral-500">No drinks on this menu. Add a drink, or save an empty menu.</p>}
-      <div className="flex flex-wrap justify-between gap-3">
+      </Grid>)}
+      {!current.beverages.length && <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">No drinks on this menu. Add a drink, or save an empty menu.</Text>}
+      <HStack gap={3} vAlign="stretch" wrap="wrap" className="justify-between">
         <button type="button" onClick={() => change([...current.beverages, { id: crypto.randomUUID(), name: "", type: "bottle", price: 0 }])} className="rounded-md border border-neutral-300 px-4 py-3 text-sm font-semibold">Add drink</button>
-        {!combinedSave && <button type="button" onClick={() => void save()} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary">{saving ? "Saving…" : isDefault ? "Save drink menu defaults" : "Save drink changes"}</button>}
-      </div>
+        {!combinedSave && <ActionButton type="button" onClick={() => void save()} variant="primary" label={saving ? "Saving…" : isDefault ? "Save drink menu defaults" : "Save drink changes"} />}
+      </HStack>
     </fieldset>}
   </section>;
 }

@@ -1,8 +1,16 @@
+
+
+// Establish cascade layers before the generated theme module imports its CSS.
+import "./globals.css";
 import type { Metadata } from "next";
 
+import AstryxProvider from "@/components/providers/AstryxProvider";
 import VenueDataProvider from "@/components/providers/VenueDataProvider";
 
-import "./globals.css";
+import "@fontsource/figtree/latin-400.css";
+import "@fontsource/figtree/latin-500.css";
+import "@fontsource/figtree/latin-600.css";
+import "@fontsource/figtree/latin-700.css";
 
 export const metadata: Metadata = {
   title: "SCTN",
@@ -27,8 +35,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body><VenueDataProvider>{children}</VenueDataProvider></body>
+    <html lang="en" data-astryx-theme="sctn" data-theme="dark">
+      <body>
+        <AstryxProvider><VenueDataProvider>{children}</VenueDataProvider></AstryxProvider>
+      </body>
     </html>
   );
 }

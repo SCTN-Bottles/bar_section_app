@@ -1,5 +1,12 @@
 "use client";
 
+import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Heading } from "@astryxdesign/core/Heading";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useState } from "react";
 
 import BeverageSelection, {
@@ -197,19 +204,30 @@ export default function VenueExplorer({
 
   if (!bookingDate) {
     return (
-      <div className="flex min-h-96 items-center justify-center py-8">
+      <HStack vAlign="stretch" className="min-h-96 items-center justify-center py-8">
         <BookingCalendar
           value={null}
           onChange={chooseBookingDate}
           availableWeekdays={venue.bookingCalendar.availableWeekdays}
           placeholderTime={venue.bookingCalendar.placeholderTime}
         />
-      </div>
+      </HStack>
     );
   }
 
-  if (day.loading || !day.data && !day.error) return <p role="status" className="py-12 text-neutral-500">Loading sections and drinks for {bookingDate}…</p>;
-  if (day.error) return <div className="space-y-4 py-8"><p role="alert" className="text-red-700">{day.error}</p><button type="button" onClick={day.retry} className="rounded-md border px-4 py-2">Retry loading date</button><button type="button" onClick={changeBookingDate} className="ml-3 rounded-md border px-4 py-2">Change date</button></div>;
+  if (day.loading || !day.data && !day.error) return <Text as="p" type="inherit" color="inherit" role="status" className="py-12 text-neutral-500">Loading sections and drinks for {bookingDate}…</Text>;
+  if (day.error) return <VStack gap={4} className="py-8"><Text as="p" type="inherit" color="inherit" role="alert" className="text-red-700">{day.error}</Text><ActionButton
+    type="button"
+    onClick={day.retry}
+    variant="secondary"
+    label="Retry loading date"
+  /><ActionButton
+        type="button"
+        onClick={changeBookingDate}
+        variant="secondary"
+        label="Change date"
+        className="ml-3"
+      /></VStack>;
 
   const bookingDateLabel = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -219,10 +237,15 @@ export default function VenueExplorer({
   const hasSections = venue.sections.length > 0;
 
   if (reservationStep !== "sections" && !selectedSection) {
-    return <div role="alert" className="space-y-4 py-8">
-      <p>This section has just been reserved. Please choose another section.</p>
-      <button type="button" onClick={() => { setSelectedSectionId(""); setReservationStep("sections"); }} className="rounded-md border px-4 py-2">Browse sections</button>
-    </div>;
+    return <VStack gap={4} role="alert" className="py-8">
+      <Text as="p" type="inherit" color="inherit">This section has just been reserved. Please choose another section.</Text>
+      <ActionButton
+        type="button"
+        onClick={() => { setSelectedSectionId(""); setReservationStep("sections"); }}
+        variant="secondary"
+        label="Browse sections"
+      />
+    </VStack>;
   }
   const activeBeverageQuantities = Object.fromEntries(Object.entries(beverageQuantities)
     .filter(([id]) => venue.beverages.some((beverage) => beverage.id === id)));
@@ -290,35 +313,40 @@ export default function VenueExplorer({
   }
 
   return (
-    <>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3">
-        <div>
-          <p className="text-sm text-neutral-500">Reservation date</p>
-          <p className="mt-1 font-semibold">
+    <VStack gap={6} width="100%">
+      <HStack gap={3} vAlign="center" hAlign="between" wrap="wrap" className="sctn-panel px-4 py-3 sm:px-5">
+        <VStack gap={1} className="min-w-0">
+          <Text as="p" display="block" type="supporting" color="secondary">Reservation date</Text>
+          <Text as="p" display="block" type="body" weight="semibold">
             {bookingDateLabel}{hasSections && ` · ${formatBookingTime(bookingTime)}`}
-          </p>
-        </div>
+          </Text>
+        </VStack>
 
-        <button
+        <ActionButton
           type="button"
           onClick={changeBookingDate}
-          className="rounded-md border border-primary bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-accent"
-        >
-          Change date
-        </button>
-      </div>
+          variant="primary"
+          label="Change date"
+          />
+          </HStack>
 
-      {availableSlots.length > 1 && <div className="mb-6 flex gap-2" aria-label="Reservation period">{availableSlots.map((slot) => <button key={slot} type="button" aria-pressed={bookingSlot === slot} onClick={() => { resetBands(); setBookingSlot(slot); setSelectedSectionId(""); setBeverageQuantities({}); setReservationStep("sections"); }} className={`rounded-md border px-4 py-2 ${bookingSlot === slot ? "bg-primary text-on-primary" : "border-neutral-300"}`}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</div>}
+          {availableSlots.length > 1 && <HStack gap={2} vAlign="stretch" wrap="wrap" aria-label="Reservation period">{availableSlots.map((slot) => <ActionButton
+          key={slot}
+          type="button"
+          aria-pressed={bookingSlot === slot}
+          onClick={() => { resetBands(); setBookingSlot(slot); setSelectedSectionId(""); setBeverageQuantities({}); setReservationStep("sections"); }}
+          variant={bookingSlot === slot ? "primary" : "secondary"}
+          label={String(slot === "day" ? "Daytime" : "Nighttime")}
+        />)}</HStack>}
       {!hasSections ? (
-        <p role="status" className="rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-8 text-center text-neutral-600">
+        <Text as="p" display="block" type="large" size="xl" color="inherit" justify="center" textWrap="balance" role="status" className="sctn-panel px-4 py-8 text-white">
           {availableSlots.length > 1
             ? `No bookings have been created for the selected date during the ${bookingSlot === "day" ? "daytime" : "nighttime"} period.`
             : "No bookings have been created for the selected date."}
-        </p>
+        </Text>
       ) : (
         <>
-          <div
-            className="mb-6 flex flex-wrap gap-2"
+          <HStack gap={2} vAlign="stretch" wrap="wrap"
             role="tablist"
             aria-label="Reservation areas"
           >
@@ -326,7 +354,7 @@ export default function VenueExplorer({
               const isActive = area === activeArea;
 
               return (
-                <button
+                <ActionButton
                   key={area}
                   id={`${area}-tab`}
                   type="button"
@@ -334,23 +362,18 @@ export default function VenueExplorer({
                   aria-selected={isActive}
                   aria-controls="area-sections-panel"
                   onClick={() => changeArea(area)}
-                  className={`rounded-md border px-4 py-2 text-sm font-semibold ${
-                    isActive
-                      ? "border-primary bg-primary text-on-primary hover:bg-accent"
-                      : "border-neutral-300 bg-neutral-50 hover:border-primary"
-                  }`}
-                >
-                  {venueAreaLabels[area]}
-                </button>
+                  variant={isActive ? "primary" : "secondary"}
+                  label={String(venueAreaLabels[area])}
+                />
               );
             })}
-          </div>
+          </HStack>
 
-          <div
+          <Grid gap={8}
             id="area-sections-panel"
             role="tabpanel"
             aria-labelledby={`${activeArea}-tab`}
-            className="grid items-start gap-8 lg:grid-cols-[1.5fr_1fr]"
+            className="items-start lg:grid-cols-[1.5fr_1fr]"
           >
             <SectionMap
               area={activeArea}
@@ -359,12 +382,12 @@ export default function VenueExplorer({
               onSelectSection={chooseSection}
             />
 
-            <div>
-              <h2 className="section-heading mb-4 text-foreground">
+            <VStack>
+              <Heading level={2} className="section-heading mb-4 text-foreground">
                 {venueAreaLabels[activeArea]}
-              </h2>
+              </Heading>
 
-              {!selectedSection && <p className="text-sm text-neutral-500">No sections are available in this area for the selected date.</p>}
+              {!selectedSection && <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">No sections are available in this area for the selected date.</Text>}
               {selectedSection && (
                 <SectionDetails
                   venueName={venue.venueName}
@@ -374,11 +397,11 @@ export default function VenueExplorer({
                   onReserve={() => void continueReservation("bands")}
                 />
               )}
-            </div>
+            </VStack>
 
-          </div>
+          </Grid>
         </>
       )}
-    </>
+    </VStack>
   );
 }

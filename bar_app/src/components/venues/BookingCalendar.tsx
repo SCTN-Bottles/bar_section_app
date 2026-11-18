@@ -1,5 +1,12 @@
 "use client";
 
+import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Heading } from "@astryxdesign/core/Heading";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useState } from "react";
 
 import { formatBookingTime } from "@/lib/booking-time";
@@ -75,52 +82,50 @@ export default function BookingCalendar({
 
   return (
     <section
-      className="mb-6 w-full max-w-xl rounded-xl border border-neutral-300 bg-neutral-50 p-4"
+      className="sctn-panel mb-6 w-full max-w-lg p-4 sm:p-5"
       aria-labelledby="booking-calendar-title"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm text-neutral-500">Reservation date</p>
-          <h2 id="booking-calendar-title" className="mt-1 text-xl font-semibold">
+      <HStack gap={2} vAlign="stretch" wrap="wrap" className="items-start justify-between">
+        <VStack>
+          <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Reservation date</Text>
+          <Heading level={2} id="booking-calendar-title" className="mt-1 text-xl font-semibold">
             Choose your night
-          </h2>
-        </div>
+          </Heading>
+        </VStack>
 
-        <div className="rounded-md border border-primary bg-primary px-4 py-2 text-sm text-on-primary">
-          <span className="text-on-primary">Time </span>
-          <span className="font-semibold">{formatBookingTime(placeholderTime)}</span>
-        </div>
-      </div>
+        <VStack className="sctn-inset px-3 py-2 text-sm">
+          <Text as="span" type="inherit" color="inherit" className="text-neutral-500">Time </Text>
+          <Text as="span" type="inherit" color="inherit" className="font-semibold">{formatBookingTime(placeholderTime)}</Text>
+        </VStack>
+      </HStack>
 
-      <div className="mt-3 flex items-center justify-between">
-        <button
+      <HStack vAlign="stretch" className="mt-4 items-center justify-between border-t border-neutral-300 pt-3">
+        <ActionButton
           type="button"
           onClick={() => changeMonth(-1)}
           disabled={isCurrentMonth}
-          className="rounded-md border border-neutral-300 px-3 py-1 text-sm hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Show previous month"
-        >
-          ←
-        </button>
-        <p className="font-semibold">{monthLabel}</p>
-        <button
+          variant="secondary"
+          label="←"
+        />
+        <Text as="p" type="inherit" color="inherit" className="font-semibold">{monthLabel}</Text>
+        <ActionButton
           type="button"
           onClick={() => changeMonth(1)}
-          className="rounded-md border border-neutral-300 px-3 py-1 text-sm hover:border-primary"
           aria-label="Show next month"
-        >
-          →
-        </button>
-      </div>
+          variant="secondary"
+          label="→"
+        />
+      </HStack>
 
-      <div className="mx-auto mt-3 grid w-fit grid-cols-7 gap-1 text-center text-xs text-neutral-500">
+      <Grid columns={7} gap={1.5} className="mt-3 text-center text-xs">
         {weekdayLabels.map((day) => (
-          <span key={day} className="font-medium">
+          <Text as="span" type="inherit" color="inherit" key={day} className="pb-2 font-medium text-neutral-500">
             {day}
-          </span>
+          </Text>
         ))}
         {Array.from({ length: leadingDays }).map((_, index) => (
-          <span key={`empty-${index}`} aria-hidden="true" />
+          <Text as="span" type="inherit" color="inherit" key={`empty-${index}`} aria-hidden="true">{""}</Text>
         ))}
         {Array.from({ length: daysInMonth }).map((_, index) => {
           const date = new Date(
@@ -134,25 +139,19 @@ export default function BookingCalendar({
           const selected = dateKey === value;
 
           return (
-            <button
+            <ActionButton
               key={dateKey}
               type="button"
               disabled={!available}
               onClick={() => onChange(dateKey)}
               aria-pressed={selected}
-              className={`min-h-9 min-w-9 aspect-square rounded-md border text-xs font-medium ${
-                selected
-                  ? "border-primary bg-primary text-on-primary hover:bg-accent"
-                  : available
-                    ? "border-neutral-300 bg-neutral-100 hover:border-primary"
-                    : "border-transparent text-neutral-500 opacity-40"
-              }`}
-            >
-              {date.getDate()}
-            </button>
+              variant={selected ? "primary" : "secondary"}
+              label={String(date.getDate())}
+              className="calendar-day"
+            />
           );
         })}
-      </div>
+      </Grid>
     </section>
   );
 }

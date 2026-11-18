@@ -1,50 +1,95 @@
-@import "tailwindcss";
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
 
-:root {
-  --background: #1f1f1f;
-  --foreground: #eeeeee;
-  --surface: #262626;
-  --surface-muted: #303030;
-  --border: #404040;
-  --muted: #dadada;
-  --primary: #f1b82d;
-  --accent: #c99700;
-  --on-primary: #1f1f1f;
-  --header: #262626;
-  --map-surface: #262626;
-  --shadow-card: rgb(255 255 255) 0 0 0 0 inset, rgb(255 255 255 / 5%) 0 0 0 1px inset, rgb(0 0 0 / 0%) 0 0 0 0;
-  --shadow-elevated: rgb(255 255 255) 0 0 0 0 inset, rgb(255 255 255 / 10%) 0 0 0 1px inset, rgb(0 0 0 / 10%) 0 1px 3px 0, rgb(0 0 0 / 10%) 0 1px 2px -1px;
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-}
+@import "tailwindcss";
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/core/tailwind-theme.css";
+
+/* Apply the same palette to Astryx and the existing venue controls. */
 
 * { box-sizing: border-box; }
-
-html { scrollbar-gutter: stable; }
 
 body {
   margin: 0;
   min-height: 100svh;
   background-color: var(--background);
-  background-image:
-    linear-gradient(to bottom, rgb(241 184 45 / 10%) 0%, rgb(241 184 45 / 6%) 30%, rgb(241 184 45 / 2%) 65%, transparent 100%),
-    radial-gradient(ellipse at 95% 90%, rgb(93 112 143 / 9%), transparent 55%),
-    repeating-linear-gradient(135deg, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 28px);
+  background-image: var(--sctn-background-image);
+  background-size: var(--sctn-body-background-size);
+  background-repeat: repeat;
   background-attachment: fixed;
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Roboto, Inter, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-  font-size: 16px;
+  font-family: var(--font-family-body, "Figtree", system-ui, sans-serif);
+  font-size: var(--sctn-body-font-size);
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.5;
 }
 
-.display-heading { font-size: 60px; font-weight: 600; line-height: 1; letter-spacing: -1.2px; }
-.section-heading { font-size: 36px; font-weight: 400; line-height: 1.11; }
+.display-heading { font-size: var(--sctn-display-heading-font-size); font-weight: 600; line-height: 1.05; letter-spacing: var(--sctn-display-heading-letter-spacing); }
+.section-heading { font-size: var(--sctn-section-heading-font-size); font-weight: 600; line-height: 1.15; letter-spacing: var(--sctn-section-heading-letter-spacing); }
 
-/* Theme mappings keep the existing Tailwind markup aligned with Obsidian tokens. */
-.bg-neutral-50 { background-color: var(--surface); box-shadow: var(--shadow-card); }
+.page-intro {
+  padding-block: var(--sctn-page-intro-padding-block);
+  border-block-end: var(--sctn-page-intro-border-block-end);
+}
+
+.page-intro .display-heading { max-width: 22ch; text-wrap: balance; }
+.page-eyebrow { color: var(--primary); font-size: var(--sctn-page-eyebrow-font-size); font-weight: 600; letter-spacing: var(--sctn-page-eyebrow-letter-spacing); text-transform: uppercase; }
+
+.sctn-panel {
+  background-color: var(--surface);
+  border: var(--sctn-panel-border);
+  border-radius: var(--sctn-panel-border-radius);
+  box-shadow: var(--shadow-elevated);
+}
+
+.sctn-inset {
+  background-color: var(--surface-muted);
+  border: var(--sctn-inset-border);
+  border-radius: var(--sctn-inset-border-radius);
+}
+
+.sctn-total {
+  padding: var(--sctn-total-padding);
+  border: var(--sctn-total-border);
+  border-radius: var(--sctn-total-border-radius);
+  background: color-mix(in srgb, var(--primary) 7%, var(--surface));
+}
+
+.calendar-day {
+  min-height: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  font-variant-numeric: tabular-nums;
+}
+.calendar-day:not(:disabled):hover { box-shadow: var(--sctn-calendar-day-not-disabled-hover-box-shadow); }
+.calendar-day:disabled { opacity: 0.55; }
+
+.section-map .map-section-available rect { fill: var(--surface-muted); }
+.section-map .map-section-available:hover rect,
+.section-map .map-section-available:focus-visible rect { stroke: var(--primary); }
+
+.portal-tabs {
+  padding: var(--sctn-portal-tabs-padding);
+  border: var(--sctn-portal-tabs-border);
+  border-radius: var(--sctn-portal-tabs-border-radius);
+  background: var(--surface);
+}
+.portal-tabs button { border-radius: var(--sctn-portal-tabs-button-border-radius); }
+.portal-tabs button[aria-selected="true"] {
+  background: var(--surface-muted);
+  color: var(--primary);
+}
+.vendor-portal :is(button, .astryx-button):not([aria-selected="true"]):not([aria-pressed="true"]):not(.bg-primary):not([data-variant="primary"]) {
+  color: var(--color-white);
+}
+.portal-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+.portal-table tbody tr:hover { background: var(--surface-muted); }
+
+/* Keep existing Tailwind markup aligned with the Neutral theme. */
+.bg-neutral-50 { background-color: var(--surface); }
 .bg-neutral-100, .bg-neutral-200 { background-color: var(--surface-muted); }
 .border-neutral-300, .stroke-neutral-300, .border-neutral-400, .stroke-neutral-400, .border-neutral-500, .stroke-neutral-500 { border-color: var(--border); stroke: var(--border); }
-.text-neutral-500, .text-neutral-600 { color: var(--muted); }
+.text-neutral-400, .text-neutral-500, .text-neutral-600 { color: var(--muted); }
 .fill-neutral-50 { fill: var(--surface); }
 .fill-neutral-100, .fill-neutral-200 { fill: var(--surface-muted); }
 .fill-neutral-400, .fill-neutral-600 { fill: var(--muted); }
@@ -54,6 +99,7 @@ body {
 .border-primary, .stroke-primary { border-color: var(--primary); stroke: var(--primary); }
 .fill-primary { fill: var(--primary); }
 .text-foreground { color: var(--foreground); }
+.text-primary { color: var(--primary); }
 .text-on-primary { color: var(--on-primary); }
 .hover\:bg-accent:hover { background-color: var(--accent); }
 .hover\:border-primary:hover { border-color: var(--primary); }
@@ -61,58 +107,105 @@ body {
 .focus\:border-primary:focus { border-color: var(--primary); }
 
 /* Semantic success feedback remains distinct from the primary interaction color. */
-.bg-green-50 { background-color: #203b2a; }
-.border-green-200 { border-color: #467454; }
-.text-green-700 { color: #9dd3a8; }
-.text-green-800, .text-green-900 { color: #d2ead7; }
+.bg-green-50 { background-color: var(--sctn-bg-green-50-background-color); }
+.border-green-200 { border-color: var(--sctn-border-green-200-border-color); }
+.text-green-700 { color: var(--sctn-text-green-700-color); }
+.text-green-800, .text-green-900 { color: var(--sctn-text-green-800-text-green-900-color); }
+.text-red-700 { color: var(--sctn-text-red-700-color); }
+.bg-red-50 { background-color: var(--sctn-bg-red-50-background-color); }
 
 .page-supporting-text { color: var(--muted); }
-.venue-header { background-color: var(--header); border-color: var(--border); box-shadow: var(--shadow-elevated); }
+.venue-header { width: 100%; background-color: var(--surface); border-color: var(--border); box-shadow: var(--shadow-elevated); }
 .venue-header-content {
-  height: 116px;
+  height: var(--sctn-venue-header-content-height);
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-content: center;
 }
 .venue-header-title { grid-column: 2; justify-self: center; white-space: nowrap; }
 
 @media (min-width: 640px) {
-  .venue-header-content { height: 84px; }
+  .venue-header-content { height: var(--sctn-venue-header-content-height-2); }
 }
-.section-map { background-color: var(--map-surface); border-color: var(--border); box-shadow: var(--shadow-card); }
-.map-section-label { fill: var(--foreground); paint-order: stroke fill; stroke: var(--background); stroke-linejoin: round; stroke-width: 3px; }
+.section-map { background-color: var(--surface); border-color: var(--border); }
+.map-section-label { fill: var(--foreground); paint-order: stroke fill; stroke: var(--background); stroke-linejoin: round; stroke-width: var(--sctn-map-section-label-stroke-width); }
 .map-section-label-selected { fill: var(--on-primary); stroke: var(--on-primary); }
 .map-label, .map-legend { color: var(--foreground); fill: var(--foreground); }
 
 button, a, input {
-  transition: color 100ms var(--ease-standard), background-color 100ms var(--ease-standard), border-color 100ms var(--ease-standard), box-shadow 100ms var(--ease-standard);
+  transition: var(--sctn-button-a-input-transition);
+}
+
+button, input, select, textarea {
+  font-family: var(--font-family-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-heading);
 }
 
 .input {
   display: block;
   width: 100%;
-  margin-top: 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  margin-top: var(--sctn-input-margin-top);
+  border: var(--sctn-input-border);
+  border-radius: var(--sctn-input-border-radius);
+  min-height: var(--sctn-input-min-height);
+  background: var(--surface-muted);
+  color: var(--foreground);
+  padding: var(--sctn-input-padding);
+}
+
+.sctn-action[aria-selected="true"],
+.sctn-action[aria-pressed="true"] { box-shadow: var(--sctn-action-aria-selected-true-sctn-action-aria-pressed-true-box-shadow); }
+.sctn-action[aria-disabled="true"] { box-shadow: none; }
+.reservation-back { padding-inline: var(--sctn-reservation-back-padding-inline); color: var(--sctn-reservation-back-color); }
+.reservation-quantity { width: var(--sctn-reservation-quantity-width); flex-shrink: 0; padding: 0; font-size: var(--sctn-reservation-quantity-font-size); }
+.sctn-action.calendar-day { min-height: 0; padding-inline: 0; }
+
+.reservation-card {
+  border-top: var(--sctn-reservation-card-border-top);
+  background-image: var(--sctn-reservation-card-background-image);
+}
+.reservation-heading {
+  font-family: var(--font-family-heading);
+  font-size: var(--sctn-reservation-heading-font-size);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: var(--sctn-reservation-heading-letter-spacing);
+  text-wrap: balance;
+}
+.reservation-step {
+  color: var(--sctn-reservation-step-color);
+  font-size: var(--sctn-reservation-step-font-size);
+  font-weight: 600;
+  letter-spacing: var(--sctn-reservation-step-letter-spacing);
+  text-transform: uppercase;
+}
+.venue-header { border-bottom-color: var(--sctn-venue-header-border-bottom-color); }
+.sctn-top-nav {
+  min-height: var(--sctn-top-nav-min-height);
+  padding: var(--sctn-top-nav-padding);
   background: var(--surface);
   color: var(--foreground);
-  padding: 0.55rem 0.7rem;
 }
+.venue-brand { --text-large-size: var(--sctn-venue-brand-size); }
+.input:focus-visible, textarea:focus-visible { border-color: var(--primary); box-shadow: var(--sctn-input-focus-visible-textarea-focus-visible-box-shadow); }
 
 .vendor-time-input {
   color-scheme: dark;
 }
 
 .drink-sign-preview {
-  background: radial-gradient(ellipse at 50% 40%, #f1b82d12, transparent 70%), #191919;
+  background: var(--sctn-drink-sign-preview-background);
 }
 
 .drink-sign-board {
   position: relative;
   isolation: isolate;
-  padding: 20px;
-  border: 2px solid #f9dc83;
-  background: linear-gradient(135deg, #fff0b1, #b97617 30%, #f7cd65 55%, #a66313 80%, #ffe5a0);
-  box-shadow: 0 3px 0 #71400f, 0 8px 24px #0008, 0 0 24px #f1b82d25;
+  padding: var(--sctn-drink-sign-board-padding);
+  border: var(--sctn-drink-sign-board-border);
+  background: var(--sctn-drink-sign-board-background);
+  box-shadow: var(--sctn-drink-sign-board-box-shadow);
 }
 
 .drink-sign-board::before,
@@ -124,34 +217,32 @@ button, a, input {
 }
 
 .drink-sign-board::before {
-  inset: 4px 16px;
+  inset: var(--sctn-drink-sign-board-before-inset);
   background:
-    radial-gradient(circle, #fffce4 2px, #ffe8a0 3px, #d58c28 4px, transparent 5px) top left / 18px 12px space no-repeat,
-    radial-gradient(circle, #fffce4 2px, #ffe8a0 3px, #d58c28 4px, transparent 5px) bottom left / 18px 12px space no-repeat;
+    var(--sctn-drink-sign-board-before-background);
 }
 
 .drink-sign-board::after {
-  inset: 16px 4px;
+  inset: var(--sctn-drink-sign-board-after-inset);
   background:
-    radial-gradient(circle, #fffce4 2px, #ffe8a0 3px, #d58c28 4px, transparent 5px) top left / 12px 18px no-repeat space,
-    radial-gradient(circle, #fffce4 2px, #ffe8a0 3px, #d58c28 4px, transparent 5px) top right / 12px 18px no-repeat space;
+    var(--sctn-drink-sign-board-after-background);
 }
 
 .drink-sign-face {
-  --drink-sign-row-height: 34px;
+  --drink-sign-row-height: var(--sctn-drink-sign-row-height);
   padding-block: calc(var(--drink-sign-row-height) * 2);
-  border: 2px solid #82521c;
-  background: repeating-linear-gradient(to bottom, #fff 0, #fff calc(var(--drink-sign-row-height) - 1px), #b8bec5 calc(var(--drink-sign-row-height) - 1px), #b8bec5 var(--drink-sign-row-height));
+  border: var(--sctn-drink-sign-face-border);
+  background: var(--sctn-drink-sign-face-background);
   background-origin: padding-box;
-  box-shadow: inset 0 2px 7px #0002, 0 0 0 2px #ffe5a0;
+  box-shadow: var(--sctn-drink-sign-face-box-shadow);
 }
 
 .drink-sign-message {
-  color: #111;
-  font-family: Impact, Haettenschweiler, "Arial Narrow", sans-serif;
-  font-weight: 900;
-  font-size: 30px;
-  letter-spacing: 0.1em;
+  color: var(--sctn-drink-sign-message-color);
+  font-family: var(--font-family-heading);
+  font-weight: 700;
+  font-size: var(--sctn-drink-sign-message-font-size);
+  letter-spacing: var(--sctn-drink-sign-message-letter-spacing);
   text-transform: uppercase;
   line-height: var(--drink-sign-row-height);
 }
@@ -161,10 +252,23 @@ button, a, input {
   opacity: 1;
 }
 
-button { min-height: 44px; }
+button { min-height: var(--sctn-button-min-height); }
 
-:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+:focus-visible { outline: var(--sctn-focus-visible-outline); outline-offset: var(--sctn-focus-visible-outline-offset); }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0ms !important; }
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: var(--sctn-before-after-transition-duration) !important; }
+}
+
+@theme inline {
+  --container-booking-table: var(--sctn-booking-table-width);
+}
+
+@layer utilities {
+  @media (min-width: 640px) {
+    .sm\:grid-cols-section-details { grid-template-columns: var(--sctn-section-details-columns); }
+  }
+  @media (min-width: 768px) {
+    .md\:grid-cols-drink-editor { grid-template-columns: var(--sctn-drink-editor-columns); }
+  }
 }

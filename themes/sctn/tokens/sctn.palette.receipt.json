@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "recipe": "astryx-oklch-v1",
+  "generatorVersion": "palette-generator-v1",
+  "candidateFormatVersion": "palette-typescript-v1",
+  "candidateSha256": "d4deeacf0a3f5f9a2bbbc196e33a3e9a568c6d358cfd45e95b8987d03f90b9e8",
+  "request": {
+    "recipe": "astryx-oklch-v1",
+    "vibrancy": 50,
+    "neutralProfile": "neutral-v1",
+    "modeStrategy": "light-and-dark",
+    "stops": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50,
+      55,
+      60,
+      65,
+      70,
+      75,
+      80,
+      85,
+      90,
+      95,
+      100
+    ],
+    "families": [
+      {
+        "id": "accent",
+        "name": "Accent",
+        "seed": "#f1b82d",
+        "kind": "chromatic",
+        "anchors": [
+          {
+            "mode": "light",
+            "stop": 80,
+            "color": "#f1b82d",
+            "policy": "exact"
+          },
+          {
+            "mode": "dark",
+            "stop": 80,
+            "color": "#f1b82d",
+            "policy": "exact"
+          }
+        ]
+      }
+    ]
+  },
+  "diagnostics": {
+    "families": {
+      "accent": {
+        "light": {
+          "monotonic": true,
+          "minimumAdjacentDeltaE": 3.95704990794757,
+          "maximumAdjacentDeltaE": 18.01398838952642,
+          "maximumHueDrift": 8.758132064944164,
+          "hueIdentityRisk": null,
+          "gamutMappedStops": [
+            5,
+            10,
+            15,
+            20,
+            25,
+            30,
+            35,
+            40,
+            45,
+            50,
+            55,
+            60,
+            65,
+            90,
+            95,
+            100
+          ],
+          "anchors": [
+            {
+              "mode": "light",
+              "stop": 80,
+              "color": "#f1b82d",
+              "policy": "exact",
+              "generatedColor": "#f1b82d",
+              "deltaE": 0
+            }
+          ]
+        },
+        "dark": {
+          "monotonic": true,
+          "minimumAdjacentDeltaE": 3.788083104464214,
+          "maximumAdjacentDeltaE": 18.01398838952642,
+          "maximumHueDrift": 8.758132064944164,
+          "hueIdentityRisk": null,
+          "gamutMappedStops": [
+            5,
+            10,
+            15,
+            20,
+            25,
+            30,
+            35,
+            40,
+            45,
+            50,
+            55,
+            95,
+            100
+          ],
+          "anchors": [
+            {
+              "mode": "dark",
+              "stop": 80,
+              "color": "#f1b82d",
+              "policy": "exact",
+              "generatedColor": "#f1b82d",
+              "deltaE": 0
+            }
+          ]
+        }
+      }
+    },
+    "coordination": [
+      {
+        "mode": "light",
+        "stop": 50,
+        "closestFamilies": null,
+        "minimumFamilyDeltaE": null,
+        "strongestFamily": "Accent",
+        "weakestFamily": "Accent",
+        "chromaRatio": 1
+      },
+      {
+        "mode": "dark",
+        "stop": 50,
+        "closestFamilies": null,
+        "minimumFamilyDeltaE": null,
+        "strongestFamily": "Accent",
+        "weakestFamily": "Accent",
+        "chromaRatio": 1
+      }
+    ]
+  }
+}

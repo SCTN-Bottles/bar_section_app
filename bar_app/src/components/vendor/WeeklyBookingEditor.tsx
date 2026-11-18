@@ -1,5 +1,12 @@
 "use client";
 
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
+import { HStack, VStack } from "@astryxdesign/core/Stack";
+import { Grid } from "@astryxdesign/core/Grid";
+
+
+import ActionButton from "@/components/ui/ActionButton";
 import { useEffect, useRef, useState } from "react";
 import {
   dateKey, deleteScheduleDay, getScheduleDates, loadBookingSchedule, offsetDate, saveBookingSchedule, scheduleKey,
@@ -208,92 +215,92 @@ export default function WeeklyBookingEditor({ venue, disabled, menuRefreshVersio
     }
   }
 
-  return <section aria-labelledby="schedule-heading" className="rounded-xl border border-neutral-300 bg-neutral-50 p-4 sm:p-6">
+  return <section aria-labelledby="schedule-heading" className="sctn-panel p-4 sm:p-6">
     {confirmationDialog}
-    <h2 id="schedule-heading" className="text-2xl font-semibold">Booking schedule</h2>
-    <p className="mt-2 text-sm text-neutral-500">Saved days load automatically. Confirm newly selected days to edit them. Unselecting a day marks its section and drink settings for deletion when you click Save changes. Customer reservations are kept.</p>
-    {weekLoading && <p role="status" className="mt-3 text-sm">Checking saved days…</p>}
-    {weekError && <p role="alert" className="mt-3 text-sm text-red-700">Saved days could not be loaded. <button type="button" onClick={() => setWeekRetry((value) => value + 1)} className="underline">Retry loading week</button></p>}
+    <Heading level={2} id="schedule-heading" className="text-2xl font-semibold">Booking schedule</Heading>
+    <Text as="p" type="supporting" color="secondary" className="mt-2 text-sm text-neutral-500">Saved days load automatically. Confirm newly selected days to edit them. Unselecting a day marks its section and drink settings for deletion when you click Save changes. Customer reservations are kept.</Text>
+    {weekLoading && <Text as="p" type="inherit" color="inherit" role="status" className="mt-3 text-sm">Checking saved days…</Text>}
+    {weekError && <Text as="p" type="inherit" color="inherit" role="alert" className="mt-3 text-sm text-red-700">Saved days could not be loaded. <button type="button" onClick={() => setWeekRetry((value) => value + 1)} className="underline">Retry loading week</button></Text>}
     <fieldset disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError} className="mt-5 space-y-5 disabled:opacity-60">
-      <div className="flex flex-wrap items-end gap-3">
+      <HStack gap={3} vAlign="stretch" wrap="wrap" className="items-end">
         <button type="button" aria-label="Previous week" onClick={() => changeWeek(offsetDate(week, -7))} className={buttonClass}>Previous week</button>
         <label className="block text-sm text-neutral-500">Week starting Sunday
           <input type="date" value={week} onChange={(event) => changeWeek(event.target.value)} className="input mt-1" />
         </label>
         <button type="button" aria-label="Next week" onClick={() => changeWeek(offsetDate(week, 7))} className={buttonClass}>Next week</button>
-      </div>
-      <p className="text-sm font-medium">{formatDate(week)} – {formatDate(offsetDate(week, 6))}</p>
-      <div className="flex flex-wrap gap-2" aria-label="Days to edit">
+      </HStack>
+      <Text as="p" type="inherit" color="inherit" className="text-sm font-medium">{formatDate(week)} – {formatDate(offsetDate(week, 6))}</Text>
+      <HStack gap={2} vAlign="stretch" wrap="wrap" className="" aria-label="Days to edit">
         {weekdays.map((day, index) => <button key={day} type="button" aria-pressed={days.includes(index)}
           onClick={() => void toggleDay(index)}
           className={buttonClass + (days.includes(index) ? selectedClass : "")}>
-          {day}<span className="mt-1 block text-xs">{formatDate(offsetDate(week, index))}</span>
+          {day}<Text as="span" type="inherit" color="inherit" className="mt-1 block text-xs">{formatDate(offsetDate(week, index))}</Text>
         </button>)}
-      </div>
+      </HStack>
       <button type="button" disabled={!days.length} onClick={confirmDays} className="rounded-md bg-primary px-5 py-3 font-semibold text-on-primary disabled:opacity-50">
         {busy === "loading" ? "Loading days…" : "Confirm days"}
       </button>
-      {!days.length && <p className="text-sm text-neutral-500">Choose at least one day.</p>}
+      {!days.length && <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Choose at least one day.</Text>}
     </fieldset>
 
-    {message && <p role="status" className="mt-5 rounded-md border border-primary px-4 py-3 text-sm">{message}</p>}
-    {error && <p role="alert" className="mt-5 text-sm text-red-700">{error}</p>}
-    {confirmedDates.length > 0 && !selectionConfirmed && <p className="mt-5 text-sm text-neutral-500">Confirm your updated days to continue editing. Your current edits are kept until you confirm.</p>}
+    {message && <Text as="p" type="inherit" color="inherit" role="status" className="mt-5 rounded-md border border-primary px-4 py-3 text-sm">{message}</Text>}
+    {error && <Text as="p" type="inherit" color="inherit" role="alert" className="mt-5 text-sm text-red-700">{error}</Text>}
+    {confirmedDates.length > 0 && !selectionConfirmed && <Text as="p" type="supporting" color="secondary" className="mt-5 text-sm text-neutral-500">Confirm your updated days to continue editing. Your current edits are kept until you confirm.</Text>}
 
     {selectionConfirmed && sections.length > 0 && <fieldset disabled={Boolean(busy) || disabled} className="mt-7 space-y-5 disabled:opacity-60">
-      <div role="tablist" aria-label="Confirmed booking days" className="flex flex-wrap gap-2">
+      <HStack gap={2} vAlign="stretch" wrap="wrap" role="tablist" aria-label="Confirmed booking days" className="">
         {confirmedDates.map((date) => <button key={date} type="button" role="tab" id={`day-${date}`} aria-selected={activeDate === date} aria-controls="booking-day-panel"
           onClick={() => setActiveDate(date)} className={buttonClass + (activeDate === date ? selectedClass : "")}>
           {weekdays[new Date(`${date}T12:00:00`).getDay()]} · {formatDate(date)}
           {sections.some((section) => section.date === date && dirty.has(scheduleKey(section))) ? " *" : ""}
         </button>)}
-      </div>
-      <div id="booking-day-panel" role="tabpanel" aria-labelledby={`day-${activeDate}`} className="space-y-5">
-        {slots.length > 1 && <div className="flex gap-2" aria-label="Booking period">{slots.map((slot) => <button key={slot} type="button" aria-pressed={slot === activeSlot} onClick={() => setActiveSlot(slot)} className={buttonClass + (slot === activeSlot ? selectedClass : "")}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</div>}
-        <div role="tablist" aria-label="Sections for selected day" className="flex gap-2 overflow-x-auto pb-2">
+      </HStack>
+      <VStack gap={5} id="booking-day-panel" role="tabpanel" aria-labelledby={`day-${activeDate}`} className="">
+        {slots.length > 1 && <HStack gap={2} vAlign="stretch" className="" aria-label="Booking period">{slots.map((slot) => <button key={slot} type="button" aria-pressed={slot === activeSlot} onClick={() => setActiveSlot(slot)} className={buttonClass + (slot === activeSlot ? selectedClass : "")}>{slot === "day" ? "Daytime" : "Nighttime"}</button>)}</HStack>}
+        <HStack gap={2} vAlign="stretch" role="tablist" aria-label="Sections for selected day" className="overflow-x-auto pb-2">
           {visibleSections.map((section) => <button key={section.id} type="button" role="tab" id={`section-tab-${section.id}`} aria-selected={current?.id === section.id} aria-controls="booking-section-panel"
             onClick={() => setActiveSection(section.id)} className={buttonClass + " shrink-0" + (current?.id === section.id ? selectedClass : "")}>
-            <span className="block text-xs">{venueAreaLabels[section.area]}</span>{section.name}{dirty.has(scheduleKey(section)) ? " *" : ""}
+            <Text as="span" type="inherit" color="inherit" className="block text-xs">{venueAreaLabels[section.area]}</Text>{section.name}{dirty.has(scheduleKey(section)) ? " *" : ""}
           </button>)}
-        </div>
-        {current && <div id="booking-section-panel" role="tabpanel" aria-labelledby={`section-tab-${current.id}`} className="rounded-lg border border-neutral-300 bg-neutral-100 p-4">
+        </HStack>
+        {current && <VStack id="booking-section-panel" role="tabpanel" aria-labelledby={`section-tab-${current.id}`} className="sctn-inset p-4">
           <fieldset disabled={Boolean(current.reservationStatus)}>
-          <h3 className="text-lg font-semibold">{current.name} · {formatDate(current.date)}</h3>
-          <p className="mt-1 text-xs text-neutral-500">{current.saved ? "Loaded from saved booking settings" : "Starting from section defaults"}{dirty.has(scheduleKey(current)) ? " · Unsaved changes" : ""}</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Heading level={3} className="text-lg font-semibold">{current.name} · {formatDate(current.date)}</Heading>
+          <Text as="p" type="supporting" color="secondary" className="mt-1 text-xs text-neutral-500">{current.saved ? "Loaded from saved booking settings" : "Starting from section defaults"}{dirty.has(scheduleKey(current)) ? " · Unsaved changes" : ""}</Text>
+          <Grid gap={4} className="mt-4 sm:grid-cols-2">
             <label className="text-sm text-neutral-500">Section name<input value={current.name} onChange={(event) => updateSection({ name: event.target.value })} className="input mt-1" /></label>
-            {current.reservationStatus ? <div className="text-sm text-neutral-500">
-              <span className="block">Availability</span>
-              <p className="input mt-1" aria-readonly="true">
+            {current.reservationStatus ? <VStack className="text-sm text-neutral-500">
+              <Text as="span" type="inherit" color="inherit" className="block">Availability</Text>
+              <Text as="p" type="inherit" color="inherit" className="input mt-1" aria-readonly="true">
                 {current.reservationStatus === "pending" ? "Pending" : current.reservationStatus === "confirmed" ? "Approved · payment pending" : "Reserved"}
-              </p>
-              <span className="mt-2 block text-xs">
+              </Text>
+              <Text as="span" type="inherit" color="inherit" className="mt-2 block text-xs">
                 {current.reservationStatus === "pending"
                   ? "Resolve this request in Pending reservations before changing availability."
                   : current.reservationStatus === "confirmed"
                     ? "This approved reservation holds the slot. If unpaid, it releases after cancellation or payment expiry."
                     : "This paid reservation holds the slot."}
-              </span>
-            </div> : <label className="text-sm text-neutral-500">Availability<select value={current.status} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1"><option value="available">Available</option><option value="sold">Sold</option></select></label>}
+              </Text>
+            </VStack> : <label className="text-sm text-neutral-500">Availability<select value={current.status} onChange={(event) => updateSection({ status: event.target.value as ScheduledSection["status"] })} className="input mt-1"><option value="available">Available</option><option value="sold">Sold</option></select></label>}
             <label className="text-sm text-neutral-500">Capacity<input type="number" min="1" step="1" value={Number.isNaN(current.capacity) ? "" : current.capacity} onChange={(event) => updateSection({ capacity: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Reservation time<input type="time" value={current.time} onChange={(event) => updateSection({ time: event.target.value })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Minimum spend ($)<input type="number" min="0" step="0.01" value={Number.isNaN(current.minimumSpend) ? "" : current.minimumSpend} onChange={(event) => updateSection({ minimumSpend: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
             <label className="text-sm text-neutral-500">Deposit ($)<input type="number" min="0" step="0.01" value={Number.isNaN(current.deposit) ? "" : current.deposit} onChange={(event) => updateSection({ deposit: event.target.value === "" ? NaN : Number(event.target.value) })} className="input mt-1" /></label>
-          </div>
+          </Grid>
           <label className="mt-4 block text-sm text-neutral-500">Description<textarea value={current.description} onChange={(event) => updateSection({ description: event.target.value })} className="input mt-1 min-h-24" /></label>
           </fieldset>
-        </div>}
-      </div>
+        </VStack>}
+      </VStack>
     </fieldset>}
-    {removedDates.length > 0 && <p role="status" className="mt-5 text-sm">Pending deletion: {removedDates.map(formatDate).join(", ")}. Click Save changes to delete these days, or select them again to keep them.</p>}
+    {removedDates.length > 0 && <Text as="p" type="inherit" color="inherit" role="status" className="mt-5 text-sm">Pending deletion: {removedDates.map(formatDate).join(", ")}. Click Save changes to delete these days, or select them again to keep them.</Text>}
     {confirmedDates.length > 0 && <fieldset disabled={Boolean(busy) || disabled} hidden={!selectionConfirmed} className="mt-8">
       <DrinkMenuEditor ref={menuEditorRef} combinedSave onReadyChange={setMenuReady} venueId={venue.id} venueName={venue.venueName} dates={confirmedDates}
         refreshVersion={`${menuRefreshVersion}:${confirmationVersion}`}
         activeDate={activeDate} onSelectDate={setActiveDate} onDirtyChange={setMenuDirty} onSavingChange={setMenuSaving} />
     </fieldset>}
-    {(selectionConfirmed || removedDates.length > 0) && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-300 pt-5">
-      <p className="text-sm text-neutral-500">Saves sections and drink menus for all confirmed days and deletes days marked for removal. * Unsaved changes.</p>
-      <button type="button" disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError || !canConfirmChanges || (selectedDates.length > 0 && !menuReady)} onClick={confirmChanges} className="rounded-md bg-primary px-6 py-3 font-semibold text-on-primary disabled:opacity-50">{busy === "saving" ? "Saving…" : "Save changes"}</button>
-    </div>}
+    {(selectionConfirmed || removedDates.length > 0) && <HStack gap={3} vAlign="stretch" wrap="wrap" className="mt-5 items-center justify-between border-t border-neutral-300 pt-5">
+      <Text as="p" type="supporting" color="secondary" className="text-sm text-neutral-500">Saves sections and drink menus for all confirmed days and deletes days marked for removal. * Unsaved changes.</Text>
+      <ActionButton type="button" disabled={Boolean(busy) || menuSaving || disabled || weekLoading || weekError || !canConfirmChanges || (selectedDates.length > 0 && !menuReady)} onClick={confirmChanges} variant="primary" label={busy === "saving" ? "Saving…" : "Save changes"} />
+    </HStack>}
   </section>;
 }

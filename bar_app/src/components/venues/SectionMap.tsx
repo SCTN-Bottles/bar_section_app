@@ -1,5 +1,9 @@
 "use client";
 
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+
+
 import {
   Section,
   VenueArea,
@@ -128,7 +132,7 @@ export default function SectionMap({
   onSelectSection,
 }: SectionMapProps) {
   return (
-    <div className="section-map self-start rounded-xl border p-6">
+    <VStack className="sctn-panel section-map self-start p-3 sm:p-6">
       <svg
         viewBox="0 0 600 360"
         className="h-auto w-full"
@@ -154,7 +158,7 @@ export default function SectionMap({
               aria-label={`Section ${section.name}, ${
                 sold ? "sold" : "available"
               }`}
-              className={sold ? "pointer-events-none cursor-default" : "cursor-pointer"}
+              className={sold ? "pointer-events-none cursor-default" : selected ? "cursor-pointer" : "map-section-available cursor-pointer"}
               onClick={() => !sold && onSelectSection(section.id)}
               onKeyDown={(event) => {
                 if (!sold && (event.key === "Enter" || event.key === " ")) {
@@ -175,8 +179,8 @@ export default function SectionMap({
                 cx={section.mapPosition.x + 13}
                 cy={section.mapPosition.y + 13}
                 r="5"
-                fill={sold ? "#dc2626" : "#238636"}
-                stroke="#1f1f1f"
+                fill={sold ? "var(--color-error)" : "var(--color-success)"}
+                stroke="var(--color-background-card)"
                 strokeWidth="2"
               />
               <text
@@ -196,11 +200,11 @@ export default function SectionMap({
 
       </svg>
 
-      <div className="map-legend mt-5 flex flex-wrap gap-5 text-sm">
-        <span>Green dot = Available</span>
-        <span>Red dot = Sold</span>
-        <span>Gold = Selected</span>
-      </div>
-    </div>
+      <HStack gap={5} vAlign="stretch" wrap="wrap" className="map-legend mt-5 text-sm">
+        <Text as="span" type="inherit" color="inherit">Green dot = Available</Text>
+        <Text as="span" type="inherit" color="inherit">Red dot = Sold</Text>
+        <Text as="span" type="inherit" color="inherit">Gold = Selected</Text>
+      </HStack>
+    </VStack>
   );
 }
